@@ -74,6 +74,8 @@ export class AudioManager {
   private pausedForHidden = false;
   private unlockCleanup: (() => void) | null = null;
   private visCleanup: (() => void) | null = null;
+  private ambientOscillators: OscillatorNode[] = [];
+  private ambientGain: GainNode | null = null;
 
   readonly counters = { fetches: 0, decodes: 0, cacheHits: 0, sfxPlayed: 0, sfxDroppedNotLoaded: 0, sfxDroppedLimit: 0, errors: 0 };
 
@@ -143,6 +145,7 @@ export class AudioManager {
     this.bus.emit(PersistenceEvents.AUDIO_UNLOCKED);
     this.attachVisibility();
     this.refreshMusic(); // start music that was requested before unlock
+    if (!Object.keys(this.o.regionMusic ?? {}).length && !this.o.combatMusicId) this.startProceduralAmbient();
     if (this.wantedAmbience.length) void this.setAmbience(this.wantedAmbience);
     return true;
   }
@@ -266,10 +269,8 @@ export class AudioManager {
    */
   playSfx(id: string, opts: { volume?: number; rate?: number; pan?: number } = {}): boolean {
     const asset = this.manifest[id];
-    if (!asset || asset.category === 'music') {
-      this.fail(id, new Error('unknown or non-SFX audio id'));
-      return false;
-    }
+    if (!asset) return this.playProceduralSfx(id, opts);
+    if (asset.category === 'music') return false;
     if (!this.unlocked || !this.ctx) return false;
     const buf = this.buffers.get(id);
     if (!buf) {
@@ -576,11 +577,58 @@ export class AudioManager {
       a.gain.disconnect();
     }
     this.ambience.clear();
+    for (const osc of this.ambientOscillators) { try { osc.stop(); } catch { /* already stopped */ } osc.disconnect(); }
+    this.ambientOscillators = [];
+    this.ambientGain?.disconnect(); this.ambientGain = null;
     for (const t of [...this.tracks.values()]) this.disposeTrack(t);
     this.buffers.clear();
     this.loading.clear();
     void this.ctx?.close().catch(() => undefined);
     this.ctx = null;
+  }
+
+  /** Subtle synthesized ambience keeps the world from being silent when no music files are bundled. */
+  private startProceduralAmbient(): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.unlocked || this.ambientOscillators.length) return;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 2.5);
+    gain.connect(this.musicBus);
+    this.ambientGain = gain;
+    for (const [frequency, detune] of [[55, -3], [82.41, 2], [110, 4]] as const) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine'; osc.frequency.value = frequency; osc.detune.value = detune;
+      const voice = ctx.createGain(); voice.gain.value = frequency === 55 ? 0.48 : 0.16;
+      osc.connect(voice); voice.connect(gain); osc.start();
+      this.ambientOscillators.push(osc);
+    }
+  }
+
+  /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */
+  private playProceduralSfx(id: string, opts: { volume?: number; rate?: number; pan?: number }): boolean {
+    const ctx = this.ctx;
+    if (!ctx || !this.unlocked || this.vol.muted) return false;
+    const name = id.toLowerCase();
+    const isHit = /hit|damage|impact|attack|sword|slash|combat/.test(name);
+    const isConfirm = /confirm|level|success|save/.test(name);
+    const frequency = isHit ? 105 : isConfirm ? 620 : 420;
+    const duration = isHit ? 0.13 : 0.085;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = isHit ? 'sawtooth' : 'sine';
+    osc.frequency.setValueAtTime(frequency * (opts.rate ?? 1), ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(35, frequency * 0.48), ctx.currentTime + duration);
+    gain.gain.setValueAtTime(Math.max(0.0001, (opts.volume ?? 0.45) * 0.12), ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    let tail: AudioNode = gain;
+    if (opts.pan !== undefined && typeof ctx.createStereoPanner === 'function') {
+      const pan = ctx.createStereoPanner(); pan.pan.value = Math.max(-1, Math.min(1, opts.pan));
+      gain.connect(pan); tail = pan;
+    }
+    osc.connect(gain); tail.connect(this.sfxBus); osc.start(); osc.stop(ctx.currentTime + duration + 0.01);
+    this.counters.sfxPlayed++;
+    return true;
   }
 
   private fail(id: string, err: unknown): void {
