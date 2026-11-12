@@ -53,7 +53,6 @@ export class GameScene extends Phaser.Scene {
   private lastSaveState: any = null;
   private pendingLevel: { levelId: string; spawn: string } | null = null;
   private audioUnlockAttached = false;
-  private combatAudioContext: AudioContext | null = null;
   private keyboard: Record<string, any> = {};
   private gameEventOffs: Array<() => void> = [];
 
@@ -222,9 +221,12 @@ export class GameScene extends Phaser.Scene {
         this.scene.restart({ levelId: p.level, spawn: p.spawn ?? 'start' });
       }
     });
-    on('combat:ability-used', (p: any) => this.playCombatTone(p?.abilityId ?? 'ability'));
-    on('combat:enemy-hit', (p: any) => { if (p?.critical) this.playCombatTone('critical'); });
-    on('combat:boss-phase', () => this.playCombatTone('boss_phase'));
+    on('combat:ability-used', (p: any) => {
+      const id = String(p?.abilityId ?? '');
+      this.services.persistence.audio.playSfx(id.startsWith('a_') ? 'magic' : id.startsWith('s_') ? 'dash' : 'sword');
+    });
+    on('combat:enemy-hit', (p: any) => this.services.persistence.audio.playSfx(p?.critical ? 'impact-critical' : 'hit', { volume: p?.critical ? 0.95 : 0.55 }));
+    on('combat:boss-phase', () => this.services.persistence.audio.playSfx('boss_phase', { volume: 0.9 }));
     on('combat:boss-intro', (p: any) => {
       this.currentBoss = { id: p.bossId, name: p.name ?? 'Warden', phase: 1 };
       this.ui?.banner(p.name ?? 'A powerful foe approaches', p.title ?? 'Prepare yourself', 'skull');
@@ -700,40 +702,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Short, layered procedural combat cues; played only after the browser has received user input. */
-  private playCombatTone(id: string): void {
-    try {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!Ctx) return;
-      if (!this.combatAudioContext || this.combatAudioContext.state === 'closed') this.combatAudioContext = new Ctx();
-      const ctx = this.combatAudioContext;
-      if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
-      const mage = id.startsWith('a_');
-      const assassin = id.startsWith('s_');
-      const base = id === 'boss_phase' ? 82 : id === 'critical' ? 740 : mage ? (id.includes('meteor') ? 190 : 520) : assassin ? 260 : 145;
-      const duration = id === 'boss_phase' ? 0.48 : id.includes('meteor') ? 0.42 : 0.2;
-      const master = ctx.createGain();
-      master.gain.setValueAtTime(0.0001, ctx.currentTime);
-      master.gain.exponentialRampToValueAtTime(id === 'boss_phase' ? 0.075 : 0.045, ctx.currentTime + 0.025);
-      master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-      master.connect(ctx.destination);
-      const first = ctx.createOscillator();
-      first.type = id === 'boss_phase' ? 'sawtooth' : mage ? 'sine' : assassin ? 'triangle' : 'square';
-      first.frequency.setValueAtTime(base, ctx.currentTime);
-      first.frequency.exponentialRampToValueAtTime(Math.max(35, base * (id === 'boss_phase' ? 0.72 : mage ? 1.8 : 0.62)), ctx.currentTime + duration);
-      first.connect(master);
-      first.start(); first.stop(ctx.currentTime + duration);
-      const second = ctx.createOscillator();
-      const layer = ctx.createGain();
-      layer.gain.setValueAtTime(0.0001, ctx.currentTime);
-      layer.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.02);
-      layer.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration * 0.72);
-      second.type = 'sine'; second.frequency.setValueAtTime(base * (mage ? 2 : 1.5), ctx.currentTime);
-      second.connect(layer); layer.connect(master); second.start(); second.stop(ctx.currentTime + duration * 0.75);
-      // Reuse one scene-owned context; closing one cue must not silence overlapping effects.
-    } catch { /* Browser audio can be unavailable or blocked; gameplay must continue. */ }
-  }
-
   /** First-play title sequence; the opening story trigger waits until the player regains control. */
   private playOpeningCinematic(): void {
     const fa = this.ui?.language === 'fa';
@@ -810,8 +778,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onShutdown(): void {
-    if (this.combatAudioContext && this.combatAudioContext.state !== 'closed') void this.combatAudioContext.close().catch(() => undefined);
-    this.combatAudioContext = null;
     // Phaser disposes display objects and Player/CombatWorld subscribe to SHUTDOWN themselves.
     // Clear only scene-owned references; shared module/event-bus instances survive level restarts.
     this.aren = undefined as any; this.combat = undefined as any;
