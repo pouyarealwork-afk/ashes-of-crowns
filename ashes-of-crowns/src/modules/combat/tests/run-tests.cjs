@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { CombatEngine, enemyRect, intersects } = require('../../../../build/combat-core/core/CombatEngine.js');
 const { getBossDefinition, getEnemyArchetype, ENEMIES } = require('../../../../build/combat-core/data/enemies.js');
 const { StatusEffectSystem } = require('../../../../build/combat-core/systems/StatusEffects.js');
+const { EnemyAIController } = require('../../../../build/combat-core/systems/EnemyAI.js');
 let passed = 0;
 function test(name, fn) { try { fn(); passed++; process.stdout.write(`✓ ${name}\n`); } catch (e) { process.stderr.write(`✗ ${name}\n${e.stack}\n`); process.exitCode = 1; } }
 const rng = () => 0.99;
@@ -83,6 +84,23 @@ test('rectangle collision helper uses strict overlap', () => {
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:9,y:9,width:2,height:2 }), true);
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:10,y:0,width:2,height:2 }), false);
   assert.equal(enemyRect({ x: 20, y: 30, tier: 'boss' }).width, 88);
+});
+test('flying enemy pursues the player on both axes', () => {
+  const ai = new EnemyAIController();
+  const enemy = { ai:'flying', x:100, y:100, vx:0, vy:0, facing:1, alive:true, aggro:true,
+    attackCooldownMs:2000, hitFlashMs:0, stunRemainingMs:0, slowMultiplier:1, speed:100,
+    attackRange:48, attackWindupMs:360, windupRemainingMs:0, lastAttackAt:0 };
+  const action = ai.update(enemy, { x:220, y:260, health:100, maxHealth:100, facing:-1 }, 16);
+  assert.ok(action.vx > 0, 'flyer should close horizontal distance');
+  assert.ok(action.vy > 0, 'flyer should climb toward a player below it');
+});
+test('ground enemies and patrol states always return a vertical velocity', () => {
+  const ai = new EnemyAIController();
+  const enemy = { ai:'melee', x:100, y:100, vx:0, vy:0, facing:1, alive:true, aggro:false,
+    attackCooldownMs:1000, hitFlashMs:0, stunRemainingMs:0, slowMultiplier:1, speed:80,
+    attackRange:40, attackWindupMs:360, windupRemainingMs:0, lastAttackAt:0 };
+  const action = ai.update(enemy, { x:900, y:100, health:100, maxHealth:100, facing:-1 }, 16);
+  assert.equal(action.vy, 0);
 });
 test('enemy AI moves toward target and respects death', () => {
   const c = new CombatEngine({ rng }); const e = c.spawn('crown_soldier', { x: 300, y: 0 });

@@ -15,7 +15,7 @@ export class EnemyAIController {
     if (!enemy.alive || player.isDead || enemy.stunRemainingMs > 0) return { vx: 0, vy: 0, attack: false, ranged: false, facing };
     if (distance > 650 && !enemy.aggro) return this.patrol(enemy, facing);
     if (distance <= 650) enemy.aggro = true;
-    if (enemy.windupRemainingMs > 0) return { vx: 0, attack: false, ranged: false, facing, telegraph: true };
+    if (enemy.windupRemainingMs > 0) return { vx: 0, vy: 0, attack: false, ranged: false, facing, telegraph: true };
 
     const isRanged = enemy.ai === 'ranged' || enemy.ai === 'support';
     const isFlying = enemy.ai === 'flying';
@@ -46,7 +46,7 @@ export class EnemyAIController {
   }
 
   private patrol(enemy: EnemyState, facing: 1 | -1): AIAction {
-    if (!enemy.patrol) return { vx: 0, attack: false, ranged: false, facing };
+    if (!enemy.patrol) return { vx: 0, vy: 0, attack: false, ranged: false, facing };
     const [left, right] = enemy.patrol;
     if (enemy.x <= left + 4) enemy.facing = 1;
     if (enemy.x >= right - 4) enemy.facing = -1;
