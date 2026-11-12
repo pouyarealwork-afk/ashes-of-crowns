@@ -82,6 +82,7 @@ export class CombatWorld {
   private comboLabel?: Phaser.GameObjects.Text;
   private comboHideTween?: Phaser.Tweens.Tween;
   private telegraphViews = new Set<Phaser.GameObjects.GameObject>();
+  private enemyComboLabels = new Map<string, Phaser.GameObjects.Text>();
 
   constructor(options: CombatWorldOptions) {
     this.scene = options.scene; this.player = options.player; this.rpg = options.rpg;
@@ -146,6 +147,8 @@ export class CombatWorld {
     if (healthRegen > 0 && p.playerState !== 'dead') p.stats.heal(healthRegen * Math.min(50, delta) / 1000);
     for (const enemy of this.engine.enemies.values()) {
       const sprite = this.sprites.get(enemy.id); if (!sprite) continue;
+      const chainLabel = this.enemyComboLabels.get(enemy.id);
+      if (chainLabel?.active) chainLabel.setPosition(sprite.x, sprite.y - sprite.displayHeight - 12);
       if (!enemy.alive) {
         if ((sprite.body as Phaser.Physics.Arcade.Body | null)?.enable) sprite.disableBody(true, false);
         if (sprite.alpha !== 0.25) sprite.setAlpha(0.25);
@@ -243,6 +246,8 @@ export class CombatWorld {
     this.comboHideTween?.stop(); this.comboLabel?.destroy();
     for (const view of this.telegraphViews) view.destroy();
     this.telegraphViews.clear();
+    for (const label of this.enemyComboLabels.values()) label.destroy();
+    this.enemyComboLabels.clear();
     this.engine.clear();
   }
 
@@ -259,6 +264,7 @@ export class CombatWorld {
     on('player:death', () => this.bus.emit('player:died', {}));
     on('combat:enemy-hit', (payload: any) => this.playEnemyHitFeedback(payload));
     on('combat:combo', (payload: { count: number; multiplier: number }) => this.showCombo(payload));
+    on('combat:enemy-combo', (payload: { enemyId: string; count: number; multiplier: number }) => this.showEnemyCombo(payload));
     on('combat:telegraph', (payload: { enemyId: string; attack: string; durationMs: number }) => this.showEnemyTelegraph(payload));
     on('world:companion-assist-actions', (actions: any[]) => {
       const view = { x: this.player.x, y: this.player.y, health: this.player.stats.health, maxHealth: this.player.stats.config.maxHealth, facing: this.player.facing };
@@ -289,6 +295,24 @@ export class CombatWorld {
     this.comboHideTween = this.scene.tweens.add({
       targets: this.comboLabel, alpha: 0, delay: 1250, duration: 260, ease: 'Quad.In',
     });
+  }
+
+  /** Enemy chains are shown above the attacker so players can read escalating pressure. */
+  private showEnemyCombo(payload: { enemyId: string; count: number; multiplier: number }): void {
+    const sprite = this.sprites.get(payload.enemyId);
+    if (!sprite?.active) return;
+    let label = this.enemyComboLabels.get(payload.enemyId);
+    if (!label?.active) {
+      label = this.scene.add.text(sprite.x, sprite.y - sprite.displayHeight - 12, '', {
+        fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold',
+        color: '#ffb17c', stroke: '#24110f', strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(1001);
+      this.enemyComboLabels.set(payload.enemyId, label);
+    }
+    label.setText(`ENEMY CHAIN ${payload.count}/3  ·  ×${payload.multiplier.toFixed(2)}`)
+      .setPosition(sprite.x, sprite.y - sprite.displayHeight - 12).setAlpha(1).setScale(1.12);
+    this.scene.tweens.killTweensOf(label);
+    this.scene.tweens.add({ targets: label, scale: 1, alpha: payload.count >= 3 ? 0.68 : 1, duration: 150, ease: 'Back.Out' });
   }
 
   /** Telegraphs are deliberately large, directional and time-limited so attacks can be read on phones. */
