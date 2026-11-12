@@ -964,11 +964,11 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic.is-visible{opacity:1}
         .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-5%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.08);transition:transform 12s cubic-bezier(.16,.55,.25,1),filter 1.2s ease;filter:brightness(.72) saturate(.78)}
         .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1);filter:brightness(1) saturate(.95)}
-        .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}
-        .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 15s cubic-bezier(.2,.55,.25,1) both}
+        .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}\n        .aoc-opening-cinematic .aoc-scene-world{opacity:0;transition:opacity 1.8s ease}\n        .aoc-opening-cinematic .aoc-ashes-world{opacity:1;transition:opacity 1.8s ease}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-green-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-trial-world{opacity:1}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-ashes-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-ashes-world{opacity:0}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-haze{background:linear-gradient(180deg,transparent,rgba(113,175,91,.10),rgba(20,48,33,.34))}\n        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-haze{background:linear-gradient(180deg,transparent,rgba(195,153,104,.12),rgba(18,13,17,.65))}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-embers{display:none}
+        .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 25s cubic-bezier(.2,.55,.25,1) both}
         .aoc-opening-cinematic .aoc-shot:after{content:'';position:absolute;inset:-20%;pointer-events:none;background:linear-gradient(112deg,transparent 35%,rgba(255,194,137,.075) 48%,transparent 60%);transform:translateX(-65%);animation:aoc-light-sweep 8s ease-in-out 1.2s infinite}
         .aoc-opening-cinematic .aoc-haze{mix-blend-mode:screen}
-        @keyframes aoc-camera-drift{0%{transform:scale(1.02) translate3d(1.2%,.8%,0)}45%{transform:scale(1.11) translate3d(-1.4%,-.5%,0)}100%{transform:scale(1.16) translate3d(-2.2%,-1.1%,0)}}
+        @keyframes aoc-camera-drift{0%{transform:scale(1.02) translate3d(1.2%,.8%,0)}45%{transform:scale(1.11) translate3d(-1.4%,-.5%,0)}100%{transform:scale(1.12) translate3d(-1.5%,-.8%,0)}}
         @keyframes aoc-light-sweep{0%,22%{transform:translateX(-65%);opacity:0}38%{opacity:1}62%,100%{transform:translateX(65%);opacity:0}}
 
         .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:blur(18px);animation:aoc-haze-drift 9s ease-in-out infinite alternate}
@@ -1005,6 +1005,36 @@ export class GameScene extends Phaser.Scene {
             <linearGradient id="aoc-fire" x2="0" y2="1"><stop stop-color="#ffc17b"/><stop offset="1" stop-color="#8e3e27" stop-opacity="0"/></linearGradient>
             <filter id="aoc-blur"><feGaussianBlur stdDeviation="22"/></filter>
           </defs>
+          <g class="aoc-scene-world aoc-green-world">
+            <defs><linearGradient id="aoc-green-sky" x2="0" y2="1"><stop stop-color="#78b9c2"/><stop offset=".55" stop-color="#c7d9ad"/><stop offset="1" stop-color="#e7d9ad"/></linearGradient><linearGradient id="aoc-green-hill" x2="0" y2="1"><stop stop-color="#71965c"/><stop offset="1" stop-color="#284b38"/></linearGradient></defs>
+            <rect width="1600" height="900" fill="url(#aoc-green-sky)"/><circle cx="1240" cy="170" r="104" fill="#fff0c1" opacity=".76"/><circle cx="1240" cy="170" r="175" fill="#fff0c1" opacity=".14"/>
+            <path d="M0 470Q230 300 460 455T930 420T1600 390V900H0Z" fill="#9bb58a"/><path d="M0 560Q240 400 500 560T1030 510T1600 480V900H0Z" fill="#648c62"/>
+            <path d="M0 655Q260 505 520 650T1060 615T1600 590V900H0Z" fill="url(#aoc-green-hill)"/>
+            <path d="M0 790Q250 665 540 760T1050 755T1600 700V900H0Z" fill="#294b38"/>
+            <path d="M620 900Q710 780 830 735Q970 685 1070 900Z" fill="#7eb7b0" opacity=".9"><animate attributeName="opacity" values=".72;.94;.72" dur="5s" repeatCount="indefinite"/></path>
+            <path d="M650 900Q760 790 860 760Q940 735 1030 900" fill="none" stroke="#d8e7c0" stroke-width="12" opacity=".45"/>
+            <g fill="#365c42"><path d="M160 650q-65-120 0-230q72 110 0 230z"/><path d="M260 680q-82-145 0-275q88 130 0 275z"/><path d="M1360 635q-80-155 0-295q92 145 0 295z"/><path d="M1470 675q-68-130 0-245q78 118 0 245z"/></g>
+            <g fill="#507b4b"><circle cx="160" cy="480" r="88"/><circle cx="250" cy="450" r="100"/><circle cx="1370" cy="390" r="112"/><circle cx="1470" cy="470" r="92"/></g>
+            <g fill="#e9d9a6" opacity=".95"><circle cx="210" cy="435" r="8"/><circle cx="294" cy="490" r="6"/><circle cx="1328" cy="360" r="7"/><circle cx="1424" cy="420" r="8"/></g>
+            <g transform="translate(730 490)"><path d="M-150 170V-20h50v-80h45v80h55v190z" fill="#d6c7a1" stroke="#756b53" stroke-width="8"/><path d="M-75-100v-60h35v60" fill="#c7b58b"/><path d="M-120 170v-80h35v80m45 0v-80h35v80" fill="#5c5949"/><path d="M-145 0h145" stroke="#eee0bd" stroke-width="8"/></g>
+            <g fill="#f6f0d8"><path d="M430 210q28-25 56 0q-28-12-56 0z"><animateTransform attributeName="transform" type="translate" values="0 0;80 -18;170 4" dur="8s" repeatCount="indefinite"/></path><path d="M520 250q24-22 48 0q-24-10-48 0z"><animateTransform attributeName="transform" type="translate" values="0 0;65 -12;140 0" dur="9s" repeatCount="indefinite"/></path></g>
+            <g fill="#d7e7ba" opacity=".65"><circle cx="560" cy="580" r="5"><animate attributeName="cy" values="580;560;580" dur="4s" repeatCount="indefinite"/></circle><circle cx="1120" cy="620" r="4"><animate attributeName="cy" values="620;596;620" dur="3.4s" repeatCount="indefinite"/></circle></g>
+          </g>
+          <g class="aoc-scene-world aoc-trial-world">
+            <defs><linearGradient id="aoc-hall" x2="0" y2="1"><stop stop-color="#302b38"/><stop offset=".55" stop-color="#17151d"/><stop offset="1" stop-color="#08090e"/></linearGradient></defs>
+            <rect width="1600" height="900" fill="url(#aoc-hall)"/>
+            <path d="M130 900V230Q800-120 1470 230V900Z" fill="#24202a" stroke="#70604f" stroke-width="16"/><path d="M245 900V300Q800-30 1355 300V900" fill="none" stroke="#9c8060" stroke-width="7" opacity=".55"/>
+            <g stroke="#8d7893" stroke-width="9" fill="#40344b"><path d="M390 110h180v340H390z"/><path d="M710 70h180v380H710z"/><path d="M1030 110h180v340h-180z"/></g>
+            <g stroke="#d5b47a" stroke-width="5" opacity=".8"><path d="M480 110v340m-90-170h180M800 70v380m-90-190h180M1120 110v340m-90-170h180"/></g>
+            <path d="M0 760H1600V900H0Z" fill="#17141b"/><path d="M480 740H1120L1050 650H550Z" fill="#5b4a3e" stroke="#b08c5d" stroke-width="8"/><path d="M610 650H990V590H610Z" fill="#8a6c4e" stroke="#d0b17c" stroke-width="6"/>
+            <g fill="#211a1b" stroke="#9d805c" stroke-width="5"><path d="M720 590V440h160v150z"/><path d="M740 440l60-90 60 90z"/><path d="M760 490h80v100h-80z"/></g>
+            <g fill="#d78b50"><path d="M280 670q-35-75 0-120q34 48 0 120z"><animate attributeName="opacity" values=".6;1;.55" dur="1.2s" repeatCount="indefinite"/></path><path d="M1320 670q-35-75 0-120q34 48 0 120z"><animate attributeName="opacity" values=".55;1;.6" dur="1.5s" repeatCount="indefinite"/></path></g>
+            <g fill="#0a0b10"><path d="M180 770v-210q50-70 100 0v210z"/><path d="M1320 770v-210q50-70 100 0v210z"/><path d="M500 800q-18-80 20-115q45 5 52 115z"/><path d="M1060 800q-18-80 20-115q45 5 52 115z"/></g>
+            <g transform="translate(800 700)" fill="#08090e"><path d="M-34 0q-32-35-12-72q28-30 54 0q18 34-4 72z"/><path d="M-30-54l-22-40 32 18 22-18-6 42z"/><path d="M-26 0l-32 110h24l34-75 22 75h24L18 0z"/><path d="M-24 4l-70 28 6 16 72-12 72 12 6-16L18 4z"/></g>
+            <g fill="#c7a56f"><path d="M340 340l-22 110h44z"/><path d="M1260 340l-22 110h44z"/></g>
+            <path d="M0 845Q400 815 800 845T1600 830" fill="none" stroke="#ad8b62" stroke-width="5" opacity=".35"/>
+          </g>
+          <g class="aoc-ashes-world">
           <rect width="1600" height="900" fill="url(#aoc-sky)"/>
           <circle cx="1160" cy="245" r="220" fill="url(#aoc-moon)"/>
           <circle cx="1160" cy="245" r="68" fill="#e8c8a1" opacity=".72"/>
@@ -1032,6 +1062,7 @@ export class GameScene extends Phaser.Scene {
           </g>
           <g fill="#d77e4a" opacity=".8"><circle cx="760" cy="580" r="5"/><circle cx="810" cy="560" r="3"/><circle cx="830" cy="620" r="4"/></g>
           <path d="M0 870Q260 820 520 870T1050 865T1600 850" fill="none" stroke="#6b4639" stroke-opacity=".35" stroke-width="3"/>
+          </g>
         </svg>
         <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
       </div>
@@ -1040,6 +1071,7 @@ export class GameScene extends Phaser.Scene {
       <button class="aoc-skip" type="button"></button>
     `;
     overlay.dir = fa ? 'rtl' : 'ltr';
+    const shot = overlay.querySelector<HTMLElement>('.aoc-shot')!;
     const copy = overlay.querySelector<HTMLElement>('.aoc-copy')!;
     const kicker = overlay.querySelector<HTMLElement>('.aoc-kicker')!;
     const line = overlay.querySelector<HTMLElement>('.aoc-line')!;
@@ -1065,6 +1097,7 @@ export class GameScene extends Phaser.Scene {
     let audioNodes: OscillatorNode[] = [];
     const timers: Phaser.Time.TimerEvent[] = [];
     const schedule = (delay: number, fn: () => void) => timers.push(this.time.delayedCall(delay, fn));
+    const setScene = (scene: 'green' | 'trial' | 'ashes') => { shot.classList.remove('scene-green', 'scene-trial', 'scene-ashes'); shot.classList.add(`scene-${scene}`); };
     const setCaption = (eyebrow: string, text: string, title = false) => {
       copy.classList.remove('is-active');
       schedule(80, () => {
@@ -1102,40 +1135,46 @@ export class GameScene extends Phaser.Scene {
     window.addEventListener('keydown', onKeyDown);
     requestAnimationFrame(() => overlay.classList.add('is-visible'));
 
-    // A restrained, low cinematic drone; it is optional and respects browser audio policies.
+    // A gentle, consonant fantasy score: warm sustained chords with a quiet, slow arpeggio.
     try {
       audioContext = new AudioContext();
       const master = audioContext.createGain();
       master.gain.setValueAtTime(0.0001, audioContext.currentTime);
-      master.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 2.4);
+      master.gain.exponentialRampToValueAtTime(0.032, audioContext.currentTime + 3.2);
       master.connect(audioContext.destination);
-      [55, 82.41, 110.2].forEach((frequency, index) => {
+      const pad = [130.81, 164.81, 196, 261.63];
+      pad.forEach((frequency, index) => {
         const oscillator = audioContext!.createOscillator();
         const gain = audioContext!.createGain();
-        oscillator.type = index === 0 ? 'sine' : 'triangle';
-        oscillator.frequency.value = frequency;
-        gain.gain.value = index === 0 ? 0.7 : 0.18;
-        oscillator.connect(gain); gain.connect(master); oscillator.start();
-        audioNodes.push(oscillator);
+        oscillator.type = 'sine'; oscillator.frequency.value = frequency;
+        gain.gain.value = [0.17, 0.11, 0.09, 0.045][index];
+        oscillator.connect(gain); gain.connect(master); oscillator.start(); audioNodes.push(oscillator);
       });
+      const melody = audioContext.createOscillator(); const melodyGain = audioContext.createGain();
+      melody.type = 'sine'; melody.frequency.setValueAtTime(392, audioContext.currentTime + 1.2);
+      [[1.2,392],[3.4,493.88],[5.6,587.33],[8.2,493.88],[10.5,440],[12.8,392],[15.4,349.23],[18,392],[20.5,440],[22.8,392]].forEach(([at, hz]) => melody.frequency.setValueAtTime(hz, audioContext!.currentTime + at));
+      melodyGain.gain.setValueAtTime(0.0001, audioContext.currentTime); melodyGain.gain.linearRampToValueAtTime(0.035, audioContext.currentTime + 2); melodyGain.connect(master); melody.connect(melodyGain); melody.start(); audioNodes.push(melody);
     } catch { /* Audio may be unavailable; the visual sequence remains complete. */ }
 
     const captions = fa ? [
-      ['پیش‌درآمد', 'پیش از آن‌که پادشاهی‌ها در آتش فرو بروند…'],
-      ['سرزمین خاکستر', 'تاج‌ها شکستند؛ و نام‌ها، زیر خاکستر تاریخ مدفون شدند.'],
-      ['سه روز پیش', 'سه روز از محاکمه گذشته است. نامت را گرفتند…'],
-      ['سوگند', 'اما سوگندت هنوز زنده است.'],
+      ['پیش از خاکستر', 'این سرزمین روزگاری زیر نور آفتاب نفس می‌کشید؛ رودها زلال بودند و ناقوس‌ها برای جشن به صدا درمی‌آمدند.'],
+      ['تالار پادشاه', 'اما در یک شب، نام آرن وال‌کرست را به خیانت گره زدند.'],
+      ['محاکمه', 'در برابر تاج و شورا ایستادی؛ بی‌آن‌که فرصتی برای گفتن حقیقت داشته باشی.'],
+      ['سقوط', 'حکم صادر شد. خانه‌ات سوخت و سرزمینت به خاکستر نشست.'],
+      ['سوگند', 'اما حقیقت هنوز زنده است… و تو هنوز ایستاده‌ای.'],
     ] : [
-      ['PROLOGUE', 'Before the kingdoms vanished into flame…'],
-      ['A LAND IN ASHES', 'Crowns were broken. Names were buried beneath the weight of history.'],
-      ['THREE DAYS AGO', 'Three days have passed since the trial. They took your name…'],
-      ['THE OATH', 'But your oath remains.'],
+      ['BEFORE THE ASHES', 'Once this land breathed beneath a golden sun. Rivers ran clear, and bells rang for celebration.'],
+      ['THE KING\'S HALL', 'Then, in one night, Aren Valcrest was named a traitor.'],
+      ['THE TRIAL', 'You stood before the crown and council, denied the chance to speak the truth.'],
+      ['THE FALL', 'The sentence was passed. Your home burned, and the kingdom turned to ash.'],
+      ['THE OATH', 'But the truth still lives… and so do you.'],
     ];
-    setCaption(captions[0][0], captions[0][1]);
-    schedule(3200, () => { setCaption(captions[1][0], captions[1][1]); flash.classList.add('is-flashing'); });
-    schedule(6500, () => { setCaption(captions[2][0], captions[2][1]); });
-    schedule(9300, () => { setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
-    schedule(11900, () => {
+    setScene('green'); setCaption(captions[0][0], captions[0][1]);
+    schedule(5200, () => { setScene('trial'); setCaption(captions[1][0], captions[1][1]); });
+    schedule(9000, () => { setCaption(captions[2][0], captions[2][1]); });
+    schedule(13700, () => { setScene('ashes'); setCaption(captions[3][0], captions[3][1]); flash.classList.add('is-flashing'); });
+    schedule(18300, () => { setCaption(captions[4][0], captions[4][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(22000, () => {
       copy.classList.remove('is-active');
       schedule(450, () => {
         kicker.textContent = '';
@@ -1149,7 +1188,7 @@ export class GameScene extends Phaser.Scene {
         copy.classList.add('is-active');
       });
     });
-    schedule(15100, finish);
+    schedule(25800, finish);
   }
 
   private playUiTone(name: string): void {
