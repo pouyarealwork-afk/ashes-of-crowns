@@ -138,6 +138,7 @@ export class GameScene extends Phaser.Scene {
     };
     this.ui = createUI({ parent: document.getElementById('app') ?? document.body, backend: createUIBackend(this), storage, autoFlow: false, showMenu: true, handleBackKey: true });
     this.ui.on('game:new', ({ slot, classId }) => this.startNewGame(slot, classId));
+    this.ui.on('dialogue:cancel', () => this.services.world.endDialogue());
     this.ui.on('game:continue', ({ slot }) => void this.loadSlot(`slot${slot}`));
     this.ui.on('game:load', ({ slot }) => void this.loadSlot(`slot${slot}`));
     this.ui.on('game:pause', () => { if (this.started && this.scene.isActive()) this.scene.pause(); this.aren?.lockInput(true); });
