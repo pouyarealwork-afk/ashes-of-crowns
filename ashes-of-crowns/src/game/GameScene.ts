@@ -643,39 +643,85 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawNpcs(npcs: any[], level: LevelDef): void {
+  /** Pre-render each named villager once; one textured sprite replaces a stack of live vector objects. */
+  private npcTexture(id: string, cloth: number): string {
+    const key = `aoc-npc-${id}`;
+    if (this.textures.exists(key)) return key;
+    const texture = this.textures.createCanvas(key, 96, 128);
+    const ctx = texture.getContext();
+    const color = (value: number): string => `#${value.toString(16).padStart(6, '0')}`;
+    const base = color(cloth);
+    const dark = color(Phaser.Display.Color.IntegerToColor(cloth).darken(34).color);
+    const light = color(Phaser.Display.Color.IntegerToColor(cloth).brighten(22).color);
+    const trim = '#c9a66f';
+    ctx.clearRect(0, 0, 96, 128);
+
+    // Layered cloak and robe, shaped with curves rather than primitive silhouettes.
+    const cloak = ctx.createLinearGradient(17, 38, 78, 116);
+    cloak.addColorStop(0, '#17151a'); cloak.addColorStop(.48, dark); cloak.addColorStop(1, '#100e13');
+    ctx.beginPath(); ctx.moveTo(31, 38); ctx.quadraticCurveTo(18, 42, 16, 63);
+    ctx.lineTo(9, 112); ctx.quadraticCurveTo(48, 126, 87, 112);
+    ctx.lineTo(79, 62); ctx.quadraticCurveTo(77, 42, 64, 38);
+    ctx.quadraticCurveTo(48, 31, 31, 38); ctx.closePath();
+    ctx.fillStyle = cloak; ctx.fill();
+    ctx.strokeStyle = '#100d11'; ctx.lineWidth = 3; ctx.stroke();
+
+    const robe = ctx.createLinearGradient(24, 42, 72, 112);
+    robe.addColorStop(0, dark); robe.addColorStop(.42, base); robe.addColorStop(.72, light); robe.addColorStop(1, dark);
+    ctx.beginPath(); ctx.moveTo(31, 42); ctx.quadraticCurveTo(48, 34, 65, 42);
+    ctx.quadraticCurveTo(73, 60, 70, 83); ctx.lineTo(78, 112);
+    ctx.quadraticCurveTo(48, 120, 18, 112); ctx.lineTo(26, 82);
+    ctx.quadraticCurveTo(22, 59, 31, 42); ctx.closePath();
+    ctx.fillStyle = robe; ctx.fill(); ctx.strokeStyle = trim; ctx.lineWidth = 1.8; ctx.stroke();
+
+    // Sleeves and hands.
+    ctx.fillStyle = dark; ctx.beginPath(); ctx.moveTo(29, 47); ctx.quadraticCurveTo(16, 49, 19, 69); ctx.lineTo(28, 84); ctx.lineTo(36, 78); ctx.lineTo(33, 58); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(66, 47); ctx.quadraticCurveTo(80, 49, 77, 69); ctx.lineTo(68, 84); ctx.lineTo(60, 78); ctx.lineTo(63, 58); ctx.closePath(); ctx.fill();
+    const skin = ctx.createLinearGradient(35, 0, 62, 0); skin.addColorStop(0, '#795746'); skin.addColorStop(.5, '#c99b79'); skin.addColorStop(1, '#8b604b');
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(30, 83, 5, 7, -.18, 0, Math.PI * 2); ctx.ellipse(66, 83, 5, 7, .18, 0, Math.PI * 2); ctx.fill();
+
+    // Neck and face with a softly shaded profile.
+    ctx.fillStyle = '#8b604b'; ctx.fillRect(42, 31, 12, 14);
+    const face = ctx.createRadialGradient(42, 23, 2, 49, 25, 22);
+    face.addColorStop(0, '#e0b28d'); face.addColorStop(.72, '#bd8969'); face.addColorStop(1, '#754c3d');
+    ctx.fillStyle = face; ctx.beginPath(); ctx.ellipse(48, 24, 14, 19, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#32231f'; ctx.beginPath(); ctx.moveTo(34, 22); ctx.quadraticCurveTo(31, 3, 48, 4); ctx.quadraticCurveTo(66, 4, 62, 23);
+    ctx.quadraticCurveTo(56, 13, 48, 15); ctx.quadraticCurveTo(40, 14, 34, 22); ctx.fill();
+    ctx.fillStyle = '#231a19'; ctx.beginPath(); ctx.ellipse(43, 25, 1.7, 1.1, 0, 0, Math.PI * 2); ctx.ellipse(53, 25, 1.7, 1.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#704b3d'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(48, 27); ctx.lineTo(47, 31); ctx.stroke();
+    ctx.strokeStyle = '#70453c'; ctx.beginPath(); ctx.moveTo(44, 35); ctx.quadraticCurveTo(48, 37, 52, 35); ctx.stroke();
+
+    // Hood, mantle, stitching and worn metal details.
+    ctx.fillStyle = cloak; ctx.beginPath(); ctx.moveTo(29, 23); ctx.quadraticCurveTo(28, 2, 48, 1); ctx.quadraticCurveTo(70, 2, 67, 24);
+    ctx.quadraticCurveTo(61, 13, 56, 12); ctx.quadraticCurveTo(43, 9, 36, 18); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = trim; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(31, 42); ctx.quadraticCurveTo(48, 52, 65, 42); ctx.stroke();
+    ctx.strokeStyle = 'rgba(242,218,175,.32)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(28, 58); ctx.quadraticCurveTo(22, 83, 22, 105); ctx.moveTo(68, 58); ctx.quadraticCurveTo(75, 84, 73, 105); ctx.stroke();
+    ctx.strokeStyle = 'rgba(18,12,12,.55)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(38, 58); ctx.quadraticCurveTo(34, 83, 38, 106); ctx.moveTo(57, 58); ctx.quadraticCurveTo(63, 83, 58, 106); ctx.stroke();
+    ctx.fillStyle = '#3b2b25'; ctx.fillRect(27, 72, 42, 5);
+    ctx.fillStyle = trim; ctx.fillRect(44, 70, 9, 9);
+    ctx.fillStyle = '#ead3a2'; ctx.fillRect(47, 72, 3, 4);
+    ctx.fillStyle = 'rgba(225,190,130,.72)'; ctx.beginPath(); ctx.arc(48, 47, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(9,7,9,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(17, 113); ctx.quadraticCurveTo(48, 121, 79, 113); ctx.stroke();
+    texture.refresh();
+    return key;
+  }
+
+  private drawNpcs(npcs: any[], _level: LevelDef): void {
+    const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250 };
     for (const spawn of npcs) {
       const def = this.services.world.content.npcs.get(spawn.npc);
       if (!def) continue;
       const x = spawn.x, y = spawn.y;
-      const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250 };
       const cloth = palette[spawn.npc] ?? 0x655044;
-      const shade = Phaser.Display.Color.IntegerToColor(cloth).darken(34).color;
-      const trim = 0xc9a66f;
-      const actor = this.add.container(x, y).setDepth(8);
-      const shadow = this.add.ellipse(0, 3, 43, 13, 0x000000, 0.42);
-      const cloak = this.add.ellipse(-1, -27, 42, 54, shade).setStrokeStyle(1, 0x1b1513, 0.9);
-      const robe = this.add.ellipse(0, -28, 30, 48, cloth).setStrokeStyle(2, trim, 0.82);
-      const hem = this.add.rectangle(0, -7, 29, 4, shade);
-      const belt = this.add.rectangle(0, -31, 28, 4, trim);
-      const buckle = this.add.rectangle(0, -31, 5, 5, 0xe4c78c).setStrokeStyle(1, 0x4a3325);
-      const neck = this.add.rectangle(0, -51, 10, 10, 0x9a7359);
-      const face = this.add.ellipse(0, -60, 19, 23, 0xc69b79).setStrokeStyle(2, 0x2b211d);
-      const hood = this.add.arc(0, -62, 14, 188, 352, false, shade).setStrokeStyle(3, 0x241b18);
-      const hair = this.add.arc(0, -65, 12, 180, 360, false, 0x33231d).setStrokeStyle(5, 0x241b18);
-      const eyeLine = this.add.line(0, -59, -5, 0, 5, 0, 0x382820, 0.8).setLineWidth(1.5);
-      const shoulderL = this.add.ellipse(-15, -42, 12, 18, cloth).setStrokeStyle(1, trim, 0.55);
-      const shoulderR = this.add.ellipse(15, -42, 12, 18, cloth).setStrokeStyle(1, trim, 0.55);
-      const handL = this.add.circle(-17, -25, 4, 0xb98767);
-      const handR = this.add.circle(17, -25, 4, 0xb98767);
-      const clasp = this.add.star(0, -44, 4, 2, 4, trim, 0.95);
-      actor.add([shadow, cloak, robe, hem, belt, buckle, neck, face, hood, hair, eyeLine, shoulderL, shoulderR, handL, handR, clasp]);
-      // Keep the actor root anchored to the ground. Animate clothing and shadow only; bobbing the root made NPCs visibly hover during dialogue.
-      this.tweens.add({ targets: robe, scaleY: 1.035, duration: 1650 + (x % 5) * 90, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      this.tweens.add({ targets: shadow, scaleX: 1.08, alpha: 0.32, duration: 1650 + (x % 5) * 90, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      this.tweens.add({ targets: [handL, handR], y: '-=1.5', duration: 2100 + (x % 4) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      const plaque = this.add.container(x, y - 103, [
-        this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.76).setStrokeStyle(1, 0x9a774b, 0.78),
+      const shadow = this.add.ellipse(x, y - 2, 39, 10, 0x000000, 0.42).setDepth(7);
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 1).setDepth(8).setScale(1.08);
+      // Tiny breathing motion around the feet anchor; no vertical floating.
+      this.tweens.add({ targets: actor, scaleY: 1.095, duration: 2200 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: shadow, scaleX: 1.08, alpha: 0.32, duration: 2200 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      const plaque = this.add.container(x, y - 124, [
+        this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.82).setStrokeStyle(1, 0x9a774b, 0.82),
         this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
         this.add.circle(-42, 0, 2, 0xe5bd79, 0.9),
       ]).setDepth(10);
