@@ -271,7 +271,7 @@ export class AudioManager {
     const asset = this.manifest[id];
     if (!asset) {
       // Only synthesize recognized gameplay SFX; unknown IDs must remain observable errors.
-      if (/^(hit|damage|impact|attack|sword|slash|combat|confirm|level|success|save|ui[_-](click|confirm|back)|footstep|step|dash|jump|heal|block|parry)([_-].*)?$/i.test(id)) {
+      if (/^(hit|damage|impact|attack|sword|slash|combat|confirm|level|success|save|ui[_-](click|confirm|back)|footstep|step|dash|jump|heal|block|parry|magic|spell|fire|ice|enemy|boss|coin|loot|death)([_-].*)?$/i.test(id)) {
         return this.playProceduralSfx(id, opts);
       }
       this.fail(id, new Error('unknown or non-SFX audio id'));
@@ -618,25 +618,59 @@ export class AudioManager {
   /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */
   private playProceduralSfx(id: string, opts: { volume?: number; rate?: number; pan?: number }): boolean {
     const ctx = this.ctx;
-    if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.vol.muted) return false;
+    if (!ctx || !this.unlocked || this.vol.muted) return false;
     const name = id.toLowerCase();
-    const isHit = /hit|damage|impact|attack|sword|slash|combat/.test(name);
-    const isConfirm = /confirm|level|success|save/.test(name);
-    const frequency = isHit ? 105 : isConfirm ? 620 : 420;
-    const duration = isHit ? 0.13 : 0.085;
+    const now = ctx.currentTime;
+    const rate = Math.min(2.5, Math.max(0.45, opts.rate ?? 1));
+    const volume = Math.min(1, Math.max(0.05, opts.volume ?? 0.75));
+    const kind = /magic|spell|fire|ice/.test(name) ? 'magic'
+      : /footstep|step/.test(name) ? 'step'
+      : /dash|jump|dodge/.test(name) ? 'movement'
+      : /block|parry/.test(name) ? 'guard'
+      : /heal|level|success|save|coin|loot|confirm/.test(name) ? 'reward'
+      : /death|enemy|boss/.test(name) ? 'heavy'
+      : /hit|damage|impact|attack|sword|slash|combat/.test(name) ? 'hit' : 'ui';
+    const presets: Record<string, { wave: OscillatorType; from: number; to: number; duration: number; gain: number }> = {
+      magic: { wave: 'sine', from: 760, to: 180, duration: 0.34, gain: 0.16 },
+      step: { wave: 'triangle', from: 95, to: 48, duration: 0.075, gain: 0.11 },
+      movement: { wave: 'sawtooth', from: 520, to: 145, duration: 0.2, gain: 0.12 },
+      guard: { wave: 'triangle', from: 410, to: 190, duration: 0.16, gain: 0.18 },
+      reward: { wave: 'sine', from: 520, to: 1040, duration: 0.28, gain: 0.12 },
+      heavy: { wave: 'sawtooth', from: 125, to: 38, duration: 0.32, gain: 0.2 },
+      hit: { wave: 'sawtooth', from: 190, to: 58, duration: 0.17, gain: 0.18 },
+      ui: { wave: 'sine', from: 460, to: 330, duration: 0.09, gain: 0.075 },
+    };
+    const p = presets[kind];
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = isHit ? 'sawtooth' : 'sine';
-    osc.frequency.setValueAtTime(frequency * (opts.rate ?? 1), ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(35, frequency * 0.48), ctx.currentTime + duration);
-    gain.gain.setValueAtTime(Math.max(0.0001, (opts.volume ?? 0.45) * 0.12), ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    osc.type = p.wave;
+    osc.frequency.setValueAtTime(p.from * rate, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(28, p.to * rate), now + p.duration);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(p.gain * volume, now + Math.min(0.018, p.duration * 0.2));
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + p.duration);
     let tail: AudioNode = gain;
     if (opts.pan !== undefined && typeof ctx.createStereoPanner === 'function') {
       const pan = ctx.createStereoPanner(); pan.pan.value = Math.max(-1, Math.min(1, opts.pan));
       gain.connect(pan); tail = pan;
     }
-    osc.connect(gain); tail.connect(this.sfxBus); osc.start(); osc.stop(ctx.currentTime + duration + 0.01);
+    osc.connect(gain); tail.connect(this.sfxBus); osc.start(now); osc.stop(now + p.duration + 0.015);
+
+    // A quiet, short noise layer adds texture to blade impacts, movement and spell bursts.
+    if (kind === 'hit' || kind === 'heavy' || kind === 'movement' || kind === 'magic') {
+      const length = Math.max(1, Math.floor(ctx.sampleRate * (kind === 'magic' ? 0.22 : 0.09)));
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+      const noise = ctx.createBufferSource(); noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter(); filter.type = kind === 'magic' ? 'bandpass' : 'lowpass';
+      filter.frequency.value = kind === 'magic' ? 1500 : 850;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(p.gain * volume * 0.34, now);
+      ng.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'magic' ? 0.22 : 0.09));
+      noise.connect(filter); filter.connect(ng); ng.connect(this.sfxBus);
+      noise.start(now); noise.stop(now + (kind === 'magic' ? 0.22 : 0.09));
+    }
     this.counters.sfxPlayed++;
     return true;
   }
