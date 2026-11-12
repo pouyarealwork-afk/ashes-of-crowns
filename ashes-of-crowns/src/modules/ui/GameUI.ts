@@ -205,6 +205,7 @@ export class GameUI {
       autoFlow: this._autoFlow,
       open: (id: ScreenId, params?: unknown, mode: OpenMode = 'push') => this.screens.open(id, params, mode),
       back: () => { this.screens.back(); },
+      close: (id: ScreenId) => { this.screens.close(id); },
       closeAll: () => this.screens.closeAll(),
       isInGame: () => this.inGame,
       enterGame: () => {
