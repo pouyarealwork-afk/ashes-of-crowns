@@ -104,3 +104,23 @@
   .aoc-ui .dlg__box { padding-block-start: 46px; }
   .aoc-ui .dlg__exit { min-height: 32px; padding: 5px 10px; }
 }
+
+
+/* Mobile performance pass: crisp layered surfaces instead of GPU-expensive backdrop filters. */
+.aoc-ui .screen,
+.aoc-ui .panel,
+.aoc-ui .hud__vitals,
+.aoc-ui .hud__objectives,
+.aoc-ui .hud__gold,
+.aoc-ui .hud__pause {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.aoc-ui .screen::before { opacity: .07; background: radial-gradient(ellipse at 50% 50%, transparent 42%, rgb(0 0 0 / .32) 100%); }
+.aoc-ui .hud__vitals { background: linear-gradient(145deg, rgb(29 23 24 / .96), rgb(9 8 12 / .94)); }
+.aoc-ui .hud__objectives { background: linear-gradient(145deg, rgb(26 22 25 / .95), rgb(9 8 12 / .92)); }
+.aoc-ui .hud__gold, .aoc-ui .hud__pause { background: rgb(12 10 12 / .94); }
+.aoc-ui .panel--big::before, .aoc-ui .panel--big::after { filter: none; }
+.aoc-ui .aoc-utility-controls { z-index: 18; }
+.aoc-ui .screen[data-screen='dialogue'] { z-index: 40; }
+.aoc-ui .dlg__exit { z-index: 50; pointer-events: auto; }
