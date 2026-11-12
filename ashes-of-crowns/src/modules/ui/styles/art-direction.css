@@ -83,3 +83,15 @@
 @media (prefers-reduced-motion: reduce) {
   .aoc-ui .panel, .aoc-ui .btn, .aoc-ui .slot { transition: none !important; }
 }
+
+
+/* Dialogue escape hatch: always visible above choices, safe on narrow touch screens. */
+.aoc-ui .dlg__box { position: relative; }
+.aoc-ui .dlg__exit {
+  position: absolute; inset-block-start: 10px; inset-inline-end: 12px; z-index: 5;
+  min-height: 34px; padding: 6px 12px; border: 1px solid rgba(210,174,124,.55);
+  border-radius: 999px; background: rgba(20,15,14,.88); color: #e8d4b8;
+  font: inherit; font-size: 12px; cursor: pointer;
+}
+.aoc-ui .dlg__exit:focus-visible { outline: 2px solid #e5b46f; outline-offset: 3px; }
+.aoc-ui[dir="rtl"] .dlg__exit { letter-spacing: 0; }
