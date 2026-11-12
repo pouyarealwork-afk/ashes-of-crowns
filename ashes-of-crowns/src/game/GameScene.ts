@@ -921,6 +921,12 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-5%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.08);transition:transform 12s cubic-bezier(.16,.55,.25,1),filter 1.2s ease;filter:brightness(.72) saturate(.78)}
         .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1);filter:brightness(1) saturate(.95)}
         .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}
+        .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 15s cubic-bezier(.2,.55,.25,1) both}
+        .aoc-opening-cinematic .aoc-shot:after{content:'';position:absolute;inset:-20%;pointer-events:none;background:linear-gradient(112deg,transparent 35%,rgba(255,194,137,.075) 48%,transparent 60%);transform:translateX(-65%);animation:aoc-light-sweep 8s ease-in-out 1.2s infinite}
+        .aoc-opening-cinematic .aoc-haze{mix-blend-mode:screen}
+        @keyframes aoc-camera-drift{0%{transform:scale(1.02) translate3d(1.2%,.8%,0)}45%{transform:scale(1.11) translate3d(-1.4%,-.5%,0)}100%{transform:scale(1.16) translate3d(-2.2%,-1.1%,0)}}
+        @keyframes aoc-light-sweep{0%,22%{transform:translateX(-65%);opacity:0}38%{opacity:1}62%,100%{transform:translateX(65%);opacity:0}}
+
         .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:blur(18px);animation:aoc-haze-drift 9s ease-in-out infinite alternate}
         .aoc-opening-cinematic .aoc-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 25%,rgba(0,0,0,.25) 68%,rgba(0,0,0,.9) 130%)}
         .aoc-opening-cinematic .aoc-grain{position:absolute;inset:-50%;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");animation:aoc-grain-shift .22s steps(2) infinite;pointer-events:none}
@@ -965,7 +971,7 @@ export class GameScene extends Phaser.Scene {
             <path d="M900 550V355H970V290H1000V355H1060V550Z"/><path d="M1060 550V390H1110V330H1140V390H1200V550Z"/>
             <path d="M720 350L690 350V330H720M900 385L875 385V365H900M1060 420L1035 420V400H1060"/>
           </g>
-          <g fill="#e28d55" opacity=".9"><path d="M782 360h14v28h-14z"/><path d="M942 398h13v25h-13z"/><path d="M1100 430h12v22h-12z"/></g>
+          <g fill="#e28d55" opacity=".9"><path d="M782 360h14v28h-14z"><animate attributeName="opacity" values=".35;1;.55;1;.35" dur="2.7s" repeatCount="indefinite"/></path><path d="M942 398h13v25h-13z"><animate attributeName="opacity" values=".5;1;.4;.9;.5" dur="3.4s" repeatCount="indefinite"/></path><path d="M1100 430h12v22h-12z"><animate attributeName="opacity" values=".3;1;.6;1;.3" dur="2.2s" repeatCount="indefinite"/></path></g>
           <g fill="#090a0e"><path d="M0 650Q180 560 360 650T730 640T1100 650T1600 620V900H0Z"/><path d="M80 710l40-130 35 130zm90 0l30-95 30 95zm1110-40l45-170 40 170zm100 20l35-120 42 120z"/></g>
           <g opacity=".42" filter="url(#aoc-blur)" fill="#c16c45"><ellipse cx="350" cy="720" rx="250" ry="45"/><ellipse cx="1260" cy="680" rx="260" ry="55"/></g>
           <g fill="#08090d">
@@ -973,7 +979,7 @@ export class GameScene extends Phaser.Scene {
             <path d="M570 900l60-185 45 185zm70 0l50-145 35 145zm-250 0l45-120 40 120z"/>
             <path d="M1240 900l65-210 50 210zm85 0l48-150 42 150z"/>
           </g>
-          <g transform="translate(780 610)" fill="#050609">
+          <g transform="translate(780 610)" fill="#050609"><animateTransform attributeName="transform" type="translate" values="780 610;780 606;780 610" dur="2.6s" repeatCount="indefinite"/>
             <path d="M-24 0q-25-30-8-57q22-24 42 0q18 25-2 57z"/><path d="M-20-47l-15-20 24 10 18-12-4 25z"/>
             <path d="M-18 0l-25 100h20l25-70 18 70h20L12 0z"/>
             <path d="M-20 5l-55 42 8 12 62-30 50 25 8-13L10 5z"/>
