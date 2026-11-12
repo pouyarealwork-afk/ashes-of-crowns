@@ -72,7 +72,7 @@
 }
 .aoc-ui .screen.is-entering { opacity: 0; transform: translateY(14px) scale(.985); }
 .aoc-ui .screen.is-leaving { opacity: 0; transform: translateY(8px); pointer-events: none; }
-.aoc-ui .screen[data-covered='true'] { pointer-events: none; visibility: hidden; }
+.aoc-ui .screen[data-covered='true'], .aoc-ui .screen[hidden] { display: none !important; pointer-events: none !important; visibility: hidden !important; }
 .aoc-ui .screen[data-screen='mainMenu'], .aoc-ui .screen[data-screen='gameOver'], .aoc-ui .screen[data-screen='ending'],
 .aoc-ui .screen[data-screen='dialogue'] { padding: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .aoc-ui .screen[data-screen='dialogue'] { background: none; pointer-events: auto; }
