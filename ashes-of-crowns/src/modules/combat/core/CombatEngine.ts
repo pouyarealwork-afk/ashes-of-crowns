@@ -191,7 +191,9 @@ export class CombatEngine {
     let targets = 0;
     const alive = this.getAlive(); let totalLifesteal = 0;
     const candidates = effect.kind === 'melee' ? alive.filter(e => Math.abs(e.x-player.x) <= 150 && Math.abs(e.y-player.y) <= 100)
-      : effect.kind === 'projectile' ? alive.sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y)).slice(0,1)
+      : effect.kind === 'projectile' ? alive
+        .filter(e => (e.x - player.x) * player.facing >= -24 && Math.abs(e.y - player.y) <= 170)
+        .sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y)).slice(0,1)
       : effect.kind === 'aoe' || effect.kind === 'dot' || effect.kind === 'execute' || effect.kind === 'ultimate'
         ? alive.filter(e => Math.hypot(e.x-player.x,e.y-player.y) <= (effect.radius ?? 180)) : [];
     for (const enemy of candidates) {

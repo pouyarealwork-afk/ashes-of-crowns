@@ -53,6 +53,7 @@ export class GameScene extends Phaser.Scene {
   private lastSaveState: any = null;
   private pendingLevel: { levelId: string; spawn: string } | null = null;
   private audioUnlockAttached = false;
+  private combatAudioContext: AudioContext | null = null;
   private keyboard: Record<string, any> = {};
   private gameEventOffs: Array<() => void> = [];
 
@@ -704,7 +705,9 @@ export class GameScene extends Phaser.Scene {
     try {
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
       if (!Ctx) return;
-      const ctx = new Ctx();
+      if (!this.combatAudioContext || this.combatAudioContext.state === 'closed') this.combatAudioContext = new Ctx();
+      const ctx = this.combatAudioContext;
+      if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
       const mage = id.startsWith('a_');
       const assassin = id.startsWith('s_');
       const base = id === 'boss_phase' ? 82 : id === 'critical' ? 740 : mage ? (id.includes('meteor') ? 190 : 520) : assassin ? 260 : 145;
@@ -727,7 +730,7 @@ export class GameScene extends Phaser.Scene {
       layer.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration * 0.72);
       second.type = 'sine'; second.frequency.setValueAtTime(base * (mage ? 2 : 1.5), ctx.currentTime);
       second.connect(layer); layer.connect(master); second.start(); second.stop(ctx.currentTime + duration * 0.75);
-      second.onended = () => void ctx.close();
+      // Reuse one scene-owned context; closing one cue must not silence overlapping effects.
     } catch { /* Browser audio can be unavailable or blocked; gameplay must continue. */ }
   }
 
@@ -807,6 +810,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onShutdown(): void {
+    if (this.combatAudioContext && this.combatAudioContext.state !== 'closed') void this.combatAudioContext.close().catch(() => undefined);
+    this.combatAudioContext = null;
     // Phaser disposes display objects and Player/CombatWorld subscribe to SHUTDOWN themselves.
     // Clear only scene-owned references; shared module/event-bus instances survive level restarts.
     this.aren = undefined as any; this.combat = undefined as any;
