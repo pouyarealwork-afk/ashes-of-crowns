@@ -245,7 +245,10 @@ export class GameScene extends Phaser.Scene {
   private startNewGame(slot = 1, classId: 'warrior' | 'assassin' | 'mage' = 'warrior'): void {
     this.currentClass = classId;
     this.activeSaveSlot = `slot${slot}`;
-    this.services.rpg.newGame(); this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
+    this.services.rpg.newGame();
+    const signatureAbility = classId === 'warrior' ? 'w_power_strike' : classId === 'assassin' ? 's_backstab' : 'a_arc_bolt';
+    this.services.rpg.skills.grantStartingAbility(signatureAbility);
+    this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
     this.started = true;
     this.startLevel(this.currentLevelId, 'start');

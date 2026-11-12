@@ -58,6 +58,18 @@ test('level milestone rewards are granted', () => {
 test('negative / zero xp ignored', () => { const m = fresh(); eq(m.progression.addXp(-5), 0); eq(m.progression.addXp(0), 0); eq(m.ctx.state.xp, 0); });
 
 console.log('Skills');
+test('each class can receive a free starting signature ability', () => {
+  const cases = ['w_power_strike', 's_backstab', 'a_arc_bolt'];
+  for (const id of cases) {
+    const m = fresh();
+    const result = m.skills.grantStartingAbility(id);
+    ok(result.ok, id);
+    eq(m.skills.getRank(id), 1);
+    eq(m.skills.getHotbar()[0], id);
+    eq(m.ctx.state.skillPoints, 0);
+    ok(m.skills.getUnlockedAbilities().some((a) => a.id === id), id + ' unlocked');
+  }
+});
 test('prerequisites and level gating', () => {
   const m = fresh(); setLevel(m, 1, 10);
   ok(m.skills.blockedReason('w_iron_skin')); const r = m.skills.rankUp('w_iron_skin'); ok(!r.ok);
