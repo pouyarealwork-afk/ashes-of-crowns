@@ -586,18 +586,73 @@ export class GameScene extends Phaser.Scene {
       const def = this.services.world.content.npcs.get(spawn.npc);
       if (!def) continue;
       const x = spawn.x, y = spawn.y;
-      this.add.ellipse(x, y + 4, 38, 12, 0x000000, 0.35).setDepth(6);
-      this.add.rectangle(x, y - 27, 25, 42, 0x4d3939).setStrokeStyle(2, 0xb48a62).setDepth(7);
-      this.add.circle(x, y - 56, 12, 0xc69c7a).setStrokeStyle(2, 0x3b2926).setDepth(8);
-      const label = this.add.text(x, y - 90, `${def.name}  ·  E`, { fontFamily: 'Georgia', fontSize: '13px', color: '#e8d8bb', stroke: '#171315', strokeThickness: 4 }).setOrigin(0.5).setDepth(10);
-      this.npcActors.push({ id: spawn.npc, x, y, label });
+      const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250 };
+      const cloth = palette[spawn.npc] ?? 0x655044;
+      const shade = Phaser.Display.Color.IntegerToColor(cloth).darken(34).color;
+      const trim = 0xc9a66f;
+      const actor = this.add.container(x, y).setDepth(8);
+      const shadow = this.add.ellipse(0, 3, 43, 13, 0x000000, 0.42);
+      const cloak = this.add.triangle(-1, -28, -19, -42, 18, -40, 0, -5, shade).setStrokeStyle(1, 0x1b1513, 0.9);
+      const robe = this.add.rectangle(0, -27, 27, 42, cloth).setStrokeStyle(2, trim, 0.82);
+      const hem = this.add.rectangle(0, -7, 29, 4, shade);
+      const belt = this.add.rectangle(0, -31, 28, 4, trim);
+      const buckle = this.add.rectangle(0, -31, 5, 5, 0xe4c78c).setStrokeStyle(1, 0x4a3325);
+      const neck = this.add.rectangle(0, -51, 10, 10, 0x9a7359);
+      const face = this.add.ellipse(0, -60, 19, 23, 0xc69b79).setStrokeStyle(2, 0x2b211d);
+      const hood = this.add.arc(0, -62, 14, 188, 352, false, shade).setStrokeStyle(3, 0x241b18);
+      const hair = this.add.triangle(0, -70, -11, -3, 0, -14, 11, -3, 0x33231d);
+      const eyeLine = this.add.line(0, -59, -5, 0, 5, 0, 0x382820, 0.8).setLineWidth(1.5);
+      const shoulderL = this.add.ellipse(-15, -42, 12, 18, cloth).setStrokeStyle(1, trim, 0.55);
+      const shoulderR = this.add.ellipse(15, -42, 12, 18, cloth).setStrokeStyle(1, trim, 0.55);
+      const handL = this.add.circle(-17, -25, 4, 0xb98767);
+      const handR = this.add.circle(17, -25, 4, 0xb98767);
+      const clasp = this.add.star(0, -44, 4, 2, 4, trim, 0.95);
+      actor.add([shadow, cloak, robe, hem, belt, buckle, neck, face, hood, hair, eyeLine, shoulderL, shoulderR, handL, handR, clasp]);
+      this.tweens.add({ targets: actor, y: y - 2, duration: 1900 + (x % 5) * 120, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      const plaque = this.add.container(x, y - 103, [
+        this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.76).setStrokeStyle(1, 0x9a774b, 0.78),
+        this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
+        this.add.circle(-42, 0, 2, 0xe5bd79, 0.9),
+      ]).setDepth(10);
+      this.npcActors.push({ id: spawn.npc, x, y, label: plaque.list[1] as Phaser.GameObjects.Text });
     }
   }
 
   private drawInteractables(level: LevelDef): void {
     for (const item of level.interactables) {
-      this.add.rectangle(item.x, item.y - 16, 28, 36, 0x4a3830).setStrokeStyle(2, 0xc49b6b).setDepth(7);
-      this.add.text(item.x, item.y - 55, item.label, { fontSize: '12px', color: '#d9c7a9', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
+      const g = this.add.container(item.x, item.y).setDepth(7);
+      const id = String(item.id).toLowerCase();
+      if (id.includes('well')) {
+        g.add(this.add.ellipse(0, -4, 52, 18, 0x171313).setStrokeStyle(4, 0x8c7968));
+        g.add(this.add.rectangle(0, -20, 42, 31, 0x51463e).setStrokeStyle(2, 0x9e896e));
+        g.add(this.add.ellipse(0, -36, 48, 14, 0x302721).setStrokeStyle(4, 0xb49a75));
+        g.add(this.add.ellipse(0, -36, 31, 8, 0x101923, 0.96));
+        g.add(this.add.line(0, -49, -17, 0, -17, 16, 0x8b6a45).setLineWidth(4));
+        g.add(this.add.line(0, -49, 17, 0, 17, 16, 0x8b6a45).setLineWidth(4));
+        g.add(this.add.line(0, -56, -19, 0, 19, 0, 0xc49b65).setLineWidth(3));
+        g.add(this.add.line(0, -55, 0, 0, 0, 17, 0x9d8059).setLineWidth(2));
+      } else if (id.includes('forge') || id.includes('anvil')) {
+        g.add(this.add.rectangle(0, -17, 42, 25, 0x3b302b).setStrokeStyle(2, 0x9b7652));
+        g.add(this.add.triangle(0, -38, -17, 0, 0, -12, 18, 0, 0x68717a).setStrokeStyle(2, 0xb7a38a));
+        g.add(this.add.ellipse(0, -48, 26, 10, 0xff8c3b, 0.55));
+        g.add(this.add.circle(0, -48, 6, 0xffd18a, 0.9));
+      } else if (id.includes('chest') || id.includes('cache') || id.includes('crate')) {
+        g.add(this.add.rectangle(0, -15, 38, 25, 0x68452e).setStrokeStyle(3, 0xc49a5c));
+        g.add(this.add.rectangle(0, -29, 38, 10, 0x8b6039).setStrokeStyle(2, 0xd4ae6e));
+        g.add(this.add.rectangle(0, -16, 6, 10, 0xd9b76d).setStrokeStyle(1, 0x47301e));
+      } else if (id.includes('shrine') || id.includes('memory') || id.includes('altar')) {
+        g.add(this.add.rectangle(0, -14, 32, 28, 0x51484a).setStrokeStyle(2, 0xa99a8c));
+        g.add(this.add.triangle(0, -37, -17, 0, 0, -26, 17, 0, 0x77717d).setStrokeStyle(2, 0xc1b1a0));
+        g.add(this.add.circle(0, -33, 7, 0x9bd5ed, 0.75));
+        g.add(this.add.circle(0, -33, 15, 0x8acbe8, 0.1).setStrokeStyle(1, 0xb8eaff, 0.55));
+      } else {
+        g.add(this.add.rectangle(0, -19, 30, 36, 0x4a3830).setStrokeStyle(2, 0xc49b6b));
+        g.add(this.add.rectangle(0, -37, 22, 5, 0x9c805d));
+        g.add(this.add.circle(0, -20, 4, 0xe4c17c));
+      }
+      const labelBg = this.add.rectangle(item.label.length * 3.3, -75, Math.min(210, item.label.length * 7.5 + 24), 22, 0x100d0b, 0.76).setStrokeStyle(1, 0x806343, 0.8);
+      const label = this.add.text(item.label.length * 3.3, -75, item.label, { fontFamily: 'Georgia', fontSize: '11px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
+      g.add([labelBg, label]);
       this.interactables.push({ id: item.id, x: item.x, y: item.y, label: item.label });
     }
   }
@@ -643,11 +698,18 @@ export class GameScene extends Phaser.Scene {
     for (const spec of specs) {
       if (this.companionActors.some(c => c.id === spec.id)) continue;
       const color = spec.id === 'tamsin' ? 0x9b6852 : spec.id === 'sylwen' ? 0x668c66 : spec.id === 'idris' ? 0xc19b55 : 0x71869b;
-      const shadow = this.add.ellipse(0, 6, 34, 10, 0x000000, 0.28);
-      const body = this.add.rectangle(0, -20, 20, 36, color).setStrokeStyle(2, 0xd5bd94);
-      const head = this.add.circle(0, -45, 10, 0xc9a27e).setStrokeStyle(2, 0x332622);
-      const label = this.add.text(0, -68, spec.name, { fontSize: '10px', color: '#d8c8ad', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5);
-      const actor = this.add.container(this.aren.x, this.aren.y, [shadow, body, head, label]).setDepth(8);
+      const shade = Phaser.Display.Color.IntegerToColor(color).darken(34).color;
+      const shadow = this.add.ellipse(0, 5, 38, 11, 0x000000, 0.34);
+      const cape = this.add.triangle(-1, -26, -16, -43, 16, -40, 0, -3, shade).setStrokeStyle(1, 0x241a16);
+      const body = this.add.rectangle(0, -24, 23, 37, color).setStrokeStyle(2, 0xd5bd94);
+      const belt = this.add.rectangle(0, -30, 24, 4, 0x493126);
+      const clasp = this.add.star(0, -43, 4, 2, 4, 0xd6b779);
+      const neck = this.add.rectangle(0, -45, 8, 8, 0xa77f63);
+      const head = this.add.ellipse(0, -55, 18, 21, 0xc9a27e).setStrokeStyle(2, 0x332622);
+      const hair = this.add.arc(0, -59, 10, 190, 350, false, shade).setStrokeStyle(3, 0x241b18);
+      const eyes = this.add.line(0, -54, -4, 0, 4, 0, 0x33231d, 0.85).setLineWidth(1.4);
+      const label = this.add.text(0, -78, spec.name, { fontSize: '10px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 4 }).setOrigin(0.5);
+      const actor = this.add.container(this.aren.x, this.aren.y, [shadow, cape, body, belt, clasp, neck, head, hair, eyes, label]).setDepth(8);
       this.companionActors.push({ id: spec.id, actor, offset: 66 + this.companionActors.length * 36 });
     }
   }
