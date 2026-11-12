@@ -955,7 +955,8 @@ export class GameScene extends Phaser.Scene {
     } catch (err) { this.ui?.toast({ text: `Dialogue error: ${(err as Error).message}`, kind: 'error' }); }
     finally {
       this.dialogueRunning = false;
-      if (this.started && this.uiUtilityControls) this.uiUtilityControls.style.display = 'flex';
+      if (this.started && !this.ui?.isBlocking && this.uiUtilityControls) this.uiUtilityControls.style.display = 'flex';
+      else this.hideExtraControls();
       const body = this.aren?.body as Phaser.Physics.Arcade.Body | undefined;
       body?.setVelocity(0, 0);
       if (this.started && !this.ui?.isBlocking) this.aren?.lockInput(false);
