@@ -269,7 +269,14 @@ export class AudioManager {
    */
   playSfx(id: string, opts: { volume?: number; rate?: number; pan?: number } = {}): boolean {
     const asset = this.manifest[id];
-    if (!asset) return this.playProceduralSfx(id, opts);
+    if (!asset) {
+      // Only synthesize recognized gameplay SFX; unknown IDs must remain observable errors.
+      if (/^(hit|damage|impact|attack|sword|slash|combat|confirm|level|success|save|ui[_-](click|confirm|back)|footstep|step|dash|jump|heal|block|parry)([_-].*)?$/i.test(id)) {
+        return this.playProceduralSfx(id, opts);
+      }
+      this.fail(id, new Error('unknown or non-SFX audio id'));
+      return false;
+    }
     if (asset.category === 'music') return false;
     if (!this.unlocked || !this.ctx) return false;
     const buf = this.buffers.get(id);
