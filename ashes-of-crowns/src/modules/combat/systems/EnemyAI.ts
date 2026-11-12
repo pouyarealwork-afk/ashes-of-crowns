@@ -8,7 +8,7 @@ export class EnemyAIController {
     enemy.attackCooldownMs = Math.max(0, enemy.attackCooldownMs - dt);
     enemy.hitFlashMs = Math.max(0, enemy.hitFlashMs - dt);
     enemy.stunRemainingMs = Math.max(0, enemy.stunRemainingMs - dt);
-    enemy.windupRemainingMs = Math.max(0, enemy.windupRemainingMs - dt);
+    // CombatEngine owns the wind-up timer; do not decrement it here as well.
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
     const distance = Math.hypot(dx, dy);
