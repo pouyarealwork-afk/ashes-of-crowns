@@ -552,8 +552,8 @@ export class GameScene extends Phaser.Scene {
       ground.fillRoundedRect(x + 54, y - 8, 13, 12, 4);
       if (forest) {
         ground.lineStyle(2, 0x71844c, 0.8);
-        ground.beginPath(); ground.moveTo(x + 92, y + 8); ground.quadraticCurveTo(x + 84, y - 5, x + 86, y - 18); ground.strokePath();
-        ground.beginPath(); ground.moveTo(x + 92, y + 8); ground.quadraticCurveTo(x + 105, y - 2, x + 105, y - 12); ground.strokePath();
+        ground.lineBetween(x + 92, y + 8, x + 84, y - 5); ground.lineBetween(x + 84, y - 5, x + 86, y - 18);
+        ground.lineBetween(x + 92, y + 8, x + 105, y - 2); ground.lineBetween(x + 105, y - 2, x + 105, y - 12);
       }
     }
     ground.fillStyle(accent, warm ? 0.13 : 0.1); ground.fillEllipse(w * 0.48, horizon + 92, Math.min(640, w * 0.48), 54);
