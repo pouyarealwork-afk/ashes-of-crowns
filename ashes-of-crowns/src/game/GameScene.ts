@@ -346,25 +346,8 @@ export class GameScene extends Phaser.Scene {
       const block = this.platforms.create(x + w / 2, y + h / 2, texture) as Phaser.Physics.Arcade.Image;
       block.setDisplaySize(w, h).setTint(0xffffff).setDepth(4).refreshBody();
       if (kind === 'oneway' && block.body) { block.body.checkCollision.down = false; block.body.checkCollision.left = false; block.body.checkCollision.right = false; }
-      const detail = this.add.graphics().setDepth(5);
-      const edge = material === 'ice' ? 0xc9f0ff : material === 'wood' ? 0xb8875a : material === 'sand' ? 0xc49a63 : material === 'vine' ? 0x8ba66b : 0x9b8a78;
-      detail.fillStyle(0x090808, 0.24); detail.fillRect(x, y + h - 5, w, 5);
-      detail.fillStyle(edge, 0.62); detail.fillRect(x + 2, y + 1, Math.max(0, w - 4), Math.min(4, h));
-      detail.lineStyle(1, 0x171311, 0.36);
-      for (let seam = 1; seam < Math.floor(w / 78); seam++) {
-        const sx = x + seam * 78 + ((seam * 17) % 13);
-        detail.lineBetween(sx, y + 6, sx + 2, y + h - 4);
-        detail.lineStyle(1, edge, 0.22); detail.lineBetween(sx + 2, y + 7, sx + 2, y + h - 5); detail.lineStyle(1, 0x171311, 0.36);
-      }
-      if (material === 'ice') {
-        detail.fillStyle(0xe0f7ff, 0.38); detail.fillTriangle(x + w * 0.18, y + 2, x + w * 0.24, y + 2, x + w * 0.21, y + Math.min(18, h - 1));
-        detail.fillTriangle(x + w * 0.72, y + 2, x + w * 0.78, y + 2, x + w * 0.75, y + Math.min(13, h - 1));
-      } else if (material === 'vine') {
-        detail.lineStyle(2, 0x7d9b54, 0.8); detail.lineBetween(x + 12, y + 4, x + 28, y - 2); detail.lineBetween(x + 28, y - 2, x + 42, y + 4);
-      } else if (material === 'wood') {
-        detail.lineStyle(1, 0x2e1c13, 0.55); detail.lineBetween(x + 8, y + h * 0.35, x + w - 8, y + h * 0.35); detail.lineBetween(x + 8, y + h * 0.72, x + w - 8, y + h * 0.72);
-      }
-      this.add.rectangle(x + w / 2, y + h / 2 - h / 2 + 3, w, 5, 0x000000, 0.18).setDepth(3);
+      // Surface details are baked into the shared material texture to keep the object count low.
+
     }
     this.drawHazards(level);
     this.drawLore(level);
@@ -595,6 +578,8 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(dark, 1); g.fillRect(0, 0, 320, 96);
     g.fillStyle(color, 1); g.fillRoundedRect(1, 1, 318, 91, 8);
     g.fillStyle(light, 0.72); g.fillRoundedRect(0, 0, 320, 8, 4);
+    g.fillStyle(0x090808, 0.28); g.fillRect(0, 86, 320, 10);
+    g.fillStyle(light, 0.2); g.fillRect(2, 9, 316, 2);
     if (kind === 'wood') {
       for (let y = 16; y < 92; y += 25) {
         g.fillStyle(dark, 0.52); g.fillRoundedRect(3, y, 314, 19, 5);
@@ -800,7 +785,8 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < this.companionActors.length; i++) {
       const c = this.companionActors[i];
       // Keep companions on the same ground plane as Aren; no vertical bobbing that looks like hovering.
-      c.actor.setPosition(this.aren.x - this.aren.facing * c.offset, this.aren.y + i * 2);
+      const x = this.aren.x - this.aren.facing * c.offset, y = this.aren.y + i * 2;
+      if (Math.abs(c.actor.x - x) > 0.5 || Math.abs(c.actor.y - y) > 0.5) c.actor.setPosition(x, y);
     }
   }
 
