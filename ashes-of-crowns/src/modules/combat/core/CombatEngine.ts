@@ -29,6 +29,7 @@ export class CombatEngine {
   private region: string;
   private combo = 0;
   private comboExpiresAt = 0;
+  private enemyCombos = new Map<string, { count: number; expiresAt: number }>();
   private attackHits = new Map<string, Set<string>>();
 
   constructor(opts: CombatEngineOptions = {}) {
@@ -87,11 +88,12 @@ export class CombatEngine {
 
   getAlive(): EnemyState[] { return [...this.enemies.values()].filter(e => e.alive); }
   getEnemy(id: string): EnemyState | undefined { return this.enemies.get(id); }
-  clear(remove = true): void { if (remove) this.enemies.clear(); else for (const e of this.enemies.values()) e.alive = false; this.combo = 0; }
+  clear(remove = true): void { if (remove) this.enemies.clear(); else for (const e of this.enemies.values()) e.alive = false; this.combo = 0; this.enemyCombos.clear(); }
 
   update(dtMs: number, player: PlayerCombatView, onEnemyAttack?: (enemy: EnemyState, damage: number, ranged: boolean) => void): void {
     const dt = Math.min(50, Math.max(0, dtMs)); this.now += dt;
     if (this.now > this.comboExpiresAt) this.combo = 0;
+    for (const [enemyId, chain] of this.enemyCombos) if (this.now > chain.expiresAt) this.enemyCombos.delete(enemyId);
     for (const enemy of this.enemies.values()) {
       if (!enemy.alive) continue;
       const tick = this.statuses.tick(enemy, dt);
@@ -116,9 +118,10 @@ export class CombatEngine {
         enemy.windupRemainingMs = Math.max(0, enemy.windupRemainingMs - dt);
         if (wasWinding > 0 && enemy.windupRemainingMs === 0 && enemy.alive) {
           enemy.telegraphActive = false;
-          enemy.attackCooldownMs = this.attackCooldownFor(enemy);
+          const chain = this.advanceEnemyCombo(enemy);
+          enemy.attackCooldownMs = this.attackCooldownFor(enemy, chain.count);
           enemy.attackSerial++;
-          onEnemyAttack?.(enemy, enemy.damage, enemy.ai === 'ranged' || enemy.ai === 'support');
+          onEnemyAttack?.(enemy, enemy.damage * chain.multiplier, enemy.ai === 'ranged' || enemy.ai === 'support');
         }
       }
       const phase = this.bosses.update(enemy);
@@ -221,6 +224,17 @@ export class CombatEngine {
     this.comboExpiresAt = this.now + 1800;
     this.emit('combat:combo', { count: this.combo, multiplier: 1 + Math.min(0.5, Math.floor(this.combo / 5) * 0.1) });
   }
+  private advanceEnemyCombo(enemy: EnemyState): { count: number; multiplier: number } {
+    const previous = this.enemyCombos.get(enemy.id);
+    const count = previous && this.now <= previous.expiresAt ? Math.min(3, previous.count + 1) : 1;
+    const multiplier = 1 + (count - 1) * 0.14;
+    // A short recovery after the third strike creates a readable punish window.
+    const expiresAt = this.now + (count >= 3 ? 1900 : 3200);
+    this.enemyCombos.set(enemy.id, { count, expiresAt });
+    this.emit('combat:enemy-combo', { enemyId: enemy.id, count, multiplier });
+    return { count, multiplier };
+  }
+
   private onEnemyDefeated(enemy: EnemyState): void {
     this.defeated++;
     const bossId = enemy.bossId;
@@ -235,7 +249,10 @@ export class CombatEngine {
     }
     this.emit('enemy:killed', { enemyId: enemy.archetypeId, tier: enemy.tier === 'boss' ? 'boss' : enemy.tier === 'elite' ? 'elite' : 'minion', level: enemy.level, region: enemy.region, isBoss: enemy.tier === 'boss' });
   }
-  private attackCooldownFor(enemy: EnemyState): number { return enemy.tier === 'boss' ? 1450 : enemy.ai === 'ranged' ? 2100 : 1350; }
+  private attackCooldownFor(enemy: EnemyState, comboCount = 1): number {
+    const base = enemy.tier === 'boss' ? 1450 : enemy.ai === 'ranged' ? 2100 : 1350;
+    return Math.round(base * (comboCount === 2 ? 0.78 : comboCount >= 3 ? 1.35 : 1));
+  }
 }
 
 export function enemyRect(e: EnemyState): Rect { const size = e.tier === 'boss' ? 88 : e.tier === 'elite' ? 54 : 42; return { x: e.x-size/2, y: e.y-size, width: size, height: size }; }
