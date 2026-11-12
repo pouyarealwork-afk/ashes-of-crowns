@@ -90,6 +90,14 @@ export class CombatEngine {
   getEnemy(id: string): EnemyState | undefined { return this.enemies.get(id); }
   clear(remove = true): void { if (remove) this.enemies.clear(); else for (const e of this.enemies.values()) e.alive = false; this.combo = 0; this.enemyCombos.clear(); }
 
+  /** A confirmed player hit breaks the current offensive chain. */
+  breakPlayerCombo(): void {
+    if (this.combo === 0) return;
+    this.combo = 0;
+    this.comboExpiresAt = 0;
+    this.emit('combat:combo', { count: 0, multiplier: 1 });
+  }
+
   update(dtMs: number, player: PlayerCombatView, onEnemyAttack?: (enemy: EnemyState, damage: number, ranged: boolean) => void): void {
     const dt = Math.min(50, Math.max(0, dtMs)); this.now += dt;
     if (this.now > this.comboExpiresAt) this.combo = 0;
@@ -168,6 +176,9 @@ export class CombatEngine {
   damageEnemy(enemyId: string, hit: CombatHit): CombatDamageResult | null {
     const enemy = this.enemies.get(enemyId); if (!enemy?.alive) return null;
     const applied = applyHitToEnemy(enemy, hit, this.damage);
+    if (hit.stunMs && hit.stunMs > 0 && this.enemyCombos.delete(enemy.id)) {
+      this.emit('combat:enemy-combo-reset', { enemyId: enemy.id });
+    }
     const result: CombatDamageResult = { damage: applied.damage, critical: !!hit.critical, killed: applied.killed, targetId: enemy.id, remainingHealth: enemy.health, statusApplied: applied.statusApplied };
     if (hit.status) this.statuses.apply(enemy, { kind: hit.status.kind, remainingMs: hit.status.durationMs, tickMs: hit.status.tickMs, tickDamage: hit.status.tickDamage, magnitude: hit.status.magnitude, source: hit.sourceId });
     this.emit('combat:enemy-hit', result);
