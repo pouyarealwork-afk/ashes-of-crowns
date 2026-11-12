@@ -1,4 +1,4 @@
-const CACHE = 'ashes-of-crowns-v1';
+const CACHE = 'ashes-of-crowns-v2';
 const scopeUrl = () => new URL('./', self.registration.scope).toString();
 const shell = () => [scopeUrl(), new URL('manifest.webmanifest', self.registration.scope).toString()];
 

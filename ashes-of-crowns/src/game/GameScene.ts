@@ -9,6 +9,7 @@ import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
 import { createUIBackend } from './backend';
+import { downloadPixelPack, isPixelPackInstalled, type PixelPackDownload } from './PixelPackManager';
 
 export interface GameServices {
   rpg: RpgModule;
@@ -56,6 +57,12 @@ export class GameScene extends Phaser.Scene {
   private audioUnlockAttached = false;
   private keyboard: Record<string, any> = {};
   private gameEventOffs: Array<() => void> = [];
+  private pixelPackPanel?: HTMLElement;
+  private pixelPackButton?: HTMLButtonElement;
+  private pixelPackStatus?: HTMLElement;
+  private pixelPackLoading = false;
+  private pixelPackLoaded = false;
+  private pixelPackObjectUrls: string[] = [];
 
   constructor() { super('GameScene'); }
 
@@ -106,6 +113,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    this.updatePixelPackPanelVisibility();
     if (!this.started || !this.aren || !this.levelDef) return;
     this.playtimeMs += delta;
     this.services.rpg.update(delta);
@@ -162,6 +170,97 @@ export class GameScene extends Phaser.Scene {
     this.ui.on('ui:sfx', ({ name }) => this.playUiTone(name));
     this.ui.setBackend(createUIBackend(this));
     this.addExtraTouchControls();
+    this.addPixelPackPanel();
+  }
+
+
+  /** Optional art pack: the core game remains playable without downloading it. */
+  private addPixelPackPanel(): void {
+    if (!this.ui || this.pixelPackPanel) return;
+    const panel = document.createElement('section');
+    panel.className = 'aoc-pixel-pack-panel';
+    panel.dir = this.ui.language === 'fa' ? 'rtl' : 'ltr';
+    const title = document.createElement('strong');
+    title.className = 'aoc-pixel-pack-title';
+    title.textContent = this.ui.language === 'fa' ? 'بستهٔ گرافیکی پیکسلی' : 'PIXEL ART PACK';
+    const status = document.createElement('span');
+    status.className = 'aoc-pixel-pack-status';
+    status.textContent = this.ui.language === 'fa' ? 'بستهٔ اختیاری؛ بافت دقیق‌تر محیط' : 'Optional pack · detailed pixel terrain';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'aoc-pixel-pack-button';
+    button.textContent = this.ui.language === 'fa' ? 'دانلود بسته' : 'DOWNLOAD PACK';
+    button.addEventListener('click', () => void this.installPixelPack(false));
+    panel.append(title, status, button);
+    this.ui.root.appendChild(panel);
+    this.pixelPackPanel = panel;
+    this.pixelPackButton = button;
+    this.pixelPackStatus = status;
+    void isPixelPackInstalled().then(installed => {
+      if (installed && !this.pixelPackLoaded) {
+        status.textContent = this.ui.language === 'fa' ? 'بسته پیدا شد؛ در حال بارگذاری…' : 'Pack found · loading…';
+        void this.installPixelPack(true);
+      }
+    }).catch(() => undefined);
+  }
+
+  private updatePixelPackPanelVisibility(): void {
+    if (this.pixelPackPanel) this.pixelPackPanel.style.display = this.started ? 'none' : 'flex';
+  }
+
+  private async installPixelPack(fromCache: boolean): Promise<void> {
+    if (this.pixelPackLoading || this.pixelPackLoaded) return;
+    this.pixelPackLoading = true;
+    if (this.pixelPackButton) this.pixelPackButton.disabled = true;
+    const fa = this.ui?.language === 'fa';
+    const setStatus = (value: string) => { if (this.pixelPackStatus) this.pixelPackStatus.textContent = value; };
+    try {
+      setStatus(fa ? (fromCache ? 'در حال آماده‌سازی فایل ذخیره‌شده…' : 'در حال دریافت فایل…') : 'Preparing pixel assets…');
+      const pack: PixelPackDownload = await downloadPixelPack((done, total) => {
+        setStatus(fa ? `دریافت فایل: ${done} از ${total}` : `Downloading file: ${done}/${total}`);
+      });
+      this.pixelPackObjectUrls.push(...pack.objectUrls);
+      const asset = pack.assets[0];
+      const key = 'aoc-pack-terrain';
+      if (!this.textures.exists(key)) {
+        await new Promise<void>((resolve, reject) => {
+          const onComplete = () => { cleanup(); resolve(); };
+          const onError = (file: Phaser.Loader.File) => {
+            if (file.key === key) { cleanup(); reject(new Error('Could not load pixel terrain texture')); }
+          };
+          const cleanup = () => {
+            this.load.off(Phaser.Loader.Events.COMPLETE, onComplete);
+            this.load.off(Phaser.Loader.Events.LOAD_ERROR, onError);
+          };
+          this.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
+          this.load.on(Phaser.Loader.Events.LOAD_ERROR, onError);
+          this.load.svg(key, asset.objectUrl, { width: asset.width, height: asset.height });
+          this.load.start();
+        });
+      }
+      this.pixelPackLoaded = true;
+      this.applyPixelPackToCurrentPlatforms();
+      setStatus(fa ? 'بسته نصب شد؛ بافت‌های پیکسلی فعال شدند.' : 'Pack installed · pixel terrain enabled.');
+      if (this.pixelPackButton) this.pixelPackButton.textContent = fa ? 'بسته نصب شده' : 'PACK INSTALLED';
+    } catch (error) {
+      setStatus(fa ? `دانلود ناموفق بود: ${(error as Error).message}` : `Download failed: ${(error as Error).message}`);
+      if (this.pixelPackButton) this.pixelPackButton.disabled = false;
+    } finally {
+      this.pixelPackLoading = false;
+      for (const url of this.pixelPackObjectUrls.splice(0)) URL.revokeObjectURL(url);
+    }
+  }
+
+  private pixelPackTextureKey(_material: string): string { return 'aoc-pack-terrain'; }
+
+  private applyPixelPackToCurrentPlatforms(): void {
+    if (!this.platforms) return;
+    for (const child of this.platforms.getChildren()) {
+      const block = child as Phaser.Physics.Arcade.Image;
+      const material = String(block.getData('material') ?? 'ground');
+      const key = this.pixelPackTextureKey(material);
+      if (this.textures.exists(key)) block.setTexture(key).setTint(this.platformColor(material));
+    }
   }
 
   private addExtraTouchControls(): void {
@@ -344,7 +443,8 @@ export class GameScene extends Phaser.Scene {
       const material = String(kind ?? 'ground');
       const texture = this.platformTexture(material);
       const block = this.platforms.create(x + w / 2, y + h / 2, texture) as Phaser.Physics.Arcade.Image;
-      block.setDisplaySize(w, h).setTint(0xffffff).setDepth(4).refreshBody();
+      block.setData('material', material);
+      block.setDisplaySize(w, h).setTint(texture.startsWith('aoc-pack-') ? this.platformColor(material) : 0xffffff).setDepth(4).refreshBody();
       if (kind === 'oneway' && block.body) { block.body.checkCollision.down = false; block.body.checkCollision.left = false; block.body.checkCollision.right = false; }
       // Surface details are baked into the shared material texture to keep the object count low.
 
@@ -581,6 +681,8 @@ export class GameScene extends Phaser.Scene {
   /** Material-specific hand-painted platform atlas, generated once and reused to avoid flat coloured rectangles. */
   private platformTexture(kind: string): string {
     const key = `aoc-platform-${kind}`;
+    const packed = this.pixelPackTextureKey(kind);
+    if (this.textures.exists(packed)) return packed;
     if (this.textures.exists(key)) return key;
     const g = this.add.graphics();
     const base: Record<string, number> = { ground: 0x51423d, stone: 0x71645c, wood: 0x76523d, ice: 0x9db5c2, sand: 0x92724d, crumble: 0x6d5146, oneway: 0x8a6a50, vine: 0x4e6947, metal: 0x59616a };
