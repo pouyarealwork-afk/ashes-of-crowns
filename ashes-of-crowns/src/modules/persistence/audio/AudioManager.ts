@@ -277,7 +277,10 @@ export class AudioManager {
       this.fail(id, new Error('unknown or non-SFX audio id'));
       return false;
     }
-    if (asset.category === 'music') return false;
+    if (asset.category === 'music') {
+      this.fail(id, new Error('music asset cannot be played as SFX'));
+      return false;
+    }
     if (!this.unlocked || !this.ctx) return false;
     const buf = this.buffers.get(id);
     if (!buf) {
