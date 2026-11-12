@@ -59,6 +59,23 @@ export class ScreenManager {
     this.syncPause(id);
   }
 
+  close(id: ScreenId): boolean {
+    const index = this.stack.findIndex(screen => screen.id === id);
+    if (index < 0) return false;
+    const wasTop = index === this.stack.length - 1;
+    const [screen] = this.stack.splice(index, 1);
+    this.detach(screen);
+    if (wasTop) {
+      const previous = this.top;
+      if (previous) {
+        this.cover(previous, false);
+        void previous.refresh();
+      }
+    }
+    this.syncPause(screen.id);
+    return true;
+  }
+
   back(): boolean {
     const top = this.top;
     if (!top || !top.dismissable) return false;
