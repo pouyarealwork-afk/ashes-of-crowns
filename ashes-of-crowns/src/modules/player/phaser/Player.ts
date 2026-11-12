@@ -248,6 +248,54 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.y > killY && !this.controller.isDead) this.controller.kill();
   }
 
+  /** Short-lived sprite echoes make evasive movement readable without adding heavy particles. */
+  private spawnDodgeAfterimages(): void {
+    if (this.disposed) return;
+    const frameName = this.frame?.name;
+    for (let i = 0; i < 3; i++) {
+      this.scene.time.delayedCall(i * 38, () => {
+        if (this.disposed || !this.active) return;
+        const echo = this.scene.add.image(this.x, this.y, this.textureKeyName, frameName)
+          .setOrigin(0.5, 1).setDepth(this.depth - 1).setAlpha(0.28 - i * 0.045)
+          .setTint(0x9ddcff).setFlipX(this.flipX);
+        this.scene.tweens.add({
+          targets: echo, x: echo.x - this.controller.facing * (18 + i * 8),
+          alpha: 0, scaleX: 0.94, duration: 190 + i * 25, ease: 'Cubic.Out',
+          onComplete: () => echo.destroy(),
+        });
+      });
+    }
+  }
+
+  /** Dust burst and a ground ripple give landings a clear sense of weight. */
+  private spawnLandingDust(hard: boolean): void {
+    if (!this.active || this.disposed) return;
+    const footY = this.y - 2;
+    const color = hard ? 0xd7a77b : 0x9d8877;
+    const count = hard ? 7 : 4;
+    for (let i = 0; i < count; i++) {
+      const side = i % 2 ? 1 : -1;
+      const particle = this.scene.add.circle(
+        this.x + side * (8 + Math.floor(i / 2) * 5), footY - (i % 3) * 2,
+        hard ? 2.8 : 1.8, color, hard ? 0.48 : 0.3,
+      ).setDepth(this.depth - 1);
+      this.scene.tweens.add({
+        targets: particle, x: particle.x + side * (18 + i * 2),
+        y: particle.y - (7 + (i % 3) * 4), alpha: 0, scale: 0.35,
+        duration: hard ? 360 : 250, ease: 'Cubic.Out',
+        onComplete: () => particle.destroy(),
+      });
+    }
+    if (hard) {
+      const ring = this.scene.add.ellipse(this.x, footY, 22, 5, 0xd6b18b, 0.12)
+        .setStrokeStyle(1, 0xe7c9a5, 0.48).setDepth(this.depth - 1);
+      this.scene.tweens.add({
+        targets: ring, scaleX: 3.4, scaleY: 1.8, alpha: 0,
+        duration: 260, ease: 'Cubic.Out', onComplete: () => ring.destroy(),
+      });
+    }
+  }
+
   private updateAnimationSpeed(): void {
     const c = this.controller;
     const s = c.state;
@@ -321,9 +369,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       .forEach((k) => forward(k as keyof PlayerEvents));
 
     this.offs.push(
-      this.controller.on('stateChanged', ({ to }) => this.playAnimFor(to)),
+      this.controller.on('stateChanged', ({ to }) => { this.playAnimFor(to); if (to === 'dodge') this.spawnDodgeAfterimages(); }),
       this.controller.on('land', ({ hard }) => {
         if (hard) this.cameraRig?.shake(90, 0.003);
+        this.spawnLandingDust(hard);
       }),
       this.controller.on('damaged', ({ result }) => {
         if (result.applied > 0) this.cameraRig?.shake(140, 0.007);
