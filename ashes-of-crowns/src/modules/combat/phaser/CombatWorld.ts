@@ -264,6 +264,7 @@ export class CombatWorld {
     on('player:death', () => this.bus.emit('player:died', {}));
     on('combat:enemy-hit', (payload: any) => this.playEnemyHitFeedback(payload));
     on('combat:combo', (payload: { count: number; multiplier: number }) => this.showCombo(payload));
+    on('combat:enemy-combo-reset', (payload: { enemyId: string }) => this.clearEnemyComboLabel(payload.enemyId));
     on('combat:enemy-combo', (payload: { enemyId: string; count: number; multiplier: number }) => this.showEnemyCombo(payload));
     on('combat:telegraph', (payload: { enemyId: string; attack: string; durationMs: number }) => this.showEnemyTelegraph(payload));
     on('world:companion-assist-actions', (actions: any[]) => {
@@ -285,7 +286,8 @@ export class CombatWorld {
   }
 
   private showCombo(payload: { count: number; multiplier: number }): void {
-    if (!this.comboLabel || payload.count < 2) return;
+    if (!this.comboLabel) return;
+    if (payload.count < 2) { this.comboHideTween?.stop(); this.comboLabel.setAlpha(0); return; }
     const camera = this.scene.cameras.main;
     this.comboHideTween?.stop();
     this.comboLabel.setPosition(camera.width / 2, 92)
@@ -298,6 +300,16 @@ export class CombatWorld {
   }
 
   /** Enemy chains are shown above the attacker so players can read escalating pressure. */
+  private clearEnemyComboLabel(enemyId: string): void {
+    const label = this.enemyComboLabels.get(enemyId);
+    if (!label?.active) return;
+    this.scene.tweens.killTweensOf(label);
+    this.scene.tweens.add({ targets: label, alpha: 0, duration: 100, onComplete: () => {
+      if (this.enemyComboLabels.get(enemyId) === label) this.enemyComboLabels.delete(enemyId);
+      label.destroy();
+    } });
+  }
+
   private showEnemyCombo(payload: { enemyId: string; count: number; multiplier: number }): void {
     const sprite = this.sprites.get(payload.enemyId);
     if (!sprite?.active) return;
@@ -437,6 +449,7 @@ export class CombatWorld {
     const reduction = Math.min(0.8, Math.max(0, this.rpg?.getPassives().damageReduction ?? 0));
     const amount = Math.max(1, Math.round(rawDamage * (1 - reduction)));
     const result = this.player.takeHit({ amount, knockbackDir, knockback, unblockable });
+    if (result.applied > 0) this.engine.breakPlayerCombo();
     this.bus.emit('combat:player-hit', { enemyId: sourceId, damage: result.applied, blocked: result.blocked, dodged: result.dodged });
     return result;
   }
