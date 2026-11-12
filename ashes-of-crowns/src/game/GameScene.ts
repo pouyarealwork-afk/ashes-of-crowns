@@ -243,7 +243,7 @@ export class GameScene extends Phaser.Scene {
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
     this.started = true;
     this.startLevel(this.currentLevelId, 'start');
-    this.ui.enterGame(); this.ui.toast({ text: 'The road begins in the ashes of home.', kind: 'info' });
+    this.ui.enterGame(); this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
     void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
   }
 
