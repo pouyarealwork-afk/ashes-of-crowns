@@ -561,21 +561,21 @@ export class GameScene extends Phaser.Scene {
     ground.fillStyle(accent, warm ? 0.13 : 0.1); ground.fillEllipse(w * 0.48, horizon + 92, Math.min(640, w * 0.48), 54);
 
     // Low drifting mist gives the level a layered, cinematic silhouette.
-    for (let i = 0; i < 4; i++) {
-      const mist = this.add.ellipse(w * (0.18 + i * 0.23), horizon + 18 + (i % 2) * 24, 300 + i * 54, 30 + i * 5, frost ? 0xc6e4ee : 0xb8a9a0, 0.035 + i * 0.008).setDepth(-5 + i);
-      this.tweens.add({ targets: mist, x: mist.x + (i % 2 ? -90 : 90), alpha: 0.018, duration: 9000 + i * 1700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    for (let i = 0; i < 2; i++) {
+      const mist = this.add.ellipse(w * (0.28 + i * 0.42), horizon + 22 + i * 18, 360, 28, frost ? 0xc6e4ee : 0xb8a9a0, 0.035).setDepth(-5 + i);
+      this.tweens.add({ targets: mist, x: mist.x + (i ? -55 : 55), alpha: 0.018, duration: 14000 + i * 2000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     }
 
     // Weather particles are deterministic and deliberately sparse for mobile performance.
     const weather = String(level.atmosphere.weather);
     const particleColor = weather.includes('snow') || frost ? 0xd8eff7 : weather.includes('sand') || desert ? 0xe0b878 : accent;
     if (weather === 'ash' || weather === 'embers' || weather.includes('snow') || weather.includes('fog') || weather.includes('sand') || warm) {
-      const count = frost || weather.includes('snow') ? 30 : 42;
+      const count = frost || weather.includes('snow') ? 8 : 10;
       for (let i = 0; i < count; i++) {
         const x = (i * 191) % w, y = 42 + (i * 61) % Math.max(100, h - 100);
         const size = frost ? 1 + (i % 3) * 0.55 : 1 + i % 2;
         const particle = this.add.circle(x, y, size, particleColor, 0.22 + (i % 4) * 0.09).setDepth(1);
-        this.tweens.add({ targets: particle, x: x + (frost ? 38 : -22) + (i % 5) * 9, y: y - (frost ? -42 : 28 + (i % 4) * 12), alpha: 0.04, duration: 3200 + (i % 6) * 850, delay: i * 43, repeat: -1, yoyo: true, ease: 'Sine.InOut' });
+        this.tweens.add({ targets: particle, x: x + (frost ? 24 : -14) + (i % 3) * 5, y: y - (frost ? -24 : 16 + (i % 3) * 6), alpha: 0.05, duration: 5200 + (i % 4) * 900, delay: i * 120, repeat: -1, yoyo: true, ease: 'Sine.InOut' });
       }
     }
   }
@@ -744,18 +744,18 @@ export class GameScene extends Phaser.Scene {
       const hair = this.add.arc(0, -59, 10, 190, 350, false, shade).setStrokeStyle(3, 0x241b18);
       const eyes = this.add.line(0, -54, -4, 0, 4, 0, 0x33231d, 0.85).setLineWidth(1.4);
       const label = this.add.text(0, -78, spec.name, { fontSize: '10px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 4 }).setOrigin(0.5);
-      const actor = this.add.container(this.aren.x, this.aren.y, [shadow, cape, body, belt, clasp, neck, head, hair, eyes, label]).setDepth(8);
-      this.companionActors.push({ id: spec.id, actor, offset: 66 + this.companionActors.length * 36 });
+      const offset = 78 + this.companionActors.length * 46;
+      const actor = this.add.container(this.aren.x - this.aren.facing * offset, this.aren.y, [shadow, cape, body, belt, clasp, neck, head, hair, eyes, label]).setDepth(8);
+      this.companionActors.push({ id: spec.id, actor, offset });
     }
   }
 
   private updateCompanionPositions(): void {
     if (!this.aren) return;
-    const t = this.time.now;
     for (let i = 0; i < this.companionActors.length; i++) {
       const c = this.companionActors[i];
-      c.actor.setPosition(this.aren.x - this.aren.facing * c.offset, this.aren.y + Math.sin(t / 260 + i * 1.7) * 3 + i * 2);
-
+      // Keep companions on the same ground plane as Aren; no vertical bobbing that looks like hovering.
+      c.actor.setPosition(this.aren.x - this.aren.facing * c.offset, this.aren.y + i * 2);
     }
   }
 
@@ -930,7 +930,7 @@ export class GameScene extends Phaser.Scene {
 
         .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:blur(18px);animation:aoc-haze-drift 9s ease-in-out infinite alternate}
         .aoc-opening-cinematic .aoc-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 25%,rgba(0,0,0,.25) 68%,rgba(0,0,0,.9) 130%)}
-        .aoc-opening-cinematic .aoc-grain{position:absolute;inset:-50%;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");animation:aoc-grain-shift .22s steps(2) infinite;pointer-events:none}
+        .aoc-opening-cinematic .aoc-grain{position:absolute;inset:-50%;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");animation:none;pointer-events:none}
         .aoc-opening-cinematic .aoc-bars:before,.aoc-opening-cinematic .aoc-bars:after{content:'';position:absolute;left:0;right:0;height:8.5vh;background:#030305;z-index:5;transition:height 1.1s cubic-bezier(.7,0,.2,1)}
         .aoc-opening-cinematic .aoc-bars:before{top:0}.aoc-opening-cinematic .aoc-bars:after{bottom:0}
         .aoc-opening-cinematic .aoc-copy{position:absolute;z-index:7;left:8%;right:8%;top:50%;transform:translateY(-42%);text-align:center;opacity:0;transition:opacity 1s ease,transform 1.2s ease;pointer-events:none;text-shadow:0 3px 22px #000}
@@ -1006,7 +1006,7 @@ export class GameScene extends Phaser.Scene {
     const flash = overlay.querySelector<HTMLElement>('.aoc-flash')!;
     skip.textContent = fa ? 'رد کردن  ⏭' : 'SKIP  ⏭';
 
-    for (let i = 0; i < 34; i++) {
+    for (let i = 0; i < 12; i++) {
       const ember = document.createElement('i');
       ember.className = 'aoc-ember';
       ember.style.left = ((i * 29) % 100) + '%';
