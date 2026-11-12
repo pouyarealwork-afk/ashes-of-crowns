@@ -600,53 +600,47 @@ export class AudioManager {
   }
 
   /** Subtle synthesized ambience keeps the world from being silent when no music files are bundled. */
+  /** Gentle original fantasy ambience: warm consonant chords, no harsh low-frequency beating drone. */
   private startProceduralAmbient(): void {
     const ctx = this.ctx;
-    if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.ambientOscillators.length) return;
+    if (!ctx || !this.unlocked || this.ambientOscillators.length) return;
     const now = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.026, now + 5.5);
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.linearRampToValueAtTime(0.018, now + 6);
     const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass'; filter.frequency.value = 510; filter.Q.value = 0.55;
-    gain.connect(filter); filter.connect(this.musicBus);
-    this.ambientGain = gain;
-    this.ambientFilter = filter;
+    filter.type = 'lowpass'; filter.frequency.value = 1250; filter.Q.value = 0.35;
+    master.connect(filter); filter.connect(this.musicBus);
+    this.ambientGain = master; this.ambientFilter = filter;
 
-    // Original dark-fantasy ambient score: layered minor drone, distant fifths and slow breathing harmonics.
-    const voices = [
-      [41.2, -2, 'sine', 0.34], [55, 2, 'sine', 0.24], [82.41, -4, 'sine', 0.15],
-      [110, 3, 'triangle', 0.085], [123.47, -5, 'sine', 0.045],
-      [164.81, 4, 'triangle', 0.026], [246.94, -3, 'sine', 0.012],
-    ] as const;
-    for (const [frequency, detune, wave, level] of voices) {
-      const osc = ctx.createOscillator();
-      osc.type = wave; osc.frequency.value = frequency; osc.detune.value = detune;
-      const voice = ctx.createGain(); voice.gain.value = level;
-      osc.connect(voice); voice.connect(gain); osc.start();
-      this.ambientOscillators.push(osc);
+    // A calm D-major / B-minor colour, voiced in a comfortable register rather than sub-bass.
+    const voices = [146.83, 220, 293.66, 369.99];
+    voices.forEach((frequency, index) => {
+      const osc = ctx.createOscillator(); const voice = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = frequency;
+      voice.gain.value = [0.22, 0.12, 0.075, 0.035][index];
+      osc.connect(voice); voice.connect(master); osc.start(); this.ambientOscillators.push(osc);
+    });
+
+    // Slow chord colour changes create musical movement without a repeating test-tone pulse.
+    const progression = [
+      [146.83, 220, 293.66, 369.99],
+      [123.47, 185, 246.94, 311.13],
+      [110, 164.81, 220, 277.18],
+      [130.81, 196, 261.63, 329.63],
+    ];
+    const starts = [0, 12, 24, 36];
+    for (let i = 0; i < 4; i++) {
+      const osc = this.ambientOscillators[i];
+      for (let chord = 1; chord < progression.length; chord++) {
+        osc.frequency.setValueAtTime(progression[chord - 1][i], now + starts[chord - 1]);
+        osc.frequency.linearRampToValueAtTime(progression[chord][i], now + starts[chord] + 2.5);
+      }
+      osc.frequency.setValueAtTime(progression[3][i], now + 36);
     }
-
-    // A very slow filter swell and independent amplitude breathing prevent a static test-tone sound.
-    const filterLfo = ctx.createOscillator();
-    const filterDepth = ctx.createGain();
-    filterLfo.type = 'sine'; filterLfo.frequency.value = 0.043; filterDepth.gain.value = 115;
-    filterLfo.connect(filterDepth); filterDepth.connect(filter.frequency); filterLfo.start();
-    this.ambientOscillators.push(filterLfo);
-
-    const pulse = ctx.createOscillator();
-    const pulseDepth = ctx.createGain();
-    pulse.type = 'sine'; pulse.frequency.value = 0.11; pulseDepth.gain.value = 0.004;
-    pulse.connect(pulseDepth); pulseDepth.connect(gain.gain); pulse.start();
-    this.ambientOscillators.push(pulse);
-
-    // Soft, high distant overtone, kept deliberately quiet so dialogue and combat remain clear.
-    const overtone = ctx.createOscillator();
-    const overtoneGain = ctx.createGain();
-    overtone.type = 'sine'; overtone.frequency.value = 329.63; overtone.detune.value = 7;
-    overtoneGain.gain.value = 0.008;
-    overtone.connect(overtoneGain); overtoneGain.connect(gain); overtone.start();
-    this.ambientOscillators.push(overtone);
+    const shimmer = ctx.createOscillator(); const shimmerGain = ctx.createGain();
+    shimmer.type = 'sine'; shimmer.frequency.value = 587.33; shimmerGain.gain.value = 0.008;
+    shimmer.connect(shimmerGain); shimmerGain.connect(master); shimmer.start(); this.ambientOscillators.push(shimmer);
   }
 
   /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */
@@ -667,11 +661,11 @@ export class AudioManager {
     const presets: Record<string, { wave: OscillatorType; from: number; to: number; duration: number; gain: number }> = {
       magic: { wave: 'sine', from: 760, to: 180, duration: 0.34, gain: 0.16 },
       step: { wave: 'triangle', from: 95, to: 48, duration: 0.075, gain: 0.11 },
-      movement: { wave: 'sawtooth', from: 520, to: 145, duration: 0.2, gain: 0.12 },
+      movement: { wave: 'sine', from: 440, to: 220, duration: 0.2, gain: 0.075 },
       guard: { wave: 'triangle', from: 410, to: 190, duration: 0.16, gain: 0.18 },
       reward: { wave: 'sine', from: 520, to: 1040, duration: 0.28, gain: 0.12 },
-      heavy: { wave: 'sawtooth', from: 125, to: 38, duration: 0.32, gain: 0.2 },
-      hit: { wave: 'sawtooth', from: 190, to: 58, duration: 0.17, gain: 0.18 },
+      heavy: { wave: 'sine', from: 110, to: 55, duration: 0.32, gain: 0.13 },
+      hit: { wave: 'triangle', from: 220, to: 82, duration: 0.17, gain: 0.12 },
       ui: { wave: 'sine', from: 460, to: 330, duration: 0.09, gain: 0.075 },
     };
     const p = presets[kind];
@@ -700,7 +694,7 @@ export class AudioManager {
       const filter = ctx.createBiquadFilter(); filter.type = kind === 'magic' ? 'bandpass' : 'lowpass';
       filter.frequency.value = kind === 'magic' ? 1500 : 850;
       const ng = ctx.createGain();
-      ng.gain.setValueAtTime(p.gain * volume * 0.34, now);
+      ng.gain.setValueAtTime(p.gain * volume * 0.16, now);
       ng.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'magic' ? 0.22 : 0.09));
       noise.connect(filter); filter.connect(ng); ng.connect(this.sfxBus);
       noise.start(now); noise.stop(now + (kind === 'magic' ? 0.22 : 0.09));
