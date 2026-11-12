@@ -221,6 +221,9 @@ export class GameScene extends Phaser.Scene {
         this.scene.restart({ levelId: p.level, spawn: p.spawn ?? 'start' });
       }
     });
+    on('combat:ability-used', (p: any) => this.playCombatTone(p?.abilityId ?? 'ability'));
+    on('combat:enemy-hit', (p: any) => { if (p?.critical) this.playCombatTone('critical'); });
+    on('combat:boss-phase', () => this.playCombatTone('boss_phase'));
     on('combat:boss-intro', (p: any) => {
       this.currentBoss = { id: p.bossId, name: p.name ?? 'Warden', phase: 1 };
       this.ui?.banner(p.name ?? 'A powerful foe approaches', p.title ?? 'Prepare yourself', 'skull');
@@ -244,7 +247,11 @@ export class GameScene extends Phaser.Scene {
     this.started = true;
     this.startLevel(this.currentLevelId, 'start');
     this.cameras.main.fadeIn(1250, 7, 5, 7);
-    this.ui.enterGame(); this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
+    this.ui.enterGame();
+    this.aren.lockInput(true);
+    this.started = false;
+    this.playOpeningCinematic();
+    this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
     void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
   }
 
@@ -689,6 +696,97 @@ export class GameScene extends Phaser.Scene {
       skills: hotbar.slice(0, 3).map((id: string | null) => id ? ({ id, name: abilities.find((a: any) => a.id === id)?.id ?? id, manaCost: abilities.find((a: any) => a.id === id)?.manaCost ?? 0, icon: 'sparkles' }) : null),
       objectives: objective && selectedQuest ? [{ title: selectedQuest.title, text: objective.text }] : [],
       boss: this.currentBoss ? { name: this.currentBoss.name, health: this.combat?.engine.getAlive().find(e => e.bossId === this.currentBoss?.id)?.health ?? 0, maxHealth: this.combat?.engine.getAlive().find(e => e.bossId === this.currentBoss?.id)?.maxHealth ?? 1, phase: this.currentBoss.phase } : null,
+    });
+  }
+
+  /** Short, layered procedural combat cues; played only after the browser has received user input. */
+  private playCombatTone(id: string): void {
+    try {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const mage = id.startsWith('a_');
+      const assassin = id.startsWith('s_');
+      const base = id === 'boss_phase' ? 82 : id === 'critical' ? 740 : mage ? (id.includes('meteor') ? 190 : 520) : assassin ? 260 : 145;
+      const duration = id === 'boss_phase' ? 0.48 : id.includes('meteor') ? 0.42 : 0.2;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, ctx.currentTime);
+      master.gain.exponentialRampToValueAtTime(id === 'boss_phase' ? 0.075 : 0.045, ctx.currentTime + 0.025);
+      master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+      master.connect(ctx.destination);
+      const first = ctx.createOscillator();
+      first.type = id === 'boss_phase' ? 'sawtooth' : mage ? 'sine' : assassin ? 'triangle' : 'square';
+      first.frequency.setValueAtTime(base, ctx.currentTime);
+      first.frequency.exponentialRampToValueAtTime(Math.max(35, base * (id === 'boss_phase' ? 0.72 : mage ? 1.8 : 0.62)), ctx.currentTime + duration);
+      first.connect(master);
+      first.start(); first.stop(ctx.currentTime + duration);
+      const second = ctx.createOscillator();
+      const layer = ctx.createGain();
+      layer.gain.setValueAtTime(0.0001, ctx.currentTime);
+      layer.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.02);
+      layer.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration * 0.72);
+      second.type = 'sine'; second.frequency.setValueAtTime(base * (mage ? 2 : 1.5), ctx.currentTime);
+      second.connect(layer); layer.connect(master); second.start(); second.stop(ctx.currentTime + duration * 0.75);
+      second.onended = () => void ctx.close();
+    } catch { /* Browser audio can be unavailable or blocked; gameplay must continue. */ }
+  }
+
+  /** First-play title sequence; the opening story trigger waits until the player regains control. */
+  private playOpeningCinematic(): void {
+    const fa = this.ui?.language === 'fa';
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '99999', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '18px', padding: '28px',
+      background: 'radial-gradient(ellipse at 50% 58%, rgba(89,43,28,.96), rgba(10,8,10,.99) 68%)',
+      color: '#ead8bd', textAlign: 'center', opacity: '0', transition: 'opacity 850ms ease',
+      pointerEvents: 'auto', boxSizing: 'border-box', overflow: 'hidden',
+    });
+    const style = document.createElement('style');
+    style.textContent = '@keyframes aoc-ember-rise{0%{transform:translateY(15vh) scale(.5);opacity:0}20%{opacity:.8}100%{transform:translateY(-65vh) scale(1.4);opacity:0}}';
+    overlay.appendChild(style);
+    for (let i = 0; i < 13; i++) {
+      const ember = document.createElement('span');
+      Object.assign(ember.style, {
+        position: 'absolute', bottom: '-8px', left: ((i * 37) % 96 + 2) + '%',
+        width: (2 + i % 3) + 'px', height: (2 + i % 3) + 'px', borderRadius: '50%',
+        background: '#e69a55', boxShadow: '0 0 12px #e69a55',
+        animation: 'aoc-ember-rise ' + (2.6 + (i % 4) * 0.55) + 's linear ' + (i * 0.13) + 's infinite',
+      });
+      overlay.appendChild(ember);
+    }
+    const title = document.createElement('div');
+    title.textContent = fa ? 'خاکسترِ تاج‌ها' : 'ASHES OF CROWNS';
+    Object.assign(title.style, {
+      fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 7vw, 68px)', letterSpacing: '0.08em',
+      color: '#e7bd86', textShadow: '0 0 28px rgba(221,133,69,.35)', position: 'relative',
+      transition: 'opacity 800ms ease',
+    });
+    const line = document.createElement('p');
+    line.dir = fa ? 'rtl' : 'ltr';
+    line.textContent = fa
+      ? 'سه روز از محاکمه گذشته است. نامت را گرفتند؛ اما سوگندت هنوز زنده است.'
+      : 'Three days have passed since the trial. They took your name, but your oath remains.';
+    Object.assign(line.style, {
+      maxWidth: '720px', fontFamily: 'Georgia, serif', fontSize: 'clamp(16px, 2.5vw, 24px)',
+      lineHeight: '1.9', color: '#d9c7b0', opacity: '0', transition: 'opacity 900ms ease', position: 'relative',
+    });
+    const hint = document.createElement('div');
+    hint.textContent = fa ? 'داستان آرن وال‌کرست' : 'THE STORY OF AREN VALCREST';
+    Object.assign(hint.style, {
+      fontSize: '11px', letterSpacing: '0.24em', color: '#a98a6b',
+      opacity: '0', transition: 'opacity 900ms ease', position: 'relative',
+    });
+    overlay.append(title, line, hint);
+    (this.ui?.root ?? document.body).appendChild(overlay);
+    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+    this.time.delayedCall(650, () => { line.style.opacity = '1'; hint.style.opacity = '1'; });
+    this.time.delayedCall(2950, () => { line.style.opacity = '0'; hint.style.opacity = '0'; title.style.opacity = '0'; });
+    this.time.delayedCall(3850, () => { overlay.style.opacity = '0'; });
+    this.time.delayedCall(4750, () => {
+      overlay.remove();
+      if (this.aren) this.aren.lockInput(false);
+      this.started = true;
     });
   }
 
