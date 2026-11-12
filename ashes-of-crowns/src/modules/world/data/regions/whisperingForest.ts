@@ -89,7 +89,7 @@ export const whisperingForest: RegionContent = {
     }),
     T('d_sylwen_camp', 'sylwen', 'a', {
       a: N('sylwen', 'امشب جنگل زیادی ساکته. عجیبه... بعضی وقت‌ها سکوت از فریاد هم بلندتره.', { variants: [{ when: R('sylwen', '>=', 60), text: 'You hum when you think I\'m asleep. I like it.' }], choices: [C('"What was the Greenwatch?"', 'b'), C('"Rest."')] }),
-      b: N('sylwen', 'Eighty rangers. We memorised the kingdom\'s history because paper burns. Now I carry the oaths of the dead in my head and they don\'t always agree.', { effects: [rl('sylwen', 2)] }),
+      b: N('sylwen', 'هشتاد نگهبان بودیم. تاریخ پادشاهی رو حفظ می‌کردیم، چون کاغذ می‌سوزه و حافظه نه. حالا من موندم و قول‌هایی که به مرده‌ها دادم؛ قول‌هایی که همیشه هم با هم کنار نمیان.', { effects: [rl('sylwen', 2)] }),
     }),
     T('d_whisper_trial', 'whisperer', 'a', {
       a: N('whisperer', 'WHO WALKS WITH ASH ON HIS HANDS? We have heard the oak-names: Valcrest, Oathbreaker, Hero. Which is true?', { mood: 'eerie', choices: [
@@ -119,7 +119,7 @@ export const whisperingForest: RegionContent = {
     CUT('d_rook_camp', 'a', {
       a: N('rook', 'Look at what the wind brought. Forty silver, walking. Boys, round him up.', { mood: 'smug', next: 'b' }),
       b: N('aren', 'You hold the trail, Rook. Not my head.', { next: 'c' }),
-      c: N('rook', 'I hold what I can. The Crown stopped paying the Greenwatch\'s tolls — now it pays me. Business.', { mood: 'wry' }),
+      c: N('rook', 'من چیزی رو نگه می‌دارم که از دستم برمیاد. تاج‌وتخت دیگه پول نگهبانی راه رو به سبزپوش‌ها نمی‌ده؛ حالا به من می‌ده. اسمش رو بذار معامله، نه خیانت.', { mood: 'wry' }),
     }),
     T('d_rook', 'rook', 'a', {
       a: N('rook', 'خب، وال‌کرست... قراره با هم بجنگیم یا می‌تونیم مثل آدم‌های عاقل حرف بزنیم؟', { choices: [
