@@ -109,7 +109,7 @@ export class CombatWorld {
     const sprite = this.scene.physics.add.sprite(x, y, this.textureKey(type));
     sprite.setDepth(9).setOrigin(0.5, 1).setScale(archetype.scale ?? (enemy.elite ? 1.16 : 1));
     const body = sprite.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false); body.setImmovable(false); body.setSize(archetype.hitbox.width, archetype.hitbox.height);
+    body.setAllowGravity(enemy.ai !== 'flying'); body.setImmovable(false); body.setCollideWorldBounds(true); body.setSize(archetype.hitbox.width, archetype.hitbox.height);
     body.setOffset((sprite.width - archetype.hitbox.width) / 2, sprite.height - archetype.hitbox.height);
     sprite.setData('combatEnemyId', enemy.id);
     this.sprites.set(enemy.id, sprite);
@@ -143,8 +143,14 @@ export class CombatWorld {
       body.setVelocityX(enemy.vx);
       if (enemy.ai === 'flying') body.setVelocityY(Math.sin(_time / 420 + enemy.x) * 18);
       sprite.setFlipX(enemy.facing < 0);
-      if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff); else sprite.clearTint();
-      if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
+      if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff);
+      else if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
+      else if (enemy.windupRemainingMs > 0) sprite.setTint(0xffb45c);
+      else sprite.clearTint();
+      if (enemy.windupRemainingMs > 0) {
+        const pulse = 1 + Math.sin(_time / 48) * 0.045;
+        sprite.setScale((getEnemyArchetype(enemy.type)?.scale ?? 1) * (enemy.elite ? 1.16 : 1) * pulse);
+      } else sprite.setScale((getEnemyArchetype(enemy.type)?.scale ?? 1) * (enemy.elite ? 1.16 : 1));
     }
     this.checkHazards();
     if (this.scene.time.now >= this.nextAssistAt && this.engine.getAlive().length) {
