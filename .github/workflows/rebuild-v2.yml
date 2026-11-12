@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "ashes-of-crowns/**"
+      - ".github/workflows/**"
   push:
     branches: [main, rebuild-v2]
     paths:
