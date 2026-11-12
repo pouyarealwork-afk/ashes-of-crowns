@@ -149,8 +149,8 @@ export class CombatWorld {
       else sprite.clearTint();
       if (enemy.windupRemainingMs > 0) {
         const pulse = 1 + Math.sin(_time / 48) * 0.045;
-        sprite.setScale((getEnemyArchetype(enemy.type)?.scale ?? 1) * (enemy.elite ? 1.16 : 1) * pulse);
-      } else sprite.setScale((getEnemyArchetype(enemy.type)?.scale ?? 1) * (enemy.elite ? 1.16 : 1));
+        sprite.setScale((getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1) * pulse);
+      } else sprite.setScale((getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1));
     }
     this.checkHazards();
     if (this.scene.time.now >= this.nextAssistAt && this.engine.getAlive().length) {
