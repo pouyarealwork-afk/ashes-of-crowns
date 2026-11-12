@@ -241,12 +241,55 @@ export class CombatWorld {
     on('player:attackActive', (attack: PlayerAttackEvent) => { this.activeAttack = attack; if (!this.activeAttackToken) { this.attackSequence++; this.activeAttackToken = `aren-${this.attackSequence}`; } });
     on('player:attackEnd', () => { this.activeAttack = null; this.activeAttackToken = ''; });
     on('player:death', () => this.bus.emit('player:died', {}));
+    on('combat:enemy-hit', (payload: any) => this.playEnemyHitFeedback(payload));
     on('world:companion-assist-actions', (actions: any[]) => {
       const view = { x: this.player.x, y: this.player.y, health: this.player.stats.health, maxHealth: this.player.stats.config.maxHealth, facing: this.player.facing };
       for (const action of actions ?? []) this.engine.receiveAssist(action, view);
     });
     on('combat:ability-request', (payload: { abilityId: string }) => { if (payload?.abilityId) this.useAbility(payload.abilityId); });
     on('combat:region-changed', (payload: { region: string }) => { if (payload?.region) this.engine.setRegion(payload.region); });
+  }
+
+  /** Hit-stop style visual punctuation: enemy recoil, impact sparks and a brief shock ring. */
+  private playEnemyHitFeedback(payload: any): void {
+    const sprite = this.sprites.get(String(payload?.targetId ?? ''));
+    if (!sprite?.active) return;
+    const critical = !!payload?.critical;
+    const color = critical ? 0xffd27b : 0xe7c6a0;
+    const x = sprite.x + (this.player.x >= sprite.x ? 12 : -12);
+    const y = sprite.y - Math.max(20, sprite.displayHeight * 0.48);
+
+    sprite.setTintFill(critical ? 0xffefc4 : 0xffffff);
+    this.scene.time.delayedCall(75, () => {
+      if (sprite.active) sprite.clearTint();
+    });
+    const baseScale = getEnemyArchetype(this.engine.enemies.get(String(payload?.targetId ?? ''))?.archetypeId ?? '')?.scale ?? 1;
+    this.scene.tweens.add({
+      targets: sprite, scaleX: baseScale * (critical ? 1.13 : 1.07),
+      scaleY: baseScale * (critical ? 0.91 : 0.96), duration: 65, yoyo: true,
+      ease: 'Quad.Out', onComplete: () => { if (sprite.active) sprite.setScale(baseScale); },
+    });
+
+    const ring = this.scene.add.circle(x, y, critical ? 13 : 9, color, 0.12)
+      .setStrokeStyle(critical ? 3 : 2, color, 0.9).setDepth(24);
+    this.scene.tweens.add({
+      targets: ring, scale: critical ? 2.8 : 2.1, alpha: 0,
+      duration: critical ? 310 : 220, ease: 'Cubic.Out', onComplete: () => ring.destroy(),
+    });
+
+    const count = critical ? 9 : 5;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (critical ? 0.18 : 0);
+      const distance = critical ? 34 + (i % 3) * 8 : 22 + (i % 2) * 7;
+      const spark = this.scene.add.rectangle(x, y, critical ? 4 : 3, critical ? 10 : 7, color, 0.95)
+        .setDepth(25).setRotation(angle);
+      this.scene.tweens.add({
+        targets: spark, x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance, alpha: 0, scale: 0.25,
+        duration: critical ? 340 : 245, ease: 'Cubic.Out', onComplete: () => spark.destroy(),
+      });
+    }
+    if (critical) this.scene.cameras.main.shake(105, 0.0025);
   }
 
   private syncRpgToPlayer(refill: boolean): void {
