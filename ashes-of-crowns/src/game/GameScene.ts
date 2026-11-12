@@ -400,7 +400,7 @@ export class GameScene extends Phaser.Scene {
     if (respawnPoint.regionId === level.region) this.aren.setCheckpoint(respawnPoint.x, respawnPoint.y);
     this.physics.add.overlap(this.aren, this.collectGroup, (_p: any, item: any) => {
       const id = (item as Phaser.GameObjects.GameObject).getData('collectibleId');
-      if (id && this.services.world.collect(id)) { const glow = (item as Phaser.GameObjects.GameObject).getData('glow') as Phaser.GameObjects.GameObject | undefined; glow?.destroy(); (item as Phaser.GameObjects.GameObject).destroy(); const def = this.services.world.content.collectibles.get(id); this.ui?.toast({ text: `${def?.name ?? 'Item'} recovered`, kind: 'success', icon: 'gem' }); }
+      if (id && this.services.world.collect(id)) { const glow = (item as Phaser.GameObjects.GameObject).getData('glow') as Phaser.GameObjects.GameObject | undefined; glow?.destroy(); (item as Phaser.GameObjects.GameObject).destroy(); const def = this.services.world.content.collectibles.get(id); this.showCompactPickupGain(); }
     });
 
     this.currentBoss = null;
@@ -639,7 +639,10 @@ export class GameScene extends Phaser.Scene {
       const handR = this.add.circle(17, -25, 4, 0xb98767);
       const clasp = this.add.star(0, -44, 4, 2, 4, trim, 0.95);
       actor.add([shadow, cloak, robe, hem, belt, buckle, neck, face, hood, hair, eyeLine, shoulderL, shoulderR, handL, handR, clasp]);
-      this.tweens.add({ targets: actor, y: y - 2, duration: 1900 + (x % 5) * 120, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      // Keep the actor root anchored to the ground. Animate clothing and shadow only; bobbing the root made NPCs visibly hover during dialogue.
+      this.tweens.add({ targets: robe, scaleY: 1.035, duration: 1650 + (x % 5) * 90, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: shadow, scaleX: 1.08, alpha: 0.32, duration: 1650 + (x % 5) * 90, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: [handL, handR], y: '-=1.5', duration: 2100 + (x % 4) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       const plaque = this.add.container(x, y - 103, [
         this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.76).setStrokeStyle(1, 0x9a774b, 0.78),
         this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
@@ -807,6 +810,34 @@ export class GameScene extends Phaser.Scene {
     else this.ui?.toast({ text: 'Nothing to interact with nearby.', kind: 'info' });
   }
 
+  /** Compact pickup feedback anchored to the currency HUD instead of a screen-sized toast. */
+  private showCompactPickupGain(): void {
+    const root = this.ui?.root;
+    if (!root) return;
+    const anchor = root.querySelector<HTMLElement>('.hud__gold') ?? root.querySelector<HTMLElement>('.hud__corner');
+    if (!anchor) return;
+    anchor.style.position = 'relative';
+    let style = root.querySelector<HTMLStyleElement>('#aoc-pickup-fx-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'aoc-pickup-fx-style';
+      style.textContent = `
+        .aoc-pickup-gain{position:absolute;inset-inline-end:0;top:-25px;z-index:30;pointer-events:none;white-space:nowrap;
+          color:#b9f1d0;font:800 15px/1.2 system-ui,sans-serif;text-shadow:0 2px 7px #07110b,0 0 12px rgba(112,226,164,.6);
+          animation:aoc-pickup-rise 950ms cubic-bezier(.16,.7,.25,1) forwards}
+        @keyframes aoc-pickup-rise{0%{opacity:0;transform:translateY(10px) scale(.72)}18%{opacity:1;transform:translateY(0) scale(1.12)}72%{opacity:1;transform:translateY(-9px) scale(1)}100%{opacity:0;transform:translateY(-18px) scale(.94)}}
+      `;
+      root.appendChild(style);
+    }
+    const gain = document.createElement('span');
+    gain.className = 'aoc-pickup-gain';
+    gain.textContent = '+1 ✧';
+    gain.setAttribute('aria-label', this.ui?.language === 'fa' ? 'یک یادگار به دست آمد' : 'One token collected');
+    anchor.appendChild(gain);
+    window.setTimeout(() => gain.remove(), 1050);
+    this.services.persistence.audio.playSfx('coin', { volume: 0.48, rate: 1.12 });
+  }
+
   private openCurrentShop(): void {
     const shops: Record<string, string> = {
       ashen_village: 'ashen_blacksmith', whispering_forest: 'forest_herbalist', forgotten_desert: 'desert_trader',
@@ -818,6 +849,10 @@ export class GameScene extends Phaser.Scene {
   private async runWorldDialogue(treeId: string): Promise<void> {
     if (this.dialogueRunning || !this.ui) return;
     this.dialogueRunning = true;
+    // Freeze movement and clear residual momentum before the dialogue UI opens.
+    this.aren?.lockInput(true);
+    const playerBody = this.aren?.body as Phaser.Physics.Arcade.Body | undefined;
+    playerBody?.setVelocity(0, 0);
     try {
       while (this.services.world.isInDialogue()) {
         const view = this.services.world.getDialogue();
@@ -838,7 +873,13 @@ export class GameScene extends Phaser.Scene {
         else this.services.world.advance();
       }
     } catch (err) { this.ui?.toast({ text: `Dialogue error: ${(err as Error).message}`, kind: 'error' }); }
-    finally { this.dialogueRunning = false; this.showPendingEnding(); }
+    finally {
+      this.dialogueRunning = false;
+      const body = this.aren?.body as Phaser.Physics.Arcade.Body | undefined;
+      body?.setVelocity(0, 0);
+      if (this.started && !this.ui?.isBlocking) this.aren?.lockInput(false);
+      this.showPendingEnding();
+    }
   }
 
   private showPendingEnding(): void {
