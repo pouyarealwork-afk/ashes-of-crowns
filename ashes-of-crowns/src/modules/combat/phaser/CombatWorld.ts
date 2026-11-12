@@ -213,7 +213,7 @@ export class CombatWorld {
     this.player.applyStats({
       maxHealth: stats.health, attack: stats.attack, defense: stats.defense, speed: stats.speed,
       maxMana: stats.mana, maxStamina: stats.stamina,
-      manaRegen: passives.manaRegen, staminaRegen: passives.staminaRegen,
+      manaRegen: Math.max(2, passives.manaRegen ?? 0), staminaRegen: Math.max(22, passives.staminaRegen ?? 0),
     }, refill);
     this.syncPlayerSkills();
   }
