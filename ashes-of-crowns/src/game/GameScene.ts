@@ -230,10 +230,10 @@ export class GameScene extends Phaser.Scene {
           };
           const cleanup = () => {
             this.load.off(Phaser.Loader.Events.COMPLETE, onComplete);
-            this.load.off(Phaser.Loader.Events.LOAD_ERROR, onError);
+            this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, onError);
           };
           this.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
-          this.load.on(Phaser.Loader.Events.LOAD_ERROR, onError);
+          this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, onError);
           this.load.svg(key, asset.objectUrl, { width: asset.width, height: asset.height });
           this.load.start();
         });
