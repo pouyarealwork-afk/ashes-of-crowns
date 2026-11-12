@@ -79,16 +79,16 @@ export const whisperingForest: RegionContent = {
 
   dialogues: [
     T('d_sylwen_wary', 'sylwen', 'a', {
-      a: N('sylwen', 'You walk like a soldier and smell of smoke. The Greenwatch does not open its gate to either. Speak to the Whisperers. If they pass you, I will listen.', { mood: 'cold' }),
+      a: N('sylwen', 'مثل سربازها راه می‌ری و بوی دود می‌دی. نگهبانان سبز به روی هرکسی در باز نمی‌کنن؛ مخصوصاً کسی که رد آتیش هنوز همراهشه. اول با نجواگران حرف بزن. اگه اونا پذیرفتنت، من هم گوش می‌دم.', { mood: 'cold' }),
     }),
     T('d_sylwen_join', 'sylwen', 'a', {
-      a: N('sylwen', 'The Whisperers hum when you pass. They have not done that since the old king. I have no hall left to guard but the Oak — and it needs a blade that remembers. Let me walk with you.', { mood: 'soft', choices: [
+      a: N('sylwen', 'وقتی از کنار درخت‌ها رد شدی، نجواگران زمزمه کردن. از زمان پادشاه پیر چنین صدایی نشنیده بودم. دیگه تالاری نمونده که نگهبانی‌ش کنم؛ فقط بلوط توخالی مونده و اون به شمشیری نیاز داره که گذشته رو فراموش نکرده باشه. بذار همراهت بیام.', { mood: 'soft', choices: [
         C('"I\'d be honoured."', 'ok', { tags: ['honest', 'loyal'], effects: [rl('sylwen', 6)] }),
         C('"You\'ll follow my orders, then."', 'ok', { tags: ['dominant'], effects: [rl('sylwen', -3), vr('ambition', 1)] })] }),
-      ok: N('sylwen', 'The wood will watch you. So will I.', { effects: [rec('sylwen')] }),
+      ok: N('sylwen', 'جنگل چشم ازت برنمی‌داره. من هم همین‌طور.', { effects: [rec('sylwen')] }),
     }),
     T('d_sylwen_camp', 'sylwen', 'a', {
-      a: N('sylwen', 'The forest is quiet tonight. Strange, how loud quiet can be.', { variants: [{ when: R('sylwen', '>=', 60), text: 'You hum when you think I\'m asleep. I like it.' }], choices: [C('"What was the Greenwatch?"', 'b'), C('"Rest."')] }),
+      a: N('sylwen', 'امشب جنگل زیادی ساکته. عجیبه... بعضی وقت‌ها سکوت از فریاد هم بلندتره.', { variants: [{ when: R('sylwen', '>=', 60), text: 'You hum when you think I\'m asleep. I like it.' }], choices: [C('"What was the Greenwatch?"', 'b'), C('"Rest."')] }),
       b: N('sylwen', 'Eighty rangers. We memorised the kingdom\'s history because paper burns. Now I carry the oaths of the dead in my head and they don\'t always agree.', { effects: [rl('sylwen', 2)] }),
     }),
     T('d_whisper_trial', 'whisperer', 'a', {
@@ -113,7 +113,7 @@ export const whisperingForest: RegionContent = {
         C('"Will you stand witness before the Crown?"', 'c', { tags: ['honest'], effects: [vr('honor', 1), fl('pell_witness')] }),
         C('"Stay hidden. I\'ll finish this."', 'd', { tags: ['protective'], effects: [vr('trust', 1)] })] }),
       c: N('pell', 'If you\'re still breathing when the day comes, I\'ll say it in the open square.'),
-      d: N('pell', 'I will. Bless you, Valcrest.'),
+      d: N('pell', 'همین کار رو می‌کنم. امیدوارم این بار حقیقت به دادمون برسه، وال‌کرست.'),
     }),
     T('d_pell_after', 'pell', 'a', { a: N('pell', 'I keep rehearsing the words. They get heavier each time.') }),
     CUT('d_rook_camp', 'a', {
@@ -122,7 +122,7 @@ export const whisperingForest: RegionContent = {
       c: N('rook', 'I hold what I can. The Crown stopped paying the Greenwatch\'s tolls — now it pays me. Business.', { mood: 'wry' }),
     }),
     T('d_rook', 'rook', 'a', {
-      a: N('rook', 'So. Do we fight, or do we bargain?', { choices: [
+      a: N('rook', 'خب، وال‌کرست... قراره با هم بجنگیم یا می‌تونیم مثل آدم‌های عاقل حرف بزنیم؟', { choices: [
         C('"Stand down. Take the road south and never come back."', 'spare', { tags: ['mercy'], effects: [vr('mercy', 2), fl('rook_spared'), fl('rook_resolved')] }),
         C('"I\'ll hand you to the Greenwatch. They can judge."', 'turn', { tags: ['justice'], effects: [vr('honor', 1), fl('rook_turned'), fl('rook_resolved')] }),
         C('"Your men carry Crown bolts. You\'ve earned nothing."', 'kill', { tags: ['ruthless'], effects: [vr('mercy', -2), vr('ambition', 1), fl('rook_killed'), fl('rook_resolved'), rl('sylwen', -3)] })] }),
