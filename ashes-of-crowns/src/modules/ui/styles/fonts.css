@@ -1,0 +1,27 @@
+/*
+ * Font loading (default, always safe to bundle).
+ *
+ * Persian: Vazirmatn (SIL OFL). English display: Cinzel (SIL OFL).
+ * This file only references fonts through local(): it uses them if installed on the device and otherwise the
+ * font stacks in tokens.css fall back to system fonts (Noto Naskh/Sans Arabic on Android, Segoe UI/Tahoma on
+ * Windows), so Persian shaping and RTL stay correct either way.
+ *
+ * To ship the real font files: put them in  src/modules/ui/assets/fonts/  (see the README there) and add
+ *   import './modules/ui/styles/fonts.files.css';
+ * once, anywhere in the game entry. That file is NOT imported by default because a missing file would
+ * break some bundlers.
+ */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: local('Vazirmatn'), local('Vazirmatn Regular');
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: local('Cinzel'), local('Cinzel Regular');
+}

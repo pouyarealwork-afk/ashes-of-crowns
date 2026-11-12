@@ -1,0 +1,21 @@
+/*
+ * OPTIONAL: load the bundled font files. Import this only after placing the files in ../assets/fonts/
+ *   Vazirmatn-Variable.woff2   (https://github.com/rastikerdar/vazirmatn — SIL OFL 1.1)
+ *   Cinzel-Variable.woff2      (https://fonts.google.com/specimen/Cinzel — SIL OFL 1.1)
+ * Later declarations of the same family are merged by the browser, so these simply add a downloadable source.
+ */
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/Vazirmatn-Variable.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200D, U+0660-0669, U+06F0-06F9;
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../assets/fonts/Cinzel-Variable.woff2') format('woff2');
+}

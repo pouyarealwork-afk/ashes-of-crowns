@@ -1,0 +1,20 @@
+:root { color-scheme: dark; font-family: Georgia, 'Noto Sans Arabic', system-ui, sans-serif; background: #171315; }
+* { box-sizing: border-box; }
+html, body, #app, #game-root { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #171315; }
+body { overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+#game-root { position: absolute; inset: 0; }
+#game-root canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.aoc-ui { z-index: 20; }
+.aoc-extra-controls { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 9px; z-index: 30; pointer-events: none; }
+.aoc-extra-control { pointer-events: auto; min-width: 72px; min-height: 46px; border: 1px solid rgba(228,183,126,.55); border-radius: 14px; color: #f2dfc4; background: rgba(34,25,25,.76); font: 700 10px/1 system-ui,sans-serif; letter-spacing: .08em; box-shadow: 0 5px 18px #0008; backdrop-filter: blur(8px); touch-action: none; }
+.aoc-extra-control:active { background: rgba(143,83,52,.9); transform: scale(.96); }
+.aoc-extra-heavy { border-color: rgba(220,125,83,.75); }
+.aoc-extra-block { border-color: rgba(130,170,180,.75); }
+.aoc-boot-error { position: fixed; inset: 20px; z-index: 1000; display: grid; place-items: center; padding: 24px; color: #ffe0d0; background: #291b1b; border: 1px solid #b65c48; border-radius: 18px; text-align: center; }
+@media (max-width: 600px) { .aoc-extra-controls { right: 12px; bottom: max(20px, env(safe-area-inset-bottom)); } }
+.aoc-utility-controls { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); display: flex; gap: 7px; z-index: 31; pointer-events: none; }
+.aoc-utility-controls .aoc-extra-control { pointer-events: auto; min-width: 58px; min-height: 36px; padding: 0 10px; font-size: 9px; }
+.aoc-extra-shop { border-color: rgba(219,173,105,.75); }
+.aoc-extra-craft { border-color: rgba(143,177,140,.75); }
+.aoc-extra-controls { bottom: max(20px, env(safe-area-inset-bottom)); }
+.aoc-extra-controls { display: none !important; }

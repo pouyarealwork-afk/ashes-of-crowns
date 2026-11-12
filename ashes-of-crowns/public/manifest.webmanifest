@@ -1,0 +1,10 @@
+{
+  "name": "ASHES OF CROWNS",
+  "short_name": "Ashes of Crowns",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#171315",
+  "theme_color": "#171315",
+  "description": "A dark fantasy action RPG",
+  "scope": "./"
+}

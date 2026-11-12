@@ -1,0 +1,26 @@
+{
+  "name": "ashes-of-crowns",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -p tsconfig.app.json && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test:core": "bash scripts/run-core-tests.sh",
+    "test:integration": "tsx scripts/integration-smoke.ts"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.0",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "tsx": "4.19.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  }
+}

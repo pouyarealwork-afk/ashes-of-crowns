@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "rootDir": "src/modules/combat",
+    "outDir": "build/combat-core",
+    "declaration": true,
+    "noEmitOnError": true
+  },
+  "include": ["src/modules/combat/types.ts", "src/modules/combat/core/**/*.ts", "src/modules/combat/data/**/*.ts", "src/modules/combat/systems/**/*.ts"]
+}

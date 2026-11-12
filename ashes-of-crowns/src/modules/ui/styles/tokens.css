@@ -1,0 +1,96 @@
+/* Design tokens: "ash & ember" palette. All components read these; nothing else hard-codes colour. */
+.aoc-ui {
+  /* surfaces */
+  --bg-0: #0b0908;
+  --bg-1: #14100e;
+  --bg-2: #1d1713;
+  --bg-3: #2a211a;
+  --line: #4a3a2a;
+  --line-soft: #33281e;
+
+  /* text */
+  --tx: #efe4d0;
+  --tx-dim: #b3a58f;
+  --tx-mute: #85775f;
+
+  /* brand */
+  --gold: #d9a948;
+  --gold-hi: #f4d58a;
+  --gold-lo: #8a6a28;
+  --ember: #e0652a;
+  --ember-hi: #ff9a4d;
+  --ember-lo: #8e3412;
+  --blood: #b6342c;
+  --blood-hi: #e65a4f;
+
+  /* resources */
+  --c-health: #c9382f;
+  --c-health-hi: #ef6a5a;
+  --c-mana: #3a78d6;
+  --c-mana-hi: #6fa8f5;
+  --c-stamina: #4fa84f;
+  --c-stamina-hi: #86d17f;
+  --c-xp: #b48ad8;
+  --c-xp-hi: #d9b8f3;
+  --c-boss: #9a1e1e;
+  --c-boss-hi: #e04848;
+
+  /* rarity (always paired with a text label + gem shape, never colour alone) */
+  --rar-common: #a7a9ac;
+  --rar-uncommon: #62c46c;
+  --rar-rare: #4b93e6;
+  --rar-epic: #a964e8;
+  --rar-legendary: #f2a33a;
+
+  --good: #7ed07a;
+  --bad: #ff7a6b;
+
+  /* shape */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --tap: 48px;                       /* minimum touch target (Android guideline: 48dp) */
+  --gap: 12px;
+  --pad: 16px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --shadow-1: 0 2px 6px rgb(0 0 0 / .5);
+  --shadow-2: 0 10px 30px rgb(0 0 0 / .6);
+
+  /* safe areas (notches / gesture bars) */
+  --sa-t: env(safe-area-inset-top, 0px);
+  --sa-r: env(safe-area-inset-right, 0px);
+  --sa-b: env(safe-area-inset-bottom, 0px);
+  --sa-l: env(safe-area-inset-left, 0px);
+
+  /* typography */
+  --font-display: 'Cinzel', 'Trajan Pro', 'Palatino Linotype', 'Book Antiqua', Georgia, 'Times New Roman', serif;
+  --font-body: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-story: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+  --text-scale: 1;
+  --hud-scale: 1;
+  --ctl-scale: 1;
+  --ctl-opacity: .85;
+  --k: 1;                            /* narrow-screen shrink factor for touch controls */
+  --cs: calc(var(--ctl-scale) * var(--k));
+  --node-cell: 88px;
+}
+
+.aoc-ui[data-text='small'] { --text-scale: .9; }
+.aoc-ui[data-text='large'] { --text-scale: 1.15; }
+.aoc-ui[data-hud='small'] { --hud-scale: .85; }
+.aoc-ui[data-hud='large'] { --hud-scale: 1.2; }
+
+/* Persian: Vazirmatn first, then the Arabic-script fonts every Android/desktop OS ships. */
+.aoc-ui[data-lang='fa'] {
+  --font-display: 'Vazirmatn', 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Segoe UI', Tahoma, 'DejaVu Sans', sans-serif;
+  --font-body: 'Vazirmatn', 'Noto Sans Arabic', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, 'DejaVu Sans', sans-serif;
+  --font-story: 'Vazirmatn', 'Noto Naskh Arabic', 'Noto Sans Arabic', Tahoma, 'DejaVu Sans', serif;
+}
+
+@media (max-height: 460px) {
+  .aoc-ui { --pad: 10px; --gap: 8px; --node-cell: 76px; }
+}
+
+/* Narrow portrait phones: shrink touch controls so stick + cluster always fit side by side. */
+@media (max-width: 400px) { .aoc-ui { --k: .8; } }
+@media (min-width: 401px) and (max-width: 480px) { .aoc-ui { --k: .9; } }

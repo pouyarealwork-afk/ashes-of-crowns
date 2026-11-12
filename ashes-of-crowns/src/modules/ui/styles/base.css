@@ -1,0 +1,97 @@
+/* The UI root covers the game viewport but lets taps fall through to the canvas except on real UI. */
+.aoc-ui {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-size: calc(16px * var(--text-scale));
+  line-height: 1.45;
+  color: var(--tx);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+.aoc-ui *, .aoc-ui *::before, .aoc-ui *::after { box-sizing: border-box; }
+.aoc-ui [hidden] { display: none !important; }
+.aoc-ui h1, .aoc-ui h2, .aoc-ui h3, .aoc-ui p, .aoc-ui ul, .aoc-ui dl, .aoc-ui dd { margin: 0; padding: 0; }
+.aoc-ui ul { list-style: none; }
+.aoc-ui button { font: inherit; color: inherit; }
+
+/*
+ * Persian shaping rules: Arabic-script letters join, so letter-spacing, uppercase transforms
+ * and per-letter animation must never be applied. This is enforced globally for fa.
+ */
+.aoc-ui[data-lang='fa'] *, .aoc-ui[data-lang='fa'] *::before, .aoc-ui[data-lang='fa'] *::after {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-style: normal;
+}
+.aoc-ui[data-lang='fa'] { line-height: 1.7; }
+
+.aoc-ui :focus { outline: none; }
+.aoc-ui :focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+
+.aoc-ui .muted { color: var(--tx-dim); }
+.aoc-ui .small { font-size: .85em; }
+.aoc-ui .text-bad { color: var(--bad); }
+.aoc-ui .text-good { color: var(--good); }
+.aoc-ui .story-text { font-family: var(--font-story); }
+.aoc-ui .row { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; }
+.aoc-ui .row--center { justify-content: center; }
+.aoc-ui .inline { display: inline-flex; align-items: center; gap: .3em; }
+.aoc-ui .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Icons */
+.aoc-ui .ico { width: 1.25em; height: 1.25em; flex: none; display: inline-block; vertical-align: middle; }
+.aoc-ui .ico--gold { color: var(--gold); }
+[dir='rtl'] .aoc-ui .flip-rtl, .aoc-ui[dir='rtl'] .flip-rtl { transform: scaleX(-1); }
+.aoc-ui .glyph-img { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; pointer-events: none; }
+
+/* Screen + overlay layers */
+.aoc-ui .screens, .aoc-ui .overlays { position: absolute; inset: 0; pointer-events: none; }
+.aoc-ui .screen {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: max(var(--pad), var(--sa-t)) max(var(--pad), var(--sa-r)) max(var(--pad), var(--sa-b)) max(var(--pad), var(--sa-l));
+  background: radial-gradient(ellipse at 50% 30%, rgb(20 14 10 / .82), rgb(5 4 3 / .94));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition: opacity .22s var(--ease), transform .22s var(--ease);
+  overscroll-behavior: contain;
+}
+.aoc-ui .screen.is-entering { opacity: 0; transform: translateY(14px) scale(.985); }
+.aoc-ui .screen.is-leaving { opacity: 0; transform: translateY(8px); pointer-events: none; }
+.aoc-ui .screen[data-covered='true'] { pointer-events: none; }
+.aoc-ui .screen[data-screen='mainMenu'], .aoc-ui .screen[data-screen='gameOver'], .aoc-ui .screen[data-screen='ending'],
+.aoc-ui .screen[data-screen='dialogue'] { padding: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.aoc-ui .screen[data-screen='dialogue'] { background: none; pointer-events: auto; }
+
+/* Scroll containers */
+.aoc-ui [data-scroll], .aoc-ui .split__scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* Motion preferences */
+.aoc-ui.reduce-motion *, .aoc-ui.reduce-motion *::before, .aoc-ui.reduce-motion *::after {
+  animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aoc-ui *, .aoc-ui *::before, .aoc-ui *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important;
+  }
+}
