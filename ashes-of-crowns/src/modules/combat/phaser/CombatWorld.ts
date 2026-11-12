@@ -263,11 +263,11 @@ export class CombatWorld {
     this.scene.time.delayedCall(75, () => {
       if (sprite.active) sprite.clearTint();
     });
-    const baseScale = getEnemyArchetype(this.engine.enemies.get(String(payload?.targetId ?? ''))?.archetypeId ?? '')?.scale ?? 1;
+    const baseScaleX = sprite.scaleX, baseScaleY = sprite.scaleY;
     this.scene.tweens.add({
-      targets: sprite, scaleX: baseScale * (critical ? 1.13 : 1.07),
-      scaleY: baseScale * (critical ? 0.91 : 0.96), duration: 65, yoyo: true,
-      ease: 'Quad.Out', onComplete: () => { if (sprite.active) sprite.setScale(baseScale); },
+      targets: sprite, scaleX: baseScaleX * (critical ? 1.13 : 1.07),
+      scaleY: baseScaleY * (critical ? 0.91 : 0.96), duration: 65, yoyo: true,
+      ease: 'Quad.Out', onComplete: () => { if (sprite.active) sprite.setScale(baseScaleX, baseScaleY); },
     });
 
     const ring = this.scene.add.circle(x, y, critical ? 13 : 9, color, 0.12)
