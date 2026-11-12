@@ -343,7 +343,7 @@ export class GameScene extends Phaser.Scene {
     const stats = this.services.rpg.getStats();
     this.aren = new Player(this, {
       x, y,
-      stats: { maxHealth: stats.health, attack: stats.attack, defense: stats.defense, speed: stats.speed, maxMana: stats.mana, maxStamina: stats.stamina, manaRegen: this.services.rpg.getRegenPerSecond().mana, staminaRegen: this.services.rpg.getRegenPerSecond().stamina },
+      stats: { maxHealth: stats.health, attack: stats.attack, defense: stats.defense, speed: stats.speed, maxMana: stats.mana, maxStamina: stats.stamina, manaRegen: Math.max(2, this.services.rpg.getRegenPerSecond().mana), staminaRegen: Math.max(22, this.services.rpg.getRegenPerSecond().stamina) },
       touch: false, autoRespawn: false, fallKillY: level.size.h + 160,
       camera: { bounds: { x: 0, y: 0, width: level.size.w, height: level.size.h }, lerpX: 0.12, lerpY: 0.1 },
       inputProvider: () => this.inputBridge.frame(),
