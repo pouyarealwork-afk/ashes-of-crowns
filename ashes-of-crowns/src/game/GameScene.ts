@@ -26,6 +26,7 @@ export class GameScene extends Phaser.Scene {
   combat!: CombatWorld;
   currentRegion: RegionId = 'ashen_village';
   currentLevelId = 'ashen_village_main';
+  private currentClass: 'warrior' | 'assassin' | 'mage' = 'warrior';
   trackedQuest: string | null = null;
 
   private inputBridge = new InputBridge();
@@ -136,7 +137,7 @@ export class GameScene extends Phaser.Scene {
       removeItem: (key: string) => { try { localStorage.removeItem(key); } catch { /* ignored */ } },
     };
     this.ui = createUI({ parent: document.getElementById('app') ?? document.body, backend: createUIBackend(this), storage, autoFlow: false, showMenu: true, handleBackKey: true });
-    this.ui.on('game:new', ({ slot }) => this.startNewGame(slot));
+    this.ui.on('game:new', ({ slot, classId }) => this.startNewGame(slot, classId));
     this.ui.on('game:continue', ({ slot }) => void this.loadSlot(`slot${slot}`));
     this.ui.on('game:load', ({ slot }) => void this.loadSlot(`slot${slot}`));
     this.ui.on('game:pause', () => { if (this.started && this.scene.isActive()) this.scene.pause(); this.aren?.lockInput(true); });
@@ -235,7 +236,8 @@ export class GameScene extends Phaser.Scene {
     on('persistence:degraded', () => this.ui?.toast({ text: 'Storage unavailable: saves will last only for this session.', kind: 'warning' }));
   }
 
-  private startNewGame(slot = 1): void {
+  private startNewGame(slot = 1, classId: 'warrior' | 'assassin' | 'mage' = 'warrior'): void {
+    this.currentClass = classId;
     this.activeSaveSlot = `slot${slot}`;
     this.services.rpg.newGame(); this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
@@ -281,6 +283,8 @@ export class GameScene extends Phaser.Scene {
     this.playtimeMs = Number(state?.progress?.playtimeMs ?? 0);
     this.trackedQuest = typeof flags.__trackedQuest === 'string' && flags.__trackedQuest ? flags.__trackedQuest : null;
     this.currentRegion = (state.currentRegion || 'ashen_village') as RegionId;
+    const savedClass = flags.__class;
+    this.currentClass = savedClass === 'assassin' || savedClass === 'mage' ? savedClass : 'warrior';
     const fallbackLevel = this.services.world.content.regions.get(this.currentRegion)?.entryLevel || 'ashen_village_main';
     const requestedLevel = String(flags.__level || fallbackLevel);
     this.currentLevelId = this.services.world.getLevel(requestedLevel) ? requestedLevel : fallbackLevel;
@@ -302,7 +306,7 @@ export class GameScene extends Phaser.Scene {
       quests, decisions: { __world: worldData, __rpg: rpgData }, narrative: this.services.world.getHiddenVariables(), relationships: Object.fromEntries(['tamsin', 'kael', 'lyra', 'brom'].map(id => [id, this.services.world.getRelationship(id)])),
       difficulty: 'normal', currentRegion: this.currentRegion,
       unlockedSkins: this.services.rpg.serialize().skinsUnlocked,
-      progress: { playtimeMs: this.playtimeMs, regionsUnlocked: map.nodes.filter((n: any) => n.unlocked).map((n: any) => n.id), regionsCompleted: map.nodes.filter((n: any) => n.stats.percent >= 100).map((n: any) => n.id), bossesDefeated: this.services.rpg.serialize().defeatedBosses, flags: { __world: worldData, __rpg: rpgData, __level: this.currentLevelId, __trackedQuest: this.trackedQuest ?? '' }, endingsSeen: this.services.world.getEnding() ? [this.services.world.getEnding()] : [] },
+      progress: { playtimeMs: this.playtimeMs, regionsUnlocked: map.nodes.filter((n: any) => n.unlocked).map((n: any) => n.id), regionsCompleted: map.nodes.filter((n: any) => n.stats.percent >= 100).map((n: any) => n.id), bossesDefeated: this.services.rpg.serialize().defeatedBosses, flags: { __world: worldData, __rpg: rpgData, __level: this.currentLevelId, __trackedQuest: this.trackedQuest ?? '', __class: this.currentClass }, endingsSeen: this.services.world.getEnding() ? [this.services.world.getEnding()] : [] },
     };
   }
 
@@ -341,9 +345,15 @@ export class GameScene extends Phaser.Scene {
     const y = savedPos ? savedPos.y : spawn.y;
     const savedStats = this.lastSaveState?.player?.stats ?? {};
     const stats = this.services.rpg.getStats();
+    const classStats = this.currentClass === 'warrior'
+      ? { health: 1.22, attack: 1.04, defense: 1.28, speed: 0.96, mana: 0.9, stamina: 1.12, manaRegen: 1, staminaRegen: 1.08 }
+      : this.currentClass === 'assassin'
+        ? { health: 0.92, attack: 1.18, defense: 0.92, speed: 1.18, mana: 0.92, stamina: 1.08, manaRegen: 1, staminaRegen: 1.12 }
+        : { health: 0.94, attack: 0.94, defense: 0.92, speed: 1, mana: 1.5, stamina: 0.92, manaRegen: 1.55, staminaRegen: 0.95 };
+    const regen = this.services.rpg.getRegenPerSecond();
     this.aren = new Player(this, {
       x, y,
-      stats: { maxHealth: stats.health, attack: stats.attack, defense: stats.defense, speed: stats.speed, maxMana: stats.mana, maxStamina: stats.stamina, manaRegen: Math.max(2, this.services.rpg.getRegenPerSecond().mana), staminaRegen: Math.max(22, this.services.rpg.getRegenPerSecond().stamina) },
+      stats: { maxHealth: Math.round(stats.health * classStats.health), attack: Math.round(stats.attack * classStats.attack), defense: Math.round(stats.defense * classStats.defense), speed: Math.round(stats.speed * classStats.speed), maxMana: Math.round(stats.mana * classStats.mana), maxStamina: Math.round(stats.stamina * classStats.stamina), manaRegen: Math.max(2, regen.mana * classStats.manaRegen), staminaRegen: Math.max(22, regen.stamina * classStats.staminaRegen) },
       touch: false, autoRespawn: false, fallKillY: level.size.h + 160,
       camera: { bounds: { x: 0, y: 0, width: level.size.w, height: level.size.h }, lerpX: 0.12, lerpY: 0.1 },
       inputProvider: () => this.inputBridge.frame(),
