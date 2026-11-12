@@ -483,11 +483,19 @@ export class GameScene extends Phaser.Scene {
     if (forest) {
       for (let i = 0; i < Math.ceil(w / 175); i++) {
         const x = i * 175 + 30, base = horizon + 55, th = 135 + (i * 47 % 105);
-        distant.fillStyle(0x171e18, 0.88); distant.fillRect(x + 23, base - th * 0.46, 13, th * 0.52);
-        distant.fillStyle(i % 2 ? 0x263c2b : 0x30442f, 0.9);
-        distant.fillTriangle(x + 29, base - th, x - 24, base - th * 0.36, x + 82, base - th * 0.36);
-        distant.fillTriangle(x + 29, base - th * 0.76, x - 18, base - th * 0.12, x + 78, base - th * 0.12);
-        distant.fillStyle(0x9fb87c, 0.12); distant.fillTriangle(x + 29, base - th, x + 29, base - th * 0.3, x + 49, base - th * 0.36);
+        distant.fillStyle(0x171e18, 0.9); distant.fillRoundedRect(x + 23, base - th * 0.46, 13, th * 0.54, 6);
+        const canopy = i % 2 ? 0x263c2b : 0x30442f;
+        distant.fillStyle(0x17251b, 0.9);
+        distant.fillEllipse(x + 29, base - th * 0.56, 112, th * 0.58);
+        distant.fillEllipse(x - 1, base - th * 0.38, 66, th * 0.4);
+        distant.fillEllipse(x + 58, base - th * 0.4, 72, th * 0.43);
+        distant.fillStyle(canopy, 0.94);
+        distant.fillEllipse(x + 28, base - th * 0.59, 88, th * 0.48);
+        distant.fillEllipse(x + 2, base - th * 0.4, 54, th * 0.32);
+        distant.fillEllipse(x + 57, base - th * 0.42, 59, th * 0.34);
+        distant.fillStyle(0x9fb87c, 0.16);
+        distant.fillEllipse(x + 17, base - th * 0.72, 35, th * 0.16);
+        distant.fillEllipse(x + 53, base - th * 0.51, 24, th * 0.13);
       }
     } else if (desert) {
       distant.fillStyle(0x9d7046, 0.2);
@@ -539,10 +547,14 @@ export class GameScene extends Phaser.Scene {
     ground.fillStyle(0x171313, 0.58);
     for (let i = 0; i < Math.ceil(w / 235); i++) {
       const x = i * 235 + 26, y = horizon + 60 + (i % 3) * 7;
-      ground.fillRoundedRect(x, y, 78 + (i % 3) * 18, 13, 4);
-      ground.fillTriangle(x + 12, y, x + 28, y - 12, x + 40, y);
-      ground.fillRect(x + 54, y - 8, 13, 12);
-      if (forest) { ground.lineStyle(2, 0x71844c, 0.8); ground.lineBetween(x + 92, y + 8, x + 86, y - 18); ground.lineBetween(x + 92, y + 8, x + 105, y - 12); }
+      ground.fillEllipse(x + 25, y + 2, 46, 17);
+      ground.fillEllipse(x + 61, y + 4, 38, 13);
+      ground.fillRoundedRect(x + 54, y - 8, 13, 12, 4);
+      if (forest) {
+        ground.lineStyle(2, 0x71844c, 0.8);
+        ground.beginPath(); ground.moveTo(x + 92, y + 8); ground.quadraticCurveTo(x + 84, y - 5, x + 86, y - 18); ground.strokePath();
+        ground.beginPath(); ground.moveTo(x + 92, y + 8); ground.quadraticCurveTo(x + 105, y - 2, x + 105, y - 12); ground.strokePath();
+      }
     }
     ground.fillStyle(accent, warm ? 0.13 : 0.1); ground.fillEllipse(w * 0.48, horizon + 92, Math.min(640, w * 0.48), 54);
 
