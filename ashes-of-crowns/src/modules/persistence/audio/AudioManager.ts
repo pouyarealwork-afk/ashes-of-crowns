@@ -322,47 +322,6 @@ export class AudioManager {
     };
     src.start();
     this.lastPlayed.set(id, now);
-    // Distinctive secondary layers: metallic blade ring, low impact body, airy spell shimmer and coin chime.
-    if (kind === 'hit' && /sword|slash|attack/.test(name)) {
-      const clang = ctx.createOscillator();
-      const cg = ctx.createGain();
-      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1250;
-      clang.type = 'triangle'; clang.frequency.setValueAtTime(1450 * rate, now);
-      clang.frequency.exponentialRampToValueAtTime(620 * rate, now + 0.13);
-      cg.gain.setValueAtTime(0.0001, now); cg.gain.linearRampToValueAtTime(0.055 * volume, now + 0.008);
-      cg.gain.exponentialRampToValueAtTime(0.0001, now + 0.19);
-      clang.connect(hp); hp.connect(cg); cg.connect(this.sfxBus); clang.start(now); clang.stop(now + 0.2);
-    } else if (kind === 'heavy' || (kind === 'hit' && /impact|damage/.test(name))) {
-      const thump = ctx.createOscillator();
-      const tg = ctx.createGain();
-      thump.type = 'sine'; thump.frequency.setValueAtTime(92 * rate, now);
-      thump.frequency.exponentialRampToValueAtTime(34, now + 0.24);
-      tg.gain.setValueAtTime(0.0001, now); tg.gain.linearRampToValueAtTime(0.12 * volume, now + 0.012);
-      tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.27);
-      thump.connect(tg); tg.connect(this.sfxBus); thump.start(now); thump.stop(now + 0.29);
-    } else if (kind === 'reward') {
-      [1, 1.5, 2].forEach((ratio, index) => {
-        const bell = ctx.createOscillator();
-        const bg = ctx.createGain();
-        bell.type = 'sine'; bell.frequency.setValueAtTime((880 * ratio) * rate, now + index * 0.035);
-        bg.gain.setValueAtTime(0.0001, now + index * 0.035);
-        bg.gain.linearRampToValueAtTime((0.035 / (index + 1)) * volume, now + index * 0.035 + 0.008);
-        bg.gain.exponentialRampToValueAtTime(0.0001, now + 0.42 + index * 0.035);
-        bell.connect(bg); bg.connect(this.sfxBus); bell.start(now + index * 0.035); bell.stop(now + 0.45 + index * 0.035);
-      });
-    } else if (kind === 'magic') {
-      const shimmer = ctx.createOscillator();
-      const sg = ctx.createGain();
-      const shimmerFilter = ctx.createBiquadFilter();
-      shimmer.type = 'sine'; shimmer.frequency.setValueAtTime(1320 * rate, now);
-      shimmer.frequency.exponentialRampToValueAtTime(460 * rate, now + 0.36);
-      shimmerFilter.type = 'bandpass'; shimmerFilter.frequency.value = 1750; shimmerFilter.Q.value = 0.7;
-      sg.gain.setValueAtTime(0.0001, now); sg.gain.linearRampToValueAtTime(0.035 * volume, now + 0.025);
-      sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
-      shimmer.connect(shimmerFilter); shimmerFilter.connect(sg); sg.connect(this.sfxBus);
-      shimmer.start(now); shimmer.stop(now + 0.4);
-    }
-
     this.counters.sfxPlayed++;
     return true;
   }
@@ -746,6 +705,47 @@ export class AudioManager {
       noise.connect(filter); filter.connect(ng); ng.connect(this.sfxBus);
       noise.start(now); noise.stop(now + (kind === 'magic' ? 0.22 : 0.09));
     }
+    // Distinctive secondary layers: metallic blade ring, low impact body, airy spell shimmer and coin chime.
+    if (kind === 'hit' && /sword|slash|attack/.test(name)) {
+      const clang = ctx.createOscillator();
+      const cg = ctx.createGain();
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1250;
+      clang.type = 'triangle'; clang.frequency.setValueAtTime(1450 * rate, now);
+      clang.frequency.exponentialRampToValueAtTime(620 * rate, now + 0.13);
+      cg.gain.setValueAtTime(0.0001, now); cg.gain.linearRampToValueAtTime(0.055 * volume, now + 0.008);
+      cg.gain.exponentialRampToValueAtTime(0.0001, now + 0.19);
+      clang.connect(hp); hp.connect(cg); cg.connect(this.sfxBus); clang.start(now); clang.stop(now + 0.2);
+    } else if (kind === 'heavy' || (kind === 'hit' && /impact|damage/.test(name))) {
+      const thump = ctx.createOscillator();
+      const tg = ctx.createGain();
+      thump.type = 'sine'; thump.frequency.setValueAtTime(92 * rate, now);
+      thump.frequency.exponentialRampToValueAtTime(34, now + 0.24);
+      tg.gain.setValueAtTime(0.0001, now); tg.gain.linearRampToValueAtTime(0.12 * volume, now + 0.012);
+      tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.27);
+      thump.connect(tg); tg.connect(this.sfxBus); thump.start(now); thump.stop(now + 0.29);
+    } else if (kind === 'reward') {
+      [1, 1.5, 2].forEach((ratio, index) => {
+        const bell = ctx.createOscillator();
+        const bg = ctx.createGain();
+        bell.type = 'sine'; bell.frequency.setValueAtTime((880 * ratio) * rate, now + index * 0.035);
+        bg.gain.setValueAtTime(0.0001, now + index * 0.035);
+        bg.gain.linearRampToValueAtTime((0.035 / (index + 1)) * volume, now + index * 0.035 + 0.008);
+        bg.gain.exponentialRampToValueAtTime(0.0001, now + 0.42 + index * 0.035);
+        bell.connect(bg); bg.connect(this.sfxBus); bell.start(now + index * 0.035); bell.stop(now + 0.45 + index * 0.035);
+      });
+    } else if (kind === 'magic') {
+      const shimmer = ctx.createOscillator();
+      const sg = ctx.createGain();
+      const shimmerFilter = ctx.createBiquadFilter();
+      shimmer.type = 'sine'; shimmer.frequency.setValueAtTime(1320 * rate, now);
+      shimmer.frequency.exponentialRampToValueAtTime(460 * rate, now + 0.36);
+      shimmerFilter.type = 'bandpass'; shimmerFilter.frequency.value = 1750; shimmerFilter.Q.value = 0.7;
+      sg.gain.setValueAtTime(0.0001, now); sg.gain.linearRampToValueAtTime(0.035 * volume, now + 0.025);
+      sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+      shimmer.connect(shimmerFilter); shimmerFilter.connect(sg); sg.connect(this.sfxBus);
+      shimmer.start(now); shimmer.stop(now + 0.4);
+    }
+
     this.counters.sfxPlayed++;
     return true;
   }
