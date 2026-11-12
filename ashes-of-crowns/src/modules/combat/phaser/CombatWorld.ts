@@ -17,6 +17,7 @@ export interface CombatPlayerActor {
   takeHit(hit: { amount: number; knockbackDir: 1 | -1; knockback?: number; unblockable?: boolean }): { applied: number; blocked: boolean; dodged: boolean };
   applyStats(stats: Partial<{ maxHealth: number; attack: number; defense: number; speed: number; maxMana: number; maxStamina: number; manaRegen: number; staminaRegen: number }>, refill?: boolean): void;
   setSkills(defs: PlayerSkillBinding[]): void;
+  respawn(healthFraction?: number): void;
 }
 export interface CombatAbilityDef { id: string; kind: string; manaCost: number; staminaCost: number; cooldownMs: number; durationMs?: number; radius?: number }
 export interface CombatRpgFacade {
@@ -78,6 +79,7 @@ export class CombatWorld {
   private nextAssistAt = 0;
   private hazards: NonNullable<CombatWorldOptions['hazards']> = [];
   private hazardCooldowns = new Map<number, number>();
+  private hazardEnteredAt = new Map<number, number>();
   private colliders: Phaser.Physics.Arcade.Collider[] = [];
   private comboLabel?: Phaser.GameObjects.Text;
   private comboHideTween?: Phaser.Tweens.Tween;
@@ -246,6 +248,7 @@ export class CombatWorld {
     this.comboHideTween?.stop(); this.comboLabel?.destroy();
     for (const view of this.telegraphViews) view.destroy();
     this.telegraphViews.clear();
+    this.hazardEnteredAt.clear(); this.hazardCooldowns.clear();
     for (const label of this.enemyComboLabels.values()) label.destroy();
     this.enemyComboLabels.clear();
     this.engine.clear();
@@ -524,21 +527,48 @@ export class CombatWorld {
     this.scene.time.delayedCall(2600, () => { if (projectile.active) projectile.destroy(); });
   }
 
-  setHazards(hazards: NonNullable<CombatWorldOptions['hazards']>): void { this.hazards = hazards; this.hazardCooldowns.clear(); }
+  setHazards(hazards: NonNullable<CombatWorldOptions['hazards']>): void { this.hazards = hazards; this.hazardCooldowns.clear(); this.hazardEnteredAt.clear(); }
 
   private checkHazards(): void {
     const now = this.scene.time.now; const bounds = this.player.getBounds();
-    this.hazards.forEach((hazard, index) => {
-      if (now < (this.hazardCooldowns.get(index) ?? 0)) return;
-      const r = hazard.rect;
-      if (!Phaser.Geom.Intersects.RectangleToRectangle(bounds, new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height))) return;
+    for (let index = 0; index < this.hazards.length; index++) {
+      const hazard = this.hazards[index];
       const type = hazard.type.toLowerCase();
+      const r = hazard.rect;
+      const intersects = Phaser.Geom.Intersects.RectangleToRectangle(bounds, new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height));
+      const isFallTrap = type.includes('pit') || type.includes('void') || type.includes('crevasse');
+      if (isFallTrap) {
+        if (!intersects) { this.hazardEnteredAt.delete(index); continue; }
+        if (now < (this.hazardCooldowns.get(index) ?? 0)) continue;
+        const enteredAt = this.hazardEnteredAt.get(index) ?? now;
+        this.hazardEnteredAt.set(index, enteredAt);
+        // Give the player a brief chance to jump/escape before preventing a soft lock.
+        if (now - enteredAt < 1250) continue;
+        this.hazardEnteredAt.delete(index);
+        this.hazardCooldowns.set(index, now + 2200);
+        this.showTrapRecovery();
+        this.player.respawn(0.65);
+        this.bus.emit('combat:hazard-recovered', { hazardType: hazard.type, checkpoint: true });
+        return;
+      }
+      if (now < (this.hazardCooldowns.get(index) ?? 0) || !intersects) continue;
       const multiplier = type.includes('avalanche') || type.includes('void') || type.includes('pit') ? 1.8 : type.includes('ember') || type.includes('fire') ? 1.15 : 1;
       const dir = this.player.x >= r.x + r.width / 2 ? 1 : -1;
       const result = this.applyIncomingHit(`hazard:${hazard.type}`, Math.max(1, Math.round(hazard.damage * multiplier)), dir as 1 | -1, type.includes('avalanche') ? 260 : 80, type.includes('void') || type.includes('pit'));
       this.bus.emit('combat:hazard-hit', { hazardType: hazard.type, damage: result.applied, blocked: result.blocked, dodged: result.dodged });
       if (type.includes('frost') || type.includes('quicksand') || type.includes('hush')) this.bus.emit('combat:hazard-effect', { type: hazard.type, durationMs: 900 });
-      this.hazardCooldowns.set(index, now + (type.includes('pit') || type.includes('void') ? 1500 : 900));
+      this.hazardCooldowns.set(index, now + 900);
+    }
+  }
+
+  private showTrapRecovery(): void {
+    const label = this.scene.add.text(this.player.x, this.player.y - 74, 'TRAP RECOVERY', {
+      fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold',
+      color: '#ffe0a8', stroke: '#24110f', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(1100).setScrollFactor(0);
+    this.scene.tweens.add({
+      targets: label, y: label.y - 22, alpha: 0, duration: 850, ease: 'Cubic.Out',
+      onComplete: () => label.destroy(),
     });
   }
 
