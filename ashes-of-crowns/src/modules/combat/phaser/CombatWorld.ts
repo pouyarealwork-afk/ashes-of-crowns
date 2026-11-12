@@ -316,7 +316,7 @@ export class CombatWorld {
     });
     const projectileKey = `${this.texturePrefix}-projectile`;
     if (!this.scene.textures.exists(projectileKey)) {
-      const g = this.scene.make.graphics({ x: 0, y: 0, add: false }); g.fillStyle(0xffc27a, 1); g.fillCircle(8, 8, 7); g.generateTexture(projectileKey, 16, 16); g.destroy();
+      const g = this.scene.add.graphics({ x: 0, y: 0 }); g.fillStyle(0xffc27a, 1); g.fillCircle(8, 8, 7); g.generateTexture(projectileKey, 16, 16); g.destroy();
     }
   }
 }
