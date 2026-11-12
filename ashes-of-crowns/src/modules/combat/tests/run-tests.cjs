@@ -99,6 +99,36 @@ test('enemies build readable three-hit combo chains with escalating damage and r
   assert.deepEqual(chainEvents.slice(0, 4), [1, 2, 3, 1]);
   assert.ok(enemy.attackCooldownMs > 0, 'finisher should create a recovery window');
 });
+test('a confirmed player hit breaks the player combo chain', () => {
+  const multipliers = [];
+  const rpg = { combat: { calcDamage: (input) => { multipliers.push(input.multiplier); return { damage: 1, crit: false, lifestealHeal: 0 }; } } };
+  const c = new CombatEngine({ rpg, rng });
+  c.spawn('ironwatch_guard', { x: 40, y: 30 });
+  const attack = { kind:'normal', comboIndex:0, facing:1, damage:10, hitbox:{offsetX:0,offsetY:0,width:100,height:100}, activeFrom:0, activeFor:0.1 };
+  const player = { x:0,y:30,health:50,maxHealth:100,facing:1 };
+  for (let i=0;i<5;i++) c.resolvePlayerAttack(attack, {x:0,y:0,width:100,height:100}, player, `player-chain-${i}`);
+  assert.ok(multipliers[4] > 1, 'player chain should build a multiplier');
+  c.breakPlayerCombo();
+  c.resolvePlayerAttack(attack, {x:0,y:0,width:100,height:100}, player, 'player-chain-reset');
+  assert.equal(multipliers[5], 1, 'new chain should return to base damage');
+});
+test('stunning an enemy interrupts its combo chain', () => {
+  const events = [];
+  const bus = { on(){}, off(){}, emit:(name, payload)=>events.push([name, payload]) };
+  const c = new CombatEngine({ emitter: bus, rng });
+  const enemy = c.spawn('ash_wolf', { x: 30, y: 0 });
+  enemy.attackCooldownMs = 0;
+  const strikes = [];
+  const player = { x:0,y:0,health:100,maxHealth:100,facing:1 };
+  for (let i=0;i<40 && strikes.length<1;i++) c.update(50, player, (_attacker, damage)=>strikes.push(damage));
+  assert.equal(strikes.length, 1, 'enemy should complete its opening strike');
+  c.damageEnemy(enemy.id, { amount: 1, stunMs: 900 });
+  for (let i=0;i<70 && strikes.length<2;i++) c.update(50, player, (_attacker, damage)=>strikes.push(damage));
+  assert.equal(strikes.length, 2, 'enemy should recover and attack again');
+  const resets = events.filter(([name])=>name==='combat:enemy-combo-reset');
+  assert.equal(resets.length, 1, 'stun should publish a chain interruption');
+  assert.ok(Math.abs(strikes[1]/strikes[0]-1)<0.001, 'post-stun strike should restart at base damage');
+});
 test('rectangle collision helper uses strict overlap', () => {
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:9,y:9,width:2,height:2 }), true);
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:10,y:0,width:2,height:2 }), false);
