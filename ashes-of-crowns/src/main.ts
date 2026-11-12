@@ -22,7 +22,7 @@ const game = new Phaser.Game({
     arcade: { gravity: { x: 0, y: 1400 }, debug: false, fps: 60 },
   },
   input: { activePointers: 4 },
-  render: { antialias: false, pixelArt: false, roundPixels: true, powerPreference: 'high-performance', batchSize: 4096 },
+  render: { antialias: false, pixelArt: false, roundPixels: true, powerPreference: 'high-performance', batchSize: 4096, resolution: Math.min(window.devicePixelRatio || 1, 1.25) },
   scene: [GameScene],
 });
 
