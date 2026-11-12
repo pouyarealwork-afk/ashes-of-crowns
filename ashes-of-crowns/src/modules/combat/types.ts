@@ -64,6 +64,7 @@ export interface CombatEventMap {
   'combat:boss-phase': { bossId: string; phase: BossPhase; pattern: string };
   'combat:player-hit': { enemyId: string; damage: number; blocked: boolean; dodged: boolean };
   'combat:combo': { count: number; multiplier: number };
+  'combat:enemy-combo': { enemyId: string; count: number; multiplier: number };
   'combat:assist-request': { now: number; playerHpRatio: number; enemyCount: number; bossActive: boolean; comboCount: number };
   'combat:assist-applied': { companionId: string; abilityId: string; targets: number };
   'combat:ability-used': { abilityId: string; kind: string; targets: number };
