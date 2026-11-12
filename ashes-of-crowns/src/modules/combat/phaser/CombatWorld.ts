@@ -350,69 +350,145 @@ export class CombatWorld {
       const key = this.textureKey(type);
       if (this.scene.textures.exists(key)) return;
       const boss = i >= 18;
-      const w = boss ? 96 : 56;
-      const h = boss ? 112 : 68;
+      const w = boss ? 112 : 64, h = boss ? 128 : 78, cx = w / 2;
       const color = colors[i];
       const dark = Phaser.Display.Color.IntegerToColor(color).darken(42).color;
       const light = Phaser.Display.Color.IntegerToColor(color).brighten(28).color;
       const g = this.scene.add.graphics({ x: 0, y: 0 });
-      const cx = w / 2;
-      // Ground shadow and a readable, full-body silhouette.
-      g.fillStyle(0x080707, 0.38); g.fillEllipse(cx, h - 4, w * 0.66, 9);
-      // Cloak / rear silhouette; varies by creature family.
-      if (type.includes('wolf') || type.includes('stag') || type.includes('serpent') || type.includes('scorpion')) {
-        g.fillStyle(dark, 1);
-        g.fillTriangle(cx - 12, h * 0.42, cx - 25, h * 0.75, cx - 5, h * 0.68);
-        g.fillTriangle(cx + 12, h * 0.42, cx + 25, h * 0.75, cx + 5, h * 0.68);
+      const line = (x1: number, y1: number, x2: number, y2: number, tint: number, width: number) => { g.lineStyle(width, tint, 1); g.lineBetween(x1, y1, x2, y2); };
+      const gem = (x: number, y: number, r: number, tint: number) => {
+        g.fillStyle(tint, 0.18); g.fillCircle(x, y, r * 2.4);
+        g.fillStyle(tint, 1); g.fillCircle(x, y, r);
+        g.fillStyle(0xffffff, 0.82); g.fillCircle(x - r * 0.3, y - r * 0.35, Math.max(1, r * 0.28));
+      };
+      g.fillStyle(0x050505, 0.42); g.fillEllipse(cx, h - 3, w * 0.78, 10);
+
+      const beast = type.includes('wolf') || type.includes('stag') || type.includes('serpent') || type.includes('scorpion') || type.includes('rat_swarm');
+      const wraith = type.includes('wraith') || type.includes('shade') || type.includes('hush_mother');
+      const plant = type.includes('thorn');
+      if (type.includes('serpent')) {
+        // Glass serpent: a chain of overlapping plated segments and a raised, fanged head.
+        for (let s = 0; s < 6; s++) {
+          const x = 9 + s * 9, y = 49 - Math.sin(s * 0.8) * 10;
+          g.fillStyle(dark, 1); g.fillCircle(x, y, 9 - s * 0.45);
+          g.fillStyle(color, 1); g.fillCircle(x, y - 2, 7 - s * 0.35);
+          g.lineStyle(1.5, light, 0.8); g.strokeCircle(x, y - 2, 6 - s * 0.35);
+          g.fillStyle(0x172326, 0.8); g.fillCircle(x - 2, y - 4, 1.4);
+        }
+        g.fillStyle(light, 1); g.fillTriangle(49, 27, 60, 36, 48, 43);
+        gem(54, 31, 2.2, 0xffe5a2);
+        line(51, 39, 58, 45, 0xe9e0c9, 2);
+      } else if (type.includes('scorpion')) {
+        // Sand scorpion: segmented shell, articulated claws and a raised hooked tail.
+        g.fillStyle(dark, 1); g.fillEllipse(cx, 51, 34, 25);
+        g.fillStyle(color, 1); g.fillEllipse(cx, 48, 29, 20);
+        for (let s = 0; s < 4; s++) { g.fillStyle(light, 0.72); g.fillEllipse(cx, 41 + s * 5, 23 - s * 2, 4); }
+        line(22, 48, 9, 36, dark, 6); line(9, 36, 5, 23, color, 5);
+        line(5, 23, 17, 14, light, 4); line(17, 14, 21, 5, 0x3a2920, 4);
+        g.fillStyle(0x2c211c, 1); g.fillCircle(21, 5, 4);
+        for (const side of [-1, 1]) {
+          line(cx + side * 12, 47, cx + side * 25, 38, dark, 5);
+          line(cx + side * 25, 38, cx + side * 29, 27, color, 4);
+          g.fillStyle(light, 1); g.fillEllipse(cx + side * 30, 24, 13, 8);
+          for (let leg = 0; leg < 3; leg++) line(cx + side * 7, 53 + leg * 2, cx + side * (20 + leg * 3), 63 + leg * 2, dark, 3);
+        }
+        gem(cx + 3, 45, 2.3, 0xffd078);
+      } else if (type.includes('wolf') || type.includes('stag')) {
+        // Four-legged beasts have a long torso, articulated limbs, ears and a readable muzzle.
+        g.fillStyle(dark, 1); g.fillEllipse(cx, 48, boss ? 68 : 47, boss ? 35 : 26);
+        g.fillStyle(color, 1); g.fillEllipse(cx - 2, 44, boss ? 62 : 42, boss ? 27 : 20);
+        g.fillStyle(light, 0.8); g.fillEllipse(cx - 4, 39, boss ? 37 : 26, 7);
+        for (const side of [-1, 1]) {
+          line(cx + side * 14, 54, cx + side * 18, 68, dark, 6);
+          line(cx + side * 18, 68, cx + side * 16, 73, light, 4);
+        }
+        g.fillStyle(dark, 1); g.fillEllipse(cx + 19, 35, 22, 19);
+        g.fillStyle(light, 1); g.fillEllipse(cx + 25, 39, 16, 10);
+        g.fillTriangle(cx + 10, 29, cx + 9, 10, cx + 23, 27);
+        g.fillTriangle(cx + 25, 27, cx + 34, 10, cx + 34, 33);
+        gem(cx + 26, 32, 2.1, type.includes('frost') ? 0xc5f2ff : 0xffc16c);
+        if (type.includes('stag')) {
+          line(cx - 3, 24, cx - 13, 4, light, 3); line(cx - 13, 4, cx - 23, 1, light, 2);
+          line(cx - 13, 4, cx - 10, -5, light, 2); line(cx + 8, 23, cx + 14, 4, light, 3);
+          line(cx + 14, 4, cx + 25, 0, light, 2);
+        }
+      } else if (wraith) {
+        // Wraiths float: tapering spectral robes, ragged trailing edges and bright face slits.
+        g.fillStyle(dark, 0.94); g.beginPath(); g.moveTo(cx - 21, 33); g.lineTo(cx - 28, 60); g.lineTo(cx - 12, 53); g.lineTo(cx - 4, 75); g.lineTo(cx + 8, 55); g.lineTo(cx + 24, 67); g.lineTo(cx + 20, 32); g.closePath(); g.fillPath();
+        g.fillStyle(color, 0.94); g.fillEllipse(cx, 39, 38, 48);
+        g.fillStyle(dark, 0.98); g.fillEllipse(cx, 14, 27, 30);
+        g.fillStyle(light, 0.78); g.fillTriangle(cx, -1, cx - 16, 19, cx + 16, 19);
+        gem(cx - 6, 17, 2.7, type.includes('ice') ? 0x9deaff : 0xc4a2ff);
+        gem(cx + 6, 17, 2.7, type.includes('ice') ? 0x9deaff : 0xc4a2ff);
+        line(cx - 17, 38, cx - 30, 51, light, 3); line(cx + 17, 38, cx + 29, 49, light, 3);
+        for (let k = 0; k < 3; k++) line(cx - 12 + k * 12, 57, cx - 18 + k * 17, 75, dark, 3);
+      } else if (type.includes('rat_swarm')) {
+        for (let k = 0; k < 5; k++) {
+          const x = 9 + (k % 3) * 16, y = 53 - Math.floor(k / 3) * 15;
+          g.fillStyle(dark, 1); g.fillEllipse(x, y, 18, 12);
+          g.fillStyle(color, 1); g.fillEllipse(x + 2, y - 2, 13, 8);
+          g.fillStyle(light, 1); g.fillCircle(x + 7, y - 3, 2);
+          line(x - 5, y + 4, x - 12, y + 8, 0x8d7062, 1.5);
+        }
+      } else if (plant) {
+        // Thornling / thornwarden: bark core wrapped in roots and outward-facing thorns.
+        g.fillStyle(dark, 1); g.fillRoundedRect(cx - 13, 27, 26, 43, 9);
+        g.fillStyle(color, 1); g.fillRoundedRect(cx - 9, 25, 18, 39, 7);
+        for (let k = 0; k < 5; k++) {
+          const y = 25 + k * 9;
+          g.fillStyle(light, 1); g.fillTriangle(cx - 9, y, cx - 26, y - 8, cx - 13, y + 5);
+          g.fillTriangle(cx + 9, y + 3, cx + 27, y - 5, cx + 13, y + 9);
+        }
+        g.fillStyle(dark, 1); g.fillCircle(cx, 17, 15);
+        g.fillStyle(color, 1); g.fillCircle(cx, 16, 12);
+        line(cx - 8, 12, cx - 17, -1, light, 4); line(cx + 8, 12, cx + 17, -1, light, 4);
+        gem(cx - 5, 17, 2.4, 0xcaff8c); gem(cx + 5, 17, 2.4, 0xcaff8c);
       } else {
+        // Armoured humanoids: layered cloak, greaves, pauldrons, plated chest and weapon silhouette.
         g.fillStyle(dark, 1);
-        g.fillTriangle(cx - w * 0.22, h * 0.38, cx - w * 0.31, h * 0.88, cx + w * 0.12, h * 0.78);
+        g.fillTriangle(cx - 15, 27, cx - 28, 72, cx + 17, 66);
+        g.fillRoundedRect(cx - 15, 48, 12, 22, 3); g.fillRoundedRect(cx + 3, 48, 12, 22, 3);
+        g.fillStyle(0x302a2a, 1);
+        g.fillRoundedRect(cx - 17, 65, 15, 9, 3); g.fillRoundedRect(cx + 2, 65, 15, 9, 3);
+        g.fillStyle(dark, 1); g.fillRoundedRect(cx - 17, 26, 34, 33, 7);
+        g.fillStyle(color, 1); g.fillRoundedRect(cx - 14, 25, 28, 29, 6);
+        g.fillStyle(light, 0.94); g.fillTriangle(cx, 29, cx - 9, 48, cx + 9, 48);
+        g.fillStyle(dark, 1); g.fillRoundedRect(cx - 24, 28, 13, 13, 5); g.fillRoundedRect(cx + 11, 28, 13, 13, 5);
+        g.fillStyle(light, 0.8); g.fillRoundedRect(cx - 22, 29, 8, 7, 3); g.fillRoundedRect(cx + 14, 29, 8, 7, 3);
+        g.fillStyle(0x241e1e, 1); g.fillCircle(cx, 14, 13);
+        g.fillStyle(light, 1); g.fillRoundedRect(cx - 10, 5, 20, 17, 5);
+        g.fillStyle(dark, 1); g.fillRect(cx - 11, 13, 22, 6);
+        gem(cx - 5, 15, 1.8, 0xffd68b); gem(cx + 5, 15, 1.8, 0xffd68b);
+        line(cx + 17, 38, cx + 29, 68, 0x30251f, boss ? 7 : 4);
+        line(cx + 29, 68, cx + 33, 76, 0xd5c19a, boss ? 4 : 2);
+        line(cx - 18, 38, cx - 27, 54, 0x30251f, 5);
+        g.fillStyle(0xb89a6b, 0.9); g.fillRect(cx - 16, 52, 32, 3);
+        g.fillStyle(0x2a2020, 0.8); g.fillCircle(cx, 41, 5);
+        gem(cx, 41, boss ? 4 : 2.6, type.includes('hollow') || type.includes('hushed') ? 0xb89aff : 0xf3c878);
+        if (type.includes('scout') || type.includes('bandit') || type.includes('raider') || type.includes('sentry')) {
+          line(cx + 23, 31, cx + 30, 63, 0x5b4939, 3); line(cx + 30, 31, cx + 30, 63, 0xc5b18b, 1.5);
+        }
       }
-      // Legs and boots.
-      g.fillStyle(0x29242a, 1);
-      g.fillRoundedRect(cx - (boss ? 17 : 10), h * 0.69, boss ? 13 : 9, h * 0.25, 3);
-      g.fillRoundedRect(cx + (boss ? 4 : 2), h * 0.69, boss ? 13 : 9, h * 0.25, 3);
-      g.fillStyle(0x8b684d, 1);
-      g.fillRoundedRect(cx - (boss ? 19 : 12), h * 0.89, boss ? 17 : 12, 6, 2);
-      g.fillRoundedRect(cx + (boss ? 2 : 0), h * 0.89, boss ? 17 : 12, 6, 2);
-      // Torso armor with a bright edge and central plate.
-      g.fillStyle(dark, 1); g.fillRoundedRect(cx - w * 0.24, h * 0.31, w * 0.48, h * 0.43, boss ? 12 : 7);
-      g.fillStyle(color, 1); g.fillRoundedRect(cx - w * 0.19, h * 0.3, w * 0.38, h * 0.4, boss ? 10 : 6);
-      g.fillStyle(light, 0.9); g.fillTriangle(cx, h * 0.34, cx - w * 0.1, h * 0.62, cx + w * 0.1, h * 0.62);
-      // Head, helmet/horns, and unmistakable eyes.
-      const headR = boss ? 17 : 11;
-      const headY = h * 0.22;
-      g.fillStyle(0x211c20, 1); g.fillCircle(cx, headY, headR + 3);
-      g.fillStyle(light, 1); g.fillCircle(cx, headY, headR);
-      g.fillStyle(dark, 1); g.fillRoundedRect(cx - headR * 0.82, headY - 2, headR * 1.64, headR * 0.9, 4);
-      g.fillStyle(0xffd78a, 1);
-      g.fillCircle(cx - headR * 0.38, headY + 1, boss ? 3.2 : 2.2);
-      g.fillCircle(cx + headR * 0.38, headY + 1, boss ? 3.2 : 2.2);
-      if (boss || type.includes('soldier') || type.includes('guard') || type.includes('champion') || type.includes('hobb') || type.includes('voss') || type.includes('morrow')) {
-        g.lineStyle(boss ? 4 : 2.5, 0xd9bd80, 1);
-        g.strokeRoundedRect(cx - headR - 4, headY - headR * 0.72, headR * 2 + 8, headR * 1.2, 5);
-        g.lineBetween(cx - headR * 0.7, headY - headR, cx - headR * 1.25, headY - headR * 1.75);
-        g.lineBetween(cx + headR * 0.7, headY - headR, cx + headR * 1.25, headY - headR * 1.75);
-      }
-      // A visible weapon or claw makes the enemy's attack direction readable.
-      g.lineStyle(boss ? 5 : 3, 0x332b2a, 1);
-      g.lineBetween(cx + w * 0.19, h * 0.48, cx + w * 0.38, h * 0.78);
-      g.lineStyle(boss ? 4 : 2, 0xe2c78c, 1);
-      g.lineBetween(cx + w * 0.38, h * 0.78, cx + w * 0.43, h * 0.88);
+
       if (boss) {
-        g.lineStyle(3, 0xd6b56e, 0.95);
-        g.strokeRoundedRect(3, 3, w - 6, h - 7, 17);
+        // Boss frame, crown-like silhouette and a pulsing core give major foes a distinct visual read.
+        g.lineStyle(3, 0xd6b56e, 0.95); g.strokeRoundedRect(3, 3, w - 6, h - 7, 18);
+        g.lineStyle(2, light, 0.85); g.strokeRoundedRect(8, 8, w - 16, h - 17, 14);
+        g.fillStyle(0x120d12, 0.92); g.fillTriangle(cx, -7, cx - 18, 15, cx + 18, 15);
+        gem(cx, 9, 3.8, type.includes('hush') || type.includes('morrow') ? 0xc4a0ff : 0xffd17c);
       }
       g.generateTexture(key, w, h);
       g.destroy();
     });
+
     const projectileKey = `${this.texturePrefix}-projectile`;
     if (!this.scene.textures.exists(projectileKey)) {
       const g = this.scene.add.graphics({ x: 0, y: 0 });
-      g.fillStyle(0x6b2d28, 0.45); g.fillCircle(8, 8, 8);
-      g.fillStyle(0xffd18a, 1); g.fillCircle(8, 8, 5);
-      g.fillStyle(0xffffff, 0.9); g.fillCircle(6, 6, 2);
-      g.generateTexture(projectileKey, 16, 16); g.destroy();
+      g.fillStyle(0x6b2d28, 0.35); g.fillCircle(9, 9, 9);
+      g.fillStyle(0xff9d4d, 0.22); g.fillCircle(9, 9, 14);
+      g.fillStyle(0xffd18a, 1); g.fillCircle(9, 9, 5);
+      g.fillStyle(0xffffff, 0.92); g.fillCircle(7, 7, 2);
+      g.generateTexture(projectileKey, 18, 18); g.destroy();
     }
   }
 }
