@@ -17,7 +17,7 @@ const game = new Phaser.Game({
   },
   physics: {
     default: 'arcade',
-    arcade: { gravity: { y: 1400 }, debug: false, fps: 60 },
+    arcade: { gravity: { x: 0, y: 1400 }, debug: false, fps: 60 },
   },
   input: { activePointers: 4 },
   render: { antialias: true, pixelArt: false, roundPixels: true },
