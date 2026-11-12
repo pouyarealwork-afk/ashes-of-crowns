@@ -416,79 +416,146 @@ export class GameScene extends Phaser.Scene {
     this.createPixelTexture();
   }
 
+  /** Layered, region-aware dark-fantasy environment art built from lightweight Phaser primitives. */
   private drawAtmosphere(level: LevelDef): void {
-    const sky = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.sky).color;
-    const mid = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.mid).color;
-    const fore = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.fore).color;
-    const w = level.size.w, h = level.size.h, horizon = h - 150;
+    const palette = level.atmosphere.palette;
+    const sky = Phaser.Display.Color.HexStringToColor(palette.sky).color;
+    const mid = Phaser.Display.Color.HexStringToColor(palette.mid).color;
+    const fore = Phaser.Display.Color.HexStringToColor(palette.fore).color;
+    const w = level.size.w, h = level.size.h, horizon = h - 154;
+    const region = String(level.region);
+    const forest = region.includes('forest');
+    const desert = region.includes('desert');
+    const frost = region.includes('highland');
+    const hollow = region.includes('hollow');
+    const crown = region.includes('crownfall');
+    const warm = desert || region.includes('ashen') || crown;
+    const accent = frost ? 0x9bd9ef : forest ? 0x9fbd77 : hollow ? 0xb58be0 : 0xe6a66d;
 
-    // Deep sky, soft horizon glow and a distant moon.
-    const skyLayer = this.add.graphics().setDepth(-30);
+    const skyLayer = this.add.graphics().setDepth(-40);
     skyLayer.fillGradientStyle(sky, sky, mid, mid, 1);
     skyLayer.fillRect(0, 0, w, h);
-    skyLayer.fillStyle(0xe6a66d, 0.075);
-    skyLayer.fillCircle(w * 0.73, h * 0.28, Math.min(230, h * 0.32));
-    skyLayer.fillStyle(0xf0d5ae, 0.72);
-    skyLayer.fillCircle(w * 0.76, h * 0.2, 27);
-    skyLayer.fillStyle(sky, 0.8);
-    skyLayer.fillCircle(w * 0.775, h * 0.19, 25);
+    skyLayer.fillStyle(accent, 0.055); skyLayer.fillCircle(w * 0.72, h * 0.27, Math.min(330, h * 0.42));
+    skyLayer.fillStyle(0xf1d9b7, 0.075); skyLayer.fillCircle(w * 0.72, h * 0.27, Math.min(190, h * 0.25));
+    // A moon with a soft halo and a subtle crescent shadow.
+    const moonX = w * (desert ? 0.78 : 0.73), moonY = h * 0.2, moonR = frost ? 31 : 25;
+    skyLayer.fillStyle(accent, 0.12); skyLayer.fillCircle(moonX, moonY, moonR * 2.8);
+    skyLayer.fillStyle(0xf2e7d3, 0.82); skyLayer.fillCircle(moonX, moonY, moonR);
+    skyLayer.fillStyle(sky, 0.72); skyLayer.fillCircle(moonX + moonR * 0.55, moonY - moonR * 0.24, moonR * 0.88);
 
-    // Star field and drifting ash.
-    const stars = this.add.graphics().setDepth(-25);
-    for (let i = 0; i < 95; i++) {
+    const stars = this.add.graphics().setDepth(-36);
+    for (let i = 0; i < 126; i++) {
       const x = (i * 197 + (i % 7) * 31) % w;
-      const y = 24 + ((i * 113) % Math.max(80, Math.floor(h * 0.62)));
-      stars.fillStyle(i % 9 === 0 ? 0xffd99c : 0xd9c9b7, i % 9 === 0 ? 0.7 : 0.32);
-      stars.fillCircle(x, y, i % 9 === 0 ? 1.8 : 1);
+      const y = 20 + ((i * 113) % Math.max(90, Math.floor(h * 0.58)));
+      const bright = i % 13 === 0;
+      stars.fillStyle(bright ? 0xffe1ad : 0xe0d8ce, bright ? 0.72 : 0.27);
+      stars.fillCircle(x, y, bright ? 1.65 : 0.85);
+      if (bright) {
+        stars.lineStyle(1, 0xffe1ad, 0.28); stars.lineBetween(x - 5, y, x + 5, y); stars.lineBetween(x, y - 5, x, y + 5);
+      }
     }
 
-    // Three distinct depth planes replace the repeated triangle/rectangle pattern.
-    const far = this.add.graphics().setDepth(-22);
-    far.fillStyle(Phaser.Display.Color.IntegerToColor(mid).darken(12).color, 0.58);
-    far.beginPath(); far.moveTo(0, horizon);
-    for (let x = 0; x <= w + 240; x += 240) far.lineTo(x, horizon - 100 - ((x * 13) % 170));
-    far.lineTo(w, h); far.lineTo(0, h); far.closePath(); far.fillPath();
+    // Three mountain and ridge layers create depth without image assets.
+    const ridge = (depth: number, color: number, alpha: number, step: number, base: number, height: number, seed: number) => {
+      const g = this.add.graphics().setDepth(depth);
+      g.fillStyle(color, alpha); g.beginPath(); g.moveTo(0, horizon + base);
+      for (let x = 0; x <= w + step; x += step) {
+        const variation = ((Math.floor(x / step) * 73 + seed * 41) % 100) / 100;
+        g.lineTo(x, horizon - height * (0.34 + variation * 0.66) + base);
+        g.lineTo(x + step * 0.48, horizon + base + 8);
+      }
+      g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fillPath();
+    };
+    ridge(-31, Phaser.Display.Color.IntegerToColor(mid).darken(12).color, 0.48, 210, 5, frost ? 240 : 155, 2);
+    ridge(-27, Phaser.Display.Color.IntegerToColor(fore).darken(18).color, 0.7, 285, 35, frost ? 185 : 112, 5);
+    ridge(-23, Phaser.Display.Color.IntegerToColor(fore).darken(28).color, 0.82, 370, 52, 82, 8);
 
-    const ruins = this.add.graphics().setDepth(-18);
-    ruins.fillStyle(Phaser.Display.Color.IntegerToColor(fore).darken(24).color, 0.92);
-    for (let i = 0; i < Math.ceil(w / 420); i++) {
-      const x = i * 420 + 70, base = horizon + 34;
-      const towerH = 105 + ((i * 71) % 100);
-      ruins.fillRect(x, base - towerH, 72, towerH);
-      ruins.fillRect(x - 14, base - towerH - 12, 100, 15);
-      ruins.fillRect(x + 18, base - towerH - 48, 10, 38);
-      ruins.fillRect(x + 43, base - towerH - 30, 8, 18);
-      ruins.fillRect(x + 82, base - 76, 128, 76);
-      ruins.fillRect(x + 96, base - 102, 18, 28);
-      ruins.fillRect(x + 180, base - 126, 16, 50);
-      ruins.fillStyle(0x171315, 0.85);
-      ruins.fillRoundedRect(x + 23, base - towerH + 36, 18, 42, 8);
-      ruins.fillStyle(Phaser.Display.Color.IntegerToColor(fore).darken(24).color, 0.92);
+    // Architectural silhouettes vary by region: ruined hamlet, forest canopy, dunes, ice peaks or gothic city.
+    const distant = this.add.graphics().setDepth(-18);
+    const stone = Phaser.Display.Color.IntegerToColor(fore).darken(28).color;
+    const stoneHi = Phaser.Display.Color.IntegerToColor(fore).darken(8).color;
+    if (forest) {
+      for (let i = 0; i < Math.ceil(w / 175); i++) {
+        const x = i * 175 + 30, base = horizon + 55, th = 135 + (i * 47 % 105);
+        distant.fillStyle(0x171e18, 0.88); distant.fillRect(x + 23, base - th * 0.46, 13, th * 0.52);
+        distant.fillStyle(i % 2 ? 0x263c2b : 0x30442f, 0.9);
+        distant.fillTriangle(x + 29, base - th, x - 24, base - th * 0.36, x + 82, base - th * 0.36);
+        distant.fillTriangle(x + 29, base - th * 0.76, x - 18, base - th * 0.12, x + 78, base - th * 0.12);
+        distant.fillStyle(0x9fb87c, 0.12); distant.fillTriangle(x + 29, base - th, x + 29, base - th * 0.3, x + 49, base - th * 0.36);
+      }
+    } else if (desert) {
+      distant.fillStyle(0x9d7046, 0.2);
+      for (let i = 0; i < Math.ceil(w / 520); i++) {
+        const x = i * 520 - 100;
+        distant.fillEllipse(x + 240, horizon + 52, 540, 118);
+        distant.fillStyle(0x251c1a, 0.5); distant.fillRect(x + 230, horizon - 120, 18, 170);
+        distant.fillTriangle(x + 239, horizon - 160, x + 202, horizon - 112, x + 276, horizon - 112);
+        distant.fillStyle(0x9d7046, 0.2);
+      }
+    } else if (frost) {
+      for (let i = 0; i < Math.ceil(w / 310); i++) {
+        const x = i * 310 + 35, base = horizon + 55;
+        distant.fillStyle(0x526b79, 0.72); distant.fillTriangle(x, base, x + 116, base - 230 - (i % 3) * 28, x + 242, base);
+        distant.fillStyle(0xd5e8e9, 0.5); distant.fillTriangle(x + 116, base - 230 - (i % 3) * 28, x + 91, base - 112, x + 143, base - 112);
+        distant.fillStyle(0x273c48, 0.72); distant.fillTriangle(x + 175, base, x + 218, base - 128, x + 267, base);
+      }
+    } else {
+      for (let i = 0; i < Math.ceil(w / 430); i++) {
+        const x = i * 430 + 48, base = horizon + 48;
+        const towerH = 112 + ((i * 71) % 118), towerW = hollow ? 88 : 68;
+        distant.fillStyle(stone, 0.93);
+        distant.fillRect(x, base - towerH, towerW, towerH);
+        distant.fillRect(x - 12, base - towerH - 10, towerW + 24, 13);
+        // Broken crenellations and a narrow pointed roof.
+        distant.fillRect(x + 9, base - towerH - 23, 12, 18); distant.fillRect(x + towerW - 21, base - towerH - 23, 12, 18);
+        distant.fillTriangle(x + towerW / 2, base - towerH - (hollow ? 82 : 54), x + 8, base - towerH + 2, x + towerW - 8, base - towerH + 2);
+        distant.fillStyle(0x151216, 0.86);
+        distant.fillRoundedRect(x + towerW * 0.34, base - towerH + 38, towerW * 0.32, 48, 10);
+        distant.fillStyle(stoneHi, 0.85);
+        distant.fillRect(x + 105, base - 82, 142, 82);
+        distant.fillRect(x + 124, base - 105, 18, 24); distant.fillRect(x + 202, base - 126, 18, 45);
+        if (hollow || crown) {
+          distant.lineStyle(5, stoneHi, 0.75);
+          distant.beginPath(); distant.arc(x + 176, base - 2, 44, Math.PI, 0, false); distant.strokePath();
+          distant.fillStyle(0x17131a, 0.88); distant.fillRect(x + 132, base - 3, 88, 50);
+        }
+        distant.fillStyle(accent, 0.42);
+        distant.fillRect(x + towerW * 0.42, base - towerH + 58, 5, 13);
+      }
     }
 
-    // Foreground ridge, broken masonry and a warm light at ground level.
+    // Foreground ridge and a broken stone/soil lip frame the playable plane.
     const ground = this.add.graphics().setDepth(2);
-    ground.fillStyle(0x171313, 0.42);
-    ground.fillRect(0, horizon + 36, w, h - horizon);
-    ground.fillStyle(fore, 0.92);
-    ground.beginPath(); ground.moveTo(0, horizon + 70);
-    for (let x = 0; x <= w + 160; x += 160) ground.lineTo(x, horizon + 48 + ((x * 7) % 34));
+    ground.fillStyle(0x100d0d, 0.48); ground.fillRect(0, horizon + 36, w, h - horizon);
+    ground.fillStyle(fore, 0.94); ground.beginPath(); ground.moveTo(0, horizon + 67);
+    for (let x = 0; x <= w + 160; x += 160) ground.lineTo(x, horizon + 46 + ((x * 7) % 36));
     ground.lineTo(w, h); ground.lineTo(0, h); ground.closePath(); ground.fillPath();
-    ground.fillStyle(0x171313, 0.48);
-    for (let i = 0; i < Math.ceil(w / 260); i++) {
-      const x = i * 260 + 32;
-      ground.fillRoundedRect(x, horizon + 60, 90, 12, 4);
-      ground.fillRect(x + 18, horizon + 48, 15, 13);
-      ground.fillRect(x + 62, horizon + 43, 12, 18);
+    ground.fillStyle(0x171313, 0.58);
+    for (let i = 0; i < Math.ceil(w / 235); i++) {
+      const x = i * 235 + 26, y = horizon + 60 + (i % 3) * 7;
+      ground.fillRoundedRect(x, y, 78 + (i % 3) * 18, 13, 4);
+      ground.fillTriangle(x + 12, y, x + 28, y - 12, x + 40, y);
+      ground.fillRect(x + 54, y - 8, 13, 12);
+      if (forest) { ground.lineStyle(2, 0x71844c, 0.8); ground.lineBetween(x + 92, y + 8, x + 86, y - 18); ground.lineBetween(x + 92, y + 8, x + 105, y - 12); }
     }
-    ground.fillStyle(0xf2a45e, 0.16);
-    ground.fillEllipse(w * 0.48, horizon + 90, Math.min(520, w * 0.42), 42);
+    ground.fillStyle(accent, warm ? 0.13 : 0.1); ground.fillEllipse(w * 0.48, horizon + 92, Math.min(640, w * 0.48), 54);
 
-    if (level.atmosphere.weather === 'ash' || level.atmosphere.weather === 'embers') {
-      for (let i = 0; i < 52; i++) {
-        const x = (i * 191) % w, y = 70 + (i * 61) % Math.max(100, h - 120);
-        const ember = this.add.circle(x, y, 1 + i % 2, i % 4 === 0 ? 0xffb76d : 0xd7c1a5, 0.32 + (i % 3) * 0.1).setDepth(1);
-        this.tweens.add({ targets: ember, y: y - 28 - (i % 4) * 12, alpha: 0.05, duration: 2600 + (i % 5) * 700, delay: i * 55, repeat: -1, yoyo: true });
+    // Low drifting mist gives the level a layered, cinematic silhouette.
+    for (let i = 0; i < 4; i++) {
+      const mist = this.add.ellipse(w * (0.18 + i * 0.23), horizon + 18 + (i % 2) * 24, 300 + i * 54, 30 + i * 5, frost ? 0xc6e4ee : 0xb8a9a0, 0.035 + i * 0.008).setDepth(-5 + i);
+      this.tweens.add({ targets: mist, x: mist.x + (i % 2 ? -90 : 90), alpha: 0.018, duration: 9000 + i * 1700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    }
+
+    // Weather particles are deterministic and deliberately sparse for mobile performance.
+    const weather = String(level.atmosphere.weather);
+    const particleColor = weather.includes('snow') || frost ? 0xd8eff7 : weather.includes('sand') || desert ? 0xe0b878 : accent;
+    if (weather === 'ash' || weather === 'embers' || weather.includes('snow') || weather.includes('fog') || weather.includes('sand') || warm) {
+      const count = frost || weather.includes('snow') ? 30 : 42;
+      for (let i = 0; i < count; i++) {
+        const x = (i * 191) % w, y = 42 + (i * 61) % Math.max(100, h - 100);
+        const size = frost ? 1 + (i % 3) * 0.55 : 1 + i % 2;
+        const particle = this.add.circle(x, y, size, particleColor, 0.22 + (i % 4) * 0.09).setDepth(1);
+        this.tweens.add({ targets: particle, x: x + (frost ? 38 : -22) + (i % 5) * 9, y: y - (frost ? -42 : 28 + (i % 4) * 12), alpha: 0.04, duration: 3200 + (i % 6) * 850, delay: i * 43, repeat: -1, yoyo: true, ease: 'Sine.InOut' });
       }
     }
   }
