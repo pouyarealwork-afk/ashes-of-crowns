@@ -125,7 +125,7 @@ export class GameScene extends Phaser.Scene {
 
   private createPixelTexture(): void {
     if (this.textures.exists('aoc-pixel')) return;
-    const g = this.make.graphics({ x: 0, y: 0, add: false });
+    const g = this.add.graphics({ x: 0, y: 0 });
     g.fillStyle(0xffffff, 1); g.fillRect(0, 0, 2, 2); g.generateTexture('aoc-pixel', 2, 2); g.destroy();
   }
 
