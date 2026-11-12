@@ -339,11 +339,12 @@ export class GameScene extends Phaser.Scene {
 
     this.platforms = this.physics.add.staticGroup();
     for (const [x, y, w, h, kind] of level.platforms) {
-      const block = this.platforms.create(x + w / 2, y + h / 2, 'aoc-pixel') as Phaser.Physics.Arcade.Image;
-      block.setDisplaySize(w, h).setTint(this.platformColor(kind ?? 'ground')).setDepth(4).refreshBody();
+      const material = String(kind ?? 'ground');
+      const texture = this.platformTexture(material);
+      const block = this.platforms.create(x + w / 2, y + h / 2, texture) as Phaser.Physics.Arcade.Image;
+      block.setDisplaySize(w, h).setTint(0xffffff).setDepth(4).refreshBody();
       if (kind === 'oneway' && block.body) { block.body.checkCollision.down = false; block.body.checkCollision.left = false; block.body.checkCollision.right = false; }
       const detail = this.add.graphics().setDepth(5);
-      const material = String(kind ?? 'ground');
       const edge = material === 'ice' ? 0xc9f0ff : material === 'wood' ? 0xb8875a : material === 'sand' ? 0xc49a63 : material === 'vine' ? 0x8ba66b : 0x9b8a78;
       detail.fillStyle(0x090808, 0.24); detail.fillRect(x, y + h - 5, w, 5);
       detail.fillStyle(edge, 0.62); detail.fillRect(x + 2, y + 1, Math.max(0, w - 4), Math.min(4, h));
@@ -578,6 +579,48 @@ export class GameScene extends Phaser.Scene {
         this.tweens.add({ targets: particle, x: x + (frost ? 24 : -14) + (i % 3) * 5, y: y - (frost ? -24 : 16 + (i % 3) * 6), alpha: 0.05, duration: 5200 + (i % 4) * 900, delay: i * 120, repeat: -1, yoyo: true, ease: 'Sine.InOut' });
       }
     }
+  }
+
+  /** Material-specific hand-painted platform atlas, generated once and reused to avoid flat coloured rectangles. */
+  private platformTexture(kind: string): string {
+    const key = `aoc-platform-${kind}`;
+    if (this.textures.exists(key)) return key;
+    const g = this.add.graphics();
+    const base: Record<string, number> = { ground: 0x51423d, stone: 0x71645c, wood: 0x76523d, ice: 0x9db5c2, sand: 0x92724d, crumble: 0x6d5146, oneway: 0x8a6a50, vine: 0x4e6947, metal: 0x59616a };
+    const color = base[kind] ?? base.ground;
+    const dark = Phaser.Display.Color.IntegerToColor(color).darken(28).color;
+    const light = Phaser.Display.Color.IntegerToColor(color).brighten(24).color;
+    g.fillStyle(dark, 1); g.fillRect(0, 0, 320, 96);
+    g.fillStyle(color, 1); g.fillRoundedRect(1, 1, 318, 91, 8);
+    g.fillStyle(light, 0.72); g.fillRoundedRect(0, 0, 320, 8, 4);
+    if (kind === 'wood') {
+      for (let y = 16; y < 92; y += 25) {
+        g.fillStyle(dark, 0.52); g.fillRoundedRect(3, y, 314, 19, 5);
+        g.lineStyle(2, light, 0.48); g.lineBetween(8, y + 3, 310, y + 3);
+        for (let x = 28; x < 310; x += 78) { g.lineStyle(1, dark, 0.8); g.lineBetween(x, y + 5, x + 4, y + 16); g.fillStyle(0x2b1c16, 0.7); g.fillCircle(x + 13, y + 10, 2); }
+      }
+    } else if (kind === 'ice') {
+      for (let x = 14; x < 320; x += 48) { g.fillStyle(0xe7fbff, 0.32); g.beginPath(); g.moveTo(x, 7); g.lineTo(x + 17, 18); g.lineTo(x + 8, 61); g.lineTo(x - 5, 40); g.closePath(); g.fillPath(); g.lineStyle(1, 0xf4ffff, 0.42); g.lineBetween(x + 4, 12, x + 7, 54); }
+      g.fillStyle(0x284957, 0.24); g.fillRect(0, 72, 320, 20);
+    } else if (kind === 'sand') {
+      for (let y = 13; y < 96; y += 13) { g.lineStyle(2, y % 2 ? 0xd8b77e : dark, 0.3); g.beginPath(); g.moveTo(0, y); g.lineTo(72, y - 4); g.lineTo(156, y + 2); g.lineTo(238, y - 3); g.lineTo(320, y + 1); g.strokePath(); }
+      for (let i = 0; i < 38; i++) { const x = (i * 83) % 320, y = 12 + (i * 29) % 75; g.fillStyle(light, 0.32); g.fillCircle(x, y, 1 + i % 2); }
+    } else if (kind === 'vine') {
+      for (let x = 10; x < 320; x += 36) { g.lineStyle(3, 0x263e28, 0.75); g.beginPath(); g.moveTo(x, 8); g.lineTo(x + 8, 32); g.lineTo(x - 2, 57); g.lineTo(x + 10, 86); g.strokePath(); g.fillStyle(0x9bbd69, 0.9); g.fillEllipse(x + 7, 30, 14, 7); g.fillEllipse(x - 1, 58, 13, 6); }
+    } else {
+      // Uneven masonry: overlapping irregular stone faces, chipped highlights and hairline cracks.
+      for (let row = 0; row < 2; row++) for (let col = 0; col < 5; col++) {
+        const x = col * 66 + (row ? -22 : 0), y = 12 + row * 40;
+        const wobble = (col * 7 + row * 11) % 9;
+        g.fillStyle(dark, 0.72); g.beginPath(); g.moveTo(x + 4, y + 2); g.lineTo(x + 52, y - wobble); g.lineTo(x + 63, y + 12); g.lineTo(x + 55, y + 31); g.lineTo(x + 8, y + 34); g.lineTo(x - 3, y + 17); g.closePath(); g.fillPath();
+        g.fillStyle(color, 1); g.beginPath(); g.moveTo(x + 5, y + 3); g.lineTo(x + 49, y + 1 - wobble); g.lineTo(x + 59, y + 12); g.lineTo(x + 52, y + 27); g.lineTo(x + 9, y + 30); g.lineTo(x, y + 15); g.closePath(); g.fillPath();
+        g.lineStyle(2, light, 0.38); g.lineBetween(x + 7, y + 5, x + 44, y + 3 - wobble);
+        g.lineStyle(1, 0x211a18, 0.62); g.lineBetween(x + 28, y + 14, x + 34, y + 20); g.lineBetween(x + 34, y + 20, x + 31, y + 25);
+      }
+      if (kind === 'crumble') { g.fillStyle(0x2a211d, 0.7); for (let i = 0; i < 22; i++) g.fillCircle((i * 47) % 320, 12 + (i * 19) % 78, 2 + i % 3); }
+      if (kind === 'metal') { g.lineStyle(2, 0xb5c0c8, 0.45); for (let x = 20; x < 320; x += 58) g.lineBetween(x, 8, x + 8, 88); g.fillStyle(0x171d22, 0.6); for (let x = 16; x < 320; x += 64) { g.fillCircle(x, 16, 2.5); g.fillCircle(x, 80, 2.5); } }
+    }
+    g.generateTexture(key, 320, 96); g.destroy(); return key;
   }
 
   private platformColor(kind: string): number {
