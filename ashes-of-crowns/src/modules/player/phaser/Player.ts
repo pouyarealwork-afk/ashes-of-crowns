@@ -161,13 +161,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   /** Move to the checkpoint and revive. */
-  respawn(): void {
+  respawn(healthFraction = this.respawnHealth): void {
     if (this.disposed) return;
     this.respawnTimer?.remove(false);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.reset(this.checkpoint.x, this.checkpoint.y);
     this.setAlpha(1);
-    this.controller.respawn(this.respawnHealth);
+    this.controller.respawn(Math.min(1, Math.max(0.1, healthFraction)));
     this.cameraRig?.snap();
     this.playAnimFor('idle');
     this.scene.game.events.emit(PLAYER_OUT.respawned, { ...this.checkpoint });
