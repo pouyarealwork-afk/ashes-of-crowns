@@ -273,7 +273,7 @@ export class CombatWorld {
     const body = projectile.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false); body.setVelocity(dir * (enemy.tier === 'boss' ? 300 : 235), 0);
     this.projectiles.add(projectile);
-    const collider = this.scene.physics.add.overlap(projectile, this.player, () => {
+    const collider = this.scene.physics.add.overlap(projectile, this.player as unknown as Phaser.Physics.Arcade.Sprite, () => {
       if (!projectile.active) return;
       this.applyIncomingHit(enemy.id, damage, dir as 1 | -1, 95, false);
       projectile.destroy();
@@ -307,7 +307,7 @@ export class CombatWorld {
     types.forEach((type, i) => {
       const key = this.textureKey(type); if (this.scene.textures.exists(key)) return;
       const boss = i >= 18; const w = boss ? 96 : 48; const h = boss ? 96 : 48;
-      const g = this.scene.make.graphics({ x: 0, y: 0, add: false });
+      const g = this.scene.add.graphics({ x: 0, y: 0 });
       g.fillStyle(colors[i], 1); g.fillRoundedRect(w * 0.2, h * 0.14, w * 0.6, h * 0.78, boss ? 18 : 10);
       g.fillStyle(0x20202a, 1); g.fillCircle(w * 0.38, h * 0.36, boss ? 5 : 3); g.fillCircle(w * 0.62, h * 0.36, boss ? 5 : 3);
       g.fillStyle(0xd9c7a1, 0.8); g.fillRect(w * 0.38, h * 0.72, w * 0.24, h * 0.06);
