@@ -23,11 +23,13 @@ export class DialogueScreen extends Screen<DialogueParams> {
   private complete = false;
   private timer: number | null = null;
   private finished = false;
+  private cancelled = false;
 
   protected override onOpen(): void {
     const t = this.params.tree;
     this.path = [];
     this.finished = false;
+    this.cancelled = false;
     this.goto(t.start, false);
   }
 
@@ -90,15 +92,21 @@ export class DialogueScreen extends Screen<DialogueParams> {
     this.finished = true;
     this.stopTyping();
     const id = this.params.tree.id;
+    if (this.cancelled) this.ctx.events.emit('dialogue:cancel', { dialogueId: id });
     this.ctx.events.emit('dialogue:end', { dialogueId: id, choices: [...this.path] });
     this.ctx.back();
   }
 
+  private cancelDialogue(): void {
+    if (this.finished) return;
+    this.cancelled = true;
+    this.end();
+  }
+
   override handleBack(): boolean {
-    // Escape / hardware back finishes typing first, never silently abandons a choice.
-    if (this.typing) { this.advance(); return true; }
-    if (this.node && !this.node.choices?.length) { this.advance(); return true; }
-    return true; // consume: a pending choice cannot be dismissed
+    // Back always offers a reliable way out, including while a choice is on screen.
+    this.cancelDialogue();
+    return true;
   }
 
   protected render(): Child {
@@ -115,6 +123,7 @@ export class DialogueScreen extends Screen<DialogueParams> {
       h('div', { class: 'dlg__stage' },
         n.portrait ? h('div', { class: 'dlg__portrait panel' }, glyph(n.portrait, 'hero')) : null),
       h('div', { class: 'dlg__box panel panel--big' },
+        h('button', { class: 'dlg__exit', type: 'button', 'aria-label': ctx.settings.lang === 'fa' ? 'پایان گفتگو' : 'End dialogue', onclick: (e: Event) => { e.stopPropagation(); this.cancelDialogue(); } }, ctx.settings.lang === 'fa' ? 'پایان گفتگو ×' : 'End conversation ×'),
         speaker ? h('div', { class: 'dlg__name' }, icon('crown'), speaker) : null,
         h('p', { class: cx('dlg__text', 'story-text'), 'aria-live': 'polite' }, shown),
         choices
