@@ -94,7 +94,7 @@ export class DialogueScreen extends Screen<DialogueParams> {
     const id = this.params.tree.id;
     if (this.cancelled) this.ctx.events.emit('dialogue:cancel', { dialogueId: id });
     this.ctx.events.emit('dialogue:end', { dialogueId: id, choices: [...this.path] });
-    this.ctx.back();
+    this.ctx.close('dialogue');
   }
 
   private cancelDialogue(): void {
