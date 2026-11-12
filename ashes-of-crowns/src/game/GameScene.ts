@@ -50,6 +50,7 @@ export class GameScene extends Phaser.Scene {
   activeSaveSlot = 'slot1';
   private playtimeMs = 0;
   private hudAccumulator = 0;
+  private triggerAccumulator = 0;
   private lastSaveState: any = null;
   private pendingLevel: { levelId: string; spawn: string } | null = null;
   private audioUnlockAttached = false;
@@ -108,7 +109,8 @@ export class GameScene extends Phaser.Scene {
     if (!this.started || !this.aren || !this.levelDef) return;
     this.playtimeMs += delta;
     this.services.rpg.update(delta);
-    this.updateWorldTriggers();
+    this.triggerAccumulator += delta;
+    if (this.triggerAccumulator >= 80) { this.triggerAccumulator %= 80; this.updateWorldTriggers(); }
     this.updateCompanionPositions();
     this.hudAccumulator += delta;
     if (this.hudAccumulator >= 100) { this.hudAccumulator %= 100; this.updateHud(); }
@@ -416,7 +418,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.resume();
     this.started = true;
     if (this.uiUtilityControls) this.uiUtilityControls.style.display = 'flex';
-    this.activeZones.clear(); this.activePois.clear(); this.blockedExitAt.clear(); this.hudAccumulator = 0;
+    this.activeZones.clear(); this.activePois.clear(); this.blockedExitAt.clear(); this.hudAccumulator = 0; this.triggerAccumulator = 0;
     this.ui?.setBackend(createUIBackend(this));
     this.ui?.showHud(true);
     this.updateHud();
@@ -641,7 +643,7 @@ export class GameScene extends Phaser.Scene {
         const px = h.rect.x + k * h.rect.w / Math.max(2, Math.floor(h.rect.w / 24));
         g.lineBetween(px, h.rect.y + 3, px + (cold ? 5 : -4), h.rect.y + h.rect.h - 3);
       }
-      for (let k = 0; k < Math.min(8, Math.ceil(h.rect.w / 22)); k++) {
+      for (let k = 0; k < Math.min(3, Math.ceil(h.rect.w / 60)); k++) {
         const px = h.rect.x + 8 + k * 22;
         const mote = this.add.circle(px, h.rect.y + h.rect.h / 2, cold ? 2 : 2.5, cold ? 0xdaf7ff : 0xffc07a, 0.7).setDepth(6);
         this.tweens.add({ targets: mote, y: mote.y - (cold ? 8 : 15), alpha: 0.12, duration: 850 + k * 95, yoyo: true, repeat: -1 });
@@ -667,15 +669,15 @@ export class GameScene extends Phaser.Scene {
       const trim = 0xc9a66f;
       const actor = this.add.container(x, y).setDepth(8);
       const shadow = this.add.ellipse(0, 3, 43, 13, 0x000000, 0.42);
-      const cloak = this.add.triangle(-1, -28, -19, -42, 18, -40, 0, -5, shade).setStrokeStyle(1, 0x1b1513, 0.9);
-      const robe = this.add.rectangle(0, -27, 27, 42, cloth).setStrokeStyle(2, trim, 0.82);
+      const cloak = this.add.ellipse(-1, -27, 42, 54, shade).setStrokeStyle(1, 0x1b1513, 0.9);
+      const robe = this.add.ellipse(0, -28, 30, 48, cloth).setStrokeStyle(2, trim, 0.82);
       const hem = this.add.rectangle(0, -7, 29, 4, shade);
       const belt = this.add.rectangle(0, -31, 28, 4, trim);
       const buckle = this.add.rectangle(0, -31, 5, 5, 0xe4c78c).setStrokeStyle(1, 0x4a3325);
       const neck = this.add.rectangle(0, -51, 10, 10, 0x9a7359);
       const face = this.add.ellipse(0, -60, 19, 23, 0xc69b79).setStrokeStyle(2, 0x2b211d);
       const hood = this.add.arc(0, -62, 14, 188, 352, false, shade).setStrokeStyle(3, 0x241b18);
-      const hair = this.add.triangle(0, -70, -11, -3, 0, -14, 11, -3, 0x33231d);
+      const hair = this.add.arc(0, -65, 12, 180, 360, false, 0x33231d).setStrokeStyle(5, 0x241b18);
       const eyeLine = this.add.line(0, -59, -5, 0, 5, 0, 0x382820, 0.8).setLineWidth(1.5);
       const shoulderL = this.add.ellipse(-15, -42, 12, 18, cloth).setStrokeStyle(1, trim, 0.55);
       const shoulderR = this.add.ellipse(15, -42, 12, 18, cloth).setStrokeStyle(1, trim, 0.55);
@@ -778,8 +780,8 @@ export class GameScene extends Phaser.Scene {
       const color = spec.id === 'tamsin' ? 0x9b6852 : spec.id === 'sylwen' ? 0x668c66 : spec.id === 'idris' ? 0xc19b55 : 0x71869b;
       const shade = Phaser.Display.Color.IntegerToColor(color).darken(34).color;
       const shadow = this.add.ellipse(0, 5, 38, 11, 0x000000, 0.34);
-      const cape = this.add.triangle(-1, -26, -16, -43, 16, -40, 0, -3, shade).setStrokeStyle(1, 0x241a16);
-      const body = this.add.rectangle(0, -24, 23, 37, color).setStrokeStyle(2, 0xd5bd94);
+      const cape = this.add.ellipse(-1, -25, 38, 50, shade).setStrokeStyle(1, 0x241a16);
+      const body = this.add.ellipse(0, -25, 26, 43, color).setStrokeStyle(2, 0xd5bd94);
       const belt = this.add.rectangle(0, -30, 24, 4, 0x493126);
       const clasp = this.add.star(0, -43, 4, 2, 4, 0xd6b779);
       const neck = this.add.rectangle(0, -45, 8, 8, 0xa77f63);
