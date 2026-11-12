@@ -50,10 +50,10 @@ export class MainMenuScreen extends Screen {
               : ctx.t('menu.noSaves'),
             onClick: () => this.continueGame(latest!.slot),
           }),
-          btn({ label: ctx.t('menu.newGame'), icon: 'flame', big: true, block: true, onClick: () => ctx.open('newGame') }),
+          btn({ label: ctx.t('menu.newGame'), icon: 'flame', big: true, block: true, onClick: () => ctx.open('newGame', undefined, 'push') }),
           btn({
             label: ctx.t('menu.loadGame'), icon: 'load', big: true, block: true, disabled: !hasSaves,
-            onClick: () => ctx.open('saveSelect', { mode: 'load' }),
+            onClick: () => ctx.open('saveSelect', { mode: 'load' }, 'push'),
           }),
           btn({ label: ctx.t('menu.settings'), icon: 'gear', big: true, block: true, onClick: () => ctx.open('settings') }))),
       h('div', { class: 'menu__corner menu__corner--end' },
