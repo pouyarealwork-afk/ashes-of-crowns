@@ -403,27 +403,79 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawAtmosphere(level: LevelDef): void {
-    const g = this.add.graphics().setDepth(-20);
     const sky = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.sky).color;
     const mid = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.mid).color;
     const fore = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.fore).color;
-    g.fillGradientStyle(sky, sky, mid, mid, 1); g.fillRect(0, 0, level.size.w, level.size.h);
-    const baseY = level.size.h - 140;
-    g.fillStyle(mid, 0.62);
-    for (let i = 0; i < level.size.w; i += 360) {
-      const peak = Math.max(70, baseY - 260 - ((i * 17) % 190));
-      g.fillTriangle(i, baseY, i + 190, peak, i + 390, baseY);
+    const w = level.size.w, h = level.size.h, horizon = h - 150;
+
+    // Deep sky, soft horizon glow and a distant moon.
+    const skyLayer = this.add.graphics().setDepth(-30);
+    skyLayer.fillGradientStyle(sky, sky, mid, mid, 1);
+    skyLayer.fillRect(0, 0, w, h);
+    skyLayer.fillStyle(0xe6a66d, 0.075);
+    skyLayer.fillCircle(w * 0.73, h * 0.28, Math.min(230, h * 0.32));
+    skyLayer.fillStyle(0xf0d5ae, 0.72);
+    skyLayer.fillCircle(w * 0.76, h * 0.2, 27);
+    skyLayer.fillStyle(sky, 0.8);
+    skyLayer.fillCircle(w * 0.775, h * 0.19, 25);
+
+    // Star field and drifting ash.
+    const stars = this.add.graphics().setDepth(-25);
+    for (let i = 0; i < 95; i++) {
+      const x = (i * 197 + (i % 7) * 31) % w;
+      const y = 24 + ((i * 113) % Math.max(80, Math.floor(h * 0.62)));
+      stars.fillStyle(i % 9 === 0 ? 0xffd99c : 0xd9c9b7, i % 9 === 0 ? 0.7 : 0.32);
+      stars.fillCircle(x, y, i % 9 === 0 ? 1.8 : 1);
     }
-    g.fillStyle(fore, 0.8);
-    for (let i = 0; i < level.size.w; i += 220) {
-      const height = 55 + ((i * 13) % 110);
-      g.fillRect(i, baseY - height, 110 + (i % 80), height);
-      g.fillRect(i + 25, baseY - height - 35, 10, 35);
+
+    // Three distinct depth planes replace the repeated triangle/rectangle pattern.
+    const far = this.add.graphics().setDepth(-22);
+    far.fillStyle(Phaser.Display.Color.IntegerToColor(mid).darken(12).color, 0.58);
+    far.beginPath(); far.moveTo(0, horizon);
+    for (let x = 0; x <= w + 240; x += 240) far.lineTo(x, horizon - 100 - ((x * 13) % 170));
+    far.lineTo(w, h); far.lineTo(0, h); far.closePath(); far.fillPath();
+
+    const ruins = this.add.graphics().setDepth(-18);
+    ruins.fillStyle(Phaser.Display.Color.IntegerToColor(fore).darken(24).color, 0.92);
+    for (let i = 0; i < Math.ceil(w / 420); i++) {
+      const x = i * 420 + 70, base = horizon + 34;
+      const towerH = 105 + ((i * 71) % 100);
+      ruins.fillRect(x, base - towerH, 72, towerH);
+      ruins.fillRect(x - 14, base - towerH - 12, 100, 15);
+      ruins.fillRect(x + 18, base - towerH - 48, 10, 38);
+      ruins.fillRect(x + 43, base - towerH - 30, 8, 18);
+      ruins.fillRect(x + 82, base - 76, 128, 76);
+      ruins.fillRect(x + 96, base - 102, 18, 28);
+      ruins.fillRect(x + 180, base - 126, 16, 50);
+      ruins.fillStyle(0x171315, 0.85);
+      ruins.fillRoundedRect(x + 23, base - towerH + 36, 18, 42, 8);
+      ruins.fillStyle(Phaser.Display.Color.IntegerToColor(fore).darken(24).color, 0.92);
     }
-    g.fillStyle(0xffb35c, 0.12);
-    for (let i = 0; i < 55; i++) g.fillCircle((i * 317) % level.size.w, 80 + (i * 83) % 570, 1 + (i % 3));
+
+    // Foreground ridge, broken masonry and a warm light at ground level.
+    const ground = this.add.graphics().setDepth(2);
+    ground.fillStyle(0x171313, 0.42);
+    ground.fillRect(0, horizon + 36, w, h - horizon);
+    ground.fillStyle(fore, 0.92);
+    ground.beginPath(); ground.moveTo(0, horizon + 70);
+    for (let x = 0; x <= w + 160; x += 160) ground.lineTo(x, horizon + 48 + ((x * 7) % 34));
+    ground.lineTo(w, h); ground.lineTo(0, h); ground.closePath(); ground.fillPath();
+    ground.fillStyle(0x171313, 0.48);
+    for (let i = 0; i < Math.ceil(w / 260); i++) {
+      const x = i * 260 + 32;
+      ground.fillRoundedRect(x, horizon + 60, 90, 12, 4);
+      ground.fillRect(x + 18, horizon + 48, 15, 13);
+      ground.fillRect(x + 62, horizon + 43, 12, 18);
+    }
+    ground.fillStyle(0xf2a45e, 0.16);
+    ground.fillEllipse(w * 0.48, horizon + 90, Math.min(520, w * 0.42), 42);
+
     if (level.atmosphere.weather === 'ash' || level.atmosphere.weather === 'embers') {
-      for (let i = 0; i < 38; i++) this.add.circle((i * 191) % level.size.w, 80 + (i * 61) % 620, 1 + i % 2, 0xd7c1a5, 0.35).setDepth(-5);
+      for (let i = 0; i < 52; i++) {
+        const x = (i * 191) % w, y = 70 + (i * 61) % Math.max(100, h - 120);
+        const ember = this.add.circle(x, y, 1 + i % 2, i % 4 === 0 ? 0xffb76d : 0xd7c1a5, 0.32 + (i % 3) * 0.1).setDepth(1);
+        this.tweens.add({ targets: ember, y: y - 28 - (i % 4) * 12, alpha: 0.05, duration: 2600 + (i % 5) * 700, delay: i * 55, repeat: -1, yoyo: true });
+      }
     }
   }
 
