@@ -387,12 +387,14 @@ test('death, deathComplete, respawn restores health and grants i-frames', () => 
   assert.equal(s.c.state, 'walk');
 });
 
-test('kill() from a pit works and respawn partial health', () => {
+test('kill() from a pit works and checkpoint recovery restores the configured partial health', () => {
   const s = new Sim();
   s.c.kill();
   assert.equal(s.c.state, 'dead');
-  s.c.respawn(0.5);
-  assert.equal(s.c.stats.health, 50);
+  s.c.respawn(0.65);
+  assert.equal(s.c.stats.health, 65);
+  assert.equal(s.c.state, 'idle');
+  assert.equal(s.c.isInvulnerable, true);
 });
 
 test('skills: mana cost, cooldown, failure events, hitbox payload', () => {
