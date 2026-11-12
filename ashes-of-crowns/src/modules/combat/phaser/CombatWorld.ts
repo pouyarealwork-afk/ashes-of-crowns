@@ -79,6 +79,9 @@ export class CombatWorld {
   private hazards: NonNullable<CombatWorldOptions['hazards']> = [];
   private hazardCooldowns = new Map<number, number>();
   private colliders: Phaser.Physics.Arcade.Collider[] = [];
+  private comboLabel?: Phaser.GameObjects.Text;
+  private comboHideTween?: Phaser.Tweens.Tween;
+  private telegraphViews = new Set<Phaser.GameObjects.GameObject>();
 
   constructor(options: CombatWorldOptions) {
     this.scene = options.scene; this.player = options.player; this.rpg = options.rpg;
@@ -87,6 +90,7 @@ export class CombatWorld {
     this.engine = new CombatEngine({ emitter: this.bus, rpg: options.rpg, region: options.region });
     this.projectiles = options.scene.physics.add.group({ allowGravity: false, immovable: false });
     this.createTextures();
+    this.createCombatFeedback();
     this.hazards = options.hazards ?? [];
     if (options.ground) this.addGround(options.ground);
     if (options.spawns?.length) this.spawnFromWorld(options.spawns, options.level ?? 1, options.region);
@@ -236,6 +240,9 @@ export class CombatWorld {
     this.colliders.forEach(c => c.destroy()); this.colliders = [];
     for (const sprite of this.sprites.values()) sprite.destroy();
     this.sprites.clear(); this.projectiles.destroy(true);
+    this.comboHideTween?.stop(); this.comboLabel?.destroy();
+    for (const view of this.telegraphViews) view.destroy();
+    this.telegraphViews.clear();
     this.engine.clear();
   }
 
@@ -251,12 +258,65 @@ export class CombatWorld {
     on('player:attackEnd', () => { this.activeAttack = null; this.activeAttackToken = ''; });
     on('player:death', () => this.bus.emit('player:died', {}));
     on('combat:enemy-hit', (payload: any) => this.playEnemyHitFeedback(payload));
+    on('combat:combo', (payload: { count: number; multiplier: number }) => this.showCombo(payload));
+    on('combat:telegraph', (payload: { enemyId: string; attack: string; durationMs: number }) => this.showEnemyTelegraph(payload));
     on('world:companion-assist-actions', (actions: any[]) => {
       const view = { x: this.player.x, y: this.player.y, health: this.player.stats.health, maxHealth: this.player.stats.config.maxHealth, facing: this.player.facing };
       for (const action of actions ?? []) this.engine.receiveAssist(action, view);
     });
     on('combat:ability-request', (payload: { abilityId: string }) => { if (payload?.abilityId) this.useAbility(payload.abilityId); });
     on('combat:region-changed', (payload: { region: string }) => { if (payload?.region) this.engine.setRegion(payload.region); });
+  }
+
+  /** One reusable HUD label keeps combo feedback readable without DOM churn. */
+  private createCombatFeedback(): void {
+    const camera = this.scene.cameras.main;
+    this.comboLabel = this.scene.add.text(camera.width / 2, 92, '', {
+      fontFamily: 'monospace', fontSize: '22px', fontStyle: 'bold',
+      color: '#ffe0a0', stroke: '#21140d', strokeThickness: 5,
+      shadow: { color: '#000000', blur: 0, fill: true, offsetX: 3, offsetY: 3 },
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1000).setAlpha(0);
+  }
+
+  private showCombo(payload: { count: number; multiplier: number }): void {
+    if (!this.comboLabel || payload.count < 2) return;
+    const camera = this.scene.cameras.main;
+    this.comboHideTween?.stop();
+    this.comboLabel.setPosition(camera.width / 2, 92)
+      .setText(`${payload.count} HIT COMBO  ·  ×${payload.multiplier.toFixed(1)}`)
+      .setAlpha(1).setScale(1.18);
+    this.scene.tweens.add({ targets: this.comboLabel, scale: 1, duration: 150, ease: 'Back.Out' });
+    this.comboHideTween = this.scene.tweens.add({
+      targets: this.comboLabel, alpha: 0, delay: 1250, duration: 260, ease: 'Quad.In',
+    });
+  }
+
+  /** Telegraphs are deliberately large, directional and time-limited so attacks can be read on phones. */
+  private showEnemyTelegraph(payload: { enemyId: string; attack: string; durationMs: number }): void {
+    const enemy = this.engine.getEnemy(payload.enemyId);
+    const sprite = this.sprites.get(payload.enemyId);
+    if (!enemy || !sprite?.active) return;
+    const boss = enemy.tier === 'boss';
+    const width = boss ? 190 : enemy.ai === 'ranged' ? 100 : 72;
+    const marker = this.scene.add.container(sprite.x, sprite.y - 12).setDepth(30);
+    const art = this.scene.add.graphics();
+    art.fillStyle(boss ? 0xff3f4f : 0xff9b42, boss ? 0.2 : 0.16);
+    art.fillEllipse(0, 8, width, boss ? 30 : 20);
+    art.lineStyle(boss ? 4 : 2, boss ? 0xff5969 : 0xffc16a, 0.95);
+    art.strokeEllipse(0, 8, width, boss ? 30 : 20);
+    art.fillStyle(boss ? 0xff5969 : 0xffd28a, 0.95);
+    const direction = enemy.facing;
+    art.fillTriangle(direction * 16, -8, direction * (boss ? 48 : 30), -8, direction * 32, -34);
+    const label = this.scene.add.text(0, boss ? -60 : -48, boss ? 'BOSS ATTACK' : '!', {
+      fontFamily: 'monospace', fontSize: boss ? '13px' : '20px', fontStyle: 'bold',
+      color: boss ? '#ff9a9f' : '#ffd08b', stroke: '#180d0d', strokeThickness: 4,
+    }).setOrigin(0.5);
+    marker.add([art, label]);
+    this.telegraphViews.add(marker);
+    this.scene.tweens.add({
+      targets: marker, alpha: 0, scaleX: 1.08, duration: Math.max(260, payload.durationMs),
+      ease: 'Quad.In', onComplete: () => { this.telegraphViews.delete(marker); marker.destroy(); },
+    });
   }
 
   /** Hit-stop style visual punctuation: enemy recoil, impact sparks and a brief shock ring. */
@@ -349,27 +409,68 @@ export class CombatWorld {
 
   private performEnemyAttack(enemy: EnemyState, damage: number, ranged: boolean): void {
     if (!enemy.alive || this.player.playerState === 'dead') return;
-    if (enemy.tier === 'boss' && enemy.bossId && enemy.bossPhase) this.bus.emit('combat:boss-pattern', { bossId: enemy.bossId, phase: enemy.bossPhase, pattern: enemy.bossPhase === 3 ? 'desperation volley' : enemy.bossPhase === 2 ? 'heavy assault' : 'guarded opening' });
-    if (ranged || (enemy.tier === 'boss' && enemy.bossPhase === 3)) {
-      if (enemy.tier === 'boss' && enemy.bossPhase === 3) { this.fireProjectile(enemy, damage); this.scene.time.delayedCall(120, () => this.fireProjectile(enemy, damage * 0.75)); this.scene.time.delayedCall(240, () => this.fireProjectile(enemy, damage * 0.75)); }
-      else this.fireProjectile(enemy, damage); return;
+    const boss = enemy.tier === 'boss';
+    const phase = enemy.bossPhase ?? 1;
+    if (boss && enemy.bossId) {
+      const pattern = phase === 3 ? 'Fan volley' : phase === 2 ? 'Ground shockwave' : 'Wide cleave';
+      this.bus.emit('combat:boss-pattern', { bossId: enemy.bossId, phase, pattern });
+      if (phase === 1) {
+        this.playBossCleave(enemy);
+        const dx = this.player.x - enemy.x;
+        const facing = enemy.facing;
+        if (Math.abs(dx) <= 168 && Math.sign(dx || facing) === facing && Math.abs(this.player.y - enemy.y) <= 112) {
+          this.applyIncomingHit(enemy.id, damage, (dx >= 0 ? 1 : -1), 300, false);
+        }
+        return;
+      }
+      if (phase === 2) {
+        this.playBossShockwave(enemy);
+        if (Math.hypot(this.player.x - enemy.x, (this.player.y - enemy.y) * 0.7) <= 190) {
+          this.applyIncomingHit(enemy.id, damage * 1.2, this.player.x >= enemy.x ? 1 : -1, 340, false);
+        }
+        return;
+      }
+      // Final phase: a clearly telegraphed three-lane projectile fan.
+      [-0.28, 0, 0.28].forEach((angle, i) => this.scene.time.delayedCall(i * 75, () => {
+        if (enemy.alive && !this.disposed) this.fireProjectile(enemy, damage * (i === 1 ? 1 : 0.78), angle);
+      }));
+      return;
     }
-    const range = enemy.tier === 'boss' ? 118 : 62;
+    if (ranged) { this.fireProjectile(enemy, damage); return; }
+    const range = 62;
     if (Math.abs(this.player.x - enemy.x) > range || Math.abs(this.player.y - enemy.y) > 90) return;
     const dir = this.player.x >= enemy.x ? 1 : -1;
-    this.applyIncomingHit(enemy.id, damage, dir as 1 | -1, enemy.tier === 'boss' ? 280 : 150, enemy.tier === 'boss' && enemy.bossPhase === 3);
+    this.applyIncomingHit(enemy.id, damage, dir as 1 | -1, 150, false);
   }
 
-  private fireProjectile(enemy: EnemyState, damage: number): void {
-    const dir = this.player.x >= enemy.x ? 1 : -1;
+  private playBossCleave(enemy: EnemyState): void {
+    const x = enemy.x + enemy.facing * 78, y = enemy.y - 48;
+    const arc = this.scene.add.ellipse(x, y, 176, 78, 0xff6b4d, 0.2)
+      .setStrokeStyle(5, 0xffb27a, 0.95).setDepth(24).setRotation(enemy.facing * -0.12);
+    this.scene.tweens.add({ targets: arc, scaleX: 1.22, alpha: 0, duration: 330, ease: 'Cubic.Out', onComplete: () => arc.destroy() });
+    this.scene.cameras.main.shake(90, 0.0018);
+  }
+
+  private playBossShockwave(enemy: EnemyState): void {
+    const ring = this.scene.add.ellipse(enemy.x, enemy.y - 8, 34, 12, 0xff704f, 0.16)
+      .setStrokeStyle(5, 0xffa16b, 0.95).setDepth(23);
+    this.scene.tweens.add({ targets: ring, scaleX: 11, scaleY: 2.8, alpha: 0, duration: 520, ease: 'Cubic.Out', onComplete: () => ring.destroy() });
+    this.scene.cameras.main.shake(140, 0.003);
+  }
+
+  private fireProjectile(enemy: EnemyState, damage: number, angleOffset = 0): void {
+    const dx = this.player.x - enemy.x, dy = (this.player.y - 28) - (enemy.y - 28);
+    const angle = Math.atan2(dy, dx) + angleOffset;
+    const dir = Math.cos(angle) >= 0 ? 1 : -1;
     const projectile = this.scene.physics.add.image(enemy.x, enemy.y - 28, `${this.texturePrefix}-projectile`);
-    projectile.setDepth(12).setTint(0xffc27a);
+    projectile.setDepth(12).setTint(enemy.tier === 'boss' ? 0xff6f72 : 0xffc27a);
     const body = projectile.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false); body.setVelocity(dir * (enemy.tier === 'boss' ? 300 : 235), 0);
+    const speed = enemy.tier === 'boss' ? 330 : 235;
+    body.setAllowGravity(false); body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
     this.projectiles.add(projectile);
     const collider = this.scene.physics.add.overlap(projectile, this.player as unknown as Phaser.Physics.Arcade.Sprite, () => {
       if (!projectile.active) return;
-      this.applyIncomingHit(enemy.id, damage, dir as 1 | -1, 95, false);
+      this.applyIncomingHit(enemy.id, damage, dir as 1 | -1, 110, false);
       projectile.destroy();
     });
     projectile.once(Phaser.GameObjects.Events.DESTROY, () => collider.destroy());
