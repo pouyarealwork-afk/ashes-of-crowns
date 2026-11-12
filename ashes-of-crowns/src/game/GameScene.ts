@@ -339,8 +339,27 @@ export class GameScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     for (const [x, y, w, h, kind] of level.platforms) {
       const block = this.platforms.create(x + w / 2, y + h / 2, 'aoc-pixel') as Phaser.Physics.Arcade.Image;
-      block.setDisplaySize(w, h).setTint(this.platformColor(kind ?? 'ground')).refreshBody();
+      block.setDisplaySize(w, h).setTint(this.platformColor(kind ?? 'ground')).setDepth(4).refreshBody();
       if (kind === 'oneway' && block.body) { block.body.checkCollision.down = false; block.body.checkCollision.left = false; block.body.checkCollision.right = false; }
+      const detail = this.add.graphics().setDepth(5);
+      const material = String(kind ?? 'ground');
+      const edge = material === 'ice' ? 0xc9f0ff : material === 'wood' ? 0xb8875a : material === 'sand' ? 0xc49a63 : material === 'vine' ? 0x8ba66b : 0x9b8a78;
+      detail.fillStyle(0x090808, 0.24); detail.fillRect(x, y + h - 5, w, 5);
+      detail.fillStyle(edge, 0.62); detail.fillRect(x + 2, y + 1, Math.max(0, w - 4), Math.min(4, h));
+      detail.lineStyle(1, 0x171311, 0.36);
+      for (let seam = 1; seam < Math.floor(w / 78); seam++) {
+        const sx = x + seam * 78 + ((seam * 17) % 13);
+        detail.lineBetween(sx, y + 6, sx + 2, y + h - 4);
+        detail.lineStyle(1, edge, 0.22); detail.lineBetween(sx + 2, y + 7, sx + 2, y + h - 5); detail.lineStyle(1, 0x171311, 0.36);
+      }
+      if (material === 'ice') {
+        detail.fillStyle(0xe0f7ff, 0.38); detail.fillTriangle(x + w * 0.18, y + 2, x + w * 0.24, y + 2, x + w * 0.21, y + Math.min(18, h - 1));
+        detail.fillTriangle(x + w * 0.72, y + 2, x + w * 0.78, y + 2, x + w * 0.75, y + Math.min(13, h - 1));
+      } else if (material === 'vine') {
+        detail.lineStyle(2, 0x7d9b54, 0.8); detail.lineBetween(x + 12, y + 4, x + 28, y - 2); detail.lineBetween(x + 28, y - 2, x + 42, y + 4);
+      } else if (material === 'wood') {
+        detail.lineStyle(1, 0x2e1c13, 0.55); detail.lineBetween(x + 8, y + h * 0.35, x + w - 8, y + h * 0.35); detail.lineBetween(x + 8, y + h * 0.72, x + w - 8, y + h * 0.72);
+      }
       this.add.rectangle(x + w / 2, y + h / 2 - h / 2 + 3, w, 5, 0x000000, 0.18).setDepth(3);
     }
     this.drawHazards(level);
@@ -568,9 +587,21 @@ export class GameScene extends Phaser.Scene {
   private drawHazards(level: LevelDef): void {
     for (const h of level.hazards) {
       const g = this.add.graphics().setDepth(5);
-      g.fillStyle(h.type.includes('ice') || h.type.includes('avalanche') ? 0x9bd7e8 : 0xe65b2f, 0.5);
-      g.fillRoundedRect(h.rect.x, h.rect.y, h.rect.w, h.rect.h, 5);
-      g.lineStyle(2, 0xffbd78, 0.55).strokeRoundedRect(h.rect.x, h.rect.y, h.rect.w, h.rect.h, 5);
+      const cold = h.type.includes('ice') || h.type.includes('avalanche') || h.type.includes('frost');
+      const tint = cold ? 0x9bd7e8 : h.type.includes('void') || h.type.includes('hush') ? 0x9c78d4 : 0xe65b2f;
+      g.fillStyle(tint, 0.12); g.fillRoundedRect(h.rect.x - 5, h.rect.y - 5, h.rect.w + 10, h.rect.h + 10, 8);
+      g.fillStyle(tint, 0.42); g.fillRoundedRect(h.rect.x, h.rect.y, h.rect.w, h.rect.h, 5);
+      g.lineStyle(2, cold ? 0xdaf7ff : 0xffbd78, 0.72).strokeRoundedRect(h.rect.x, h.rect.y, h.rect.w, h.rect.h, 5);
+      g.lineStyle(1, 0xffffff, 0.22);
+      for (let k = 1; k < Math.max(2, Math.floor(h.rect.w / 24)); k++) {
+        const px = h.rect.x + k * h.rect.w / Math.max(2, Math.floor(h.rect.w / 24));
+        g.lineBetween(px, h.rect.y + 3, px + (cold ? 5 : -4), h.rect.y + h.rect.h - 3);
+      }
+      for (let k = 0; k < Math.min(8, Math.ceil(h.rect.w / 22)); k++) {
+        const px = h.rect.x + 8 + k * 22;
+        const mote = this.add.circle(px, h.rect.y + h.rect.h / 2, cold ? 2 : 2.5, cold ? 0xdaf7ff : 0xffc07a, 0.7).setDepth(6);
+        this.tweens.add({ targets: mote, y: mote.y - (cold ? 8 : 15), alpha: 0.12, duration: 850 + k * 95, yoyo: true, repeat: -1 });
+      }
     }
   }
 
