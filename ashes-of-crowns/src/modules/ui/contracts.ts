@@ -302,7 +302,7 @@ export interface UISettings {
 export type InputAction = 'attack' | 'jump' | 'dodge' | 'interact' | 'skill1' | 'skill2' | 'skill3' | 'heavy' | 'block';
 
 export interface UIEvents {
-  'game:new': { slot: number };
+  'game:new': { slot: number; classId?: 'warrior' | 'assassin' | 'mage' };
   'game:continue': { slot: number };
   'game:load': { slot: number };
   /** Emitted when the first blocking overlay opens during gameplay. */

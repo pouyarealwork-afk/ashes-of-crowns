@@ -87,9 +87,9 @@ export const ashenVillage: RegionContent = {
 
   dialogues: [
     CUT('d_opening', 'a', {
-      a: N('narrator', 'Ash on the tongue. A cold hearthstone beneath your cheek. The village you once paid to rebuild is ruins.', { next: 'b' }),
-      b: N('aren', 'Three days since the trial. They took the manor, the name, the sword. Darken stood there and said "guilty" like he was reading a grocery list.', { mood: 'grim', next: 'c' }),
-      c: N('aren', 'Then I start where everything began. The forge.', { effects: [fl('opening_seen')] }),
+      a: N('narrator', 'خاکستر بر زبانت نشسته و سنگ سرد اجاق زیر گونه‌ات است. روستایی که روزی برای بازسازی‌اش هزینه کردی، اکنون به ویرانه‌ای بدل شده است.', { next: 'b' }),
+      b: N('aren', 'سه روز از محاکمه گذشته است. عمارت، نام و شمشیرت را گرفتند. دارکن آنجا ایستاد و کلمهٔ «مجرم» را چنان بر زبان آورد که انگار فهرست خرید می‌خواند.', { mood: 'grim', next: 'c' }),
+      c: N('aren', 'پس از همان‌جا آغاز می‌کنم که همه‌چیز شروع شد؛ از آهنگری.', { effects: [fl('opening_seen')] }),
     }),
     CUT('d_hobb_pre', 'a', {
       a: N('hobb', 'Valcrest! Sergeant Hobb, Crown Reclamation. There\'s forty silver on your head and eleven villagers who\'ll hang if you run.', { mood: 'cruel', next: 'b' }),

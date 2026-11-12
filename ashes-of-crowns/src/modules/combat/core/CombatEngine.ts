@@ -133,7 +133,15 @@ export class CombatEngine {
     }
     const results: CombatDamageResult[] = [];
     for (const enemy of this.getAlive()) {
-      if (hitIds.has(enemy.id) || !intersects(hitbox, enemyRect(enemy))) continue;
+      if (hitIds.has(enemy.id)) continue;
+      // Use the precise animated hitbox first, then a forgiving melee reach check.
+      // This protects mobile attacks from small sprite/body alignment differences.
+      const hitByBox = intersects(hitbox, enemyRect(enemy));
+      const dx = enemy.x - player.x;
+      const dy = Math.abs(enemy.y - player.y);
+      const inMeleeReach = Math.abs(dx) <= (attack.kind === 'heavy' ? 158 : 132)
+        && dy <= 112 && (Math.sign(dx) === player.facing || Math.abs(dx) < 42);
+      if (!hitByBox && !inMeleeReach) continue;
       hitIds.add(enemy.id);
       const behind = player.x < enemy.x ? enemy.facing === 1 : enemy.facing === -1;
       const comboMultiplier = 1 + Math.min(0.5, Math.floor((this.combo + 1) / 5) * 0.1);

@@ -109,7 +109,7 @@ export class CombatWorld {
     const sprite = this.scene.physics.add.sprite(x, y, this.textureKey(type));
     sprite.setDepth(9).setOrigin(0.5, 1).setScale(archetype.scale ?? (enemy.elite ? 1.16 : 1));
     const body = sprite.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false); body.setImmovable(false); body.setSize(archetype.hitbox.width, archetype.hitbox.height);
+    body.setAllowGravity(enemy.ai !== 'flying'); body.setImmovable(false); body.setCollideWorldBounds(true); body.setSize(archetype.hitbox.width, archetype.hitbox.height);
     body.setOffset((sprite.width - archetype.hitbox.width) / 2, sprite.height - archetype.hitbox.height);
     sprite.setData('combatEnemyId', enemy.id);
     this.sprites.set(enemy.id, sprite);
@@ -143,8 +143,14 @@ export class CombatWorld {
       body.setVelocityX(enemy.vx);
       if (enemy.ai === 'flying') body.setVelocityY(Math.sin(_time / 420 + enemy.x) * 18);
       sprite.setFlipX(enemy.facing < 0);
-      if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff); else sprite.clearTint();
-      if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
+      if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff);
+      else if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
+      else if (enemy.windupRemainingMs > 0) sprite.setTint(0xffb45c);
+      else sprite.clearTint();
+      if (enemy.windupRemainingMs > 0) {
+        const pulse = 1 + Math.sin(_time / 48) * 0.045;
+        sprite.setScale((getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1) * pulse);
+      } else sprite.setScale((getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1));
     }
     this.checkHazards();
     if (this.scene.time.now >= this.nextAssistAt && this.engine.getAlive().length) {
@@ -213,7 +219,7 @@ export class CombatWorld {
     this.player.applyStats({
       maxHealth: stats.health, attack: stats.attack, defense: stats.defense, speed: stats.speed,
       maxMana: stats.mana, maxStamina: stats.stamina,
-      manaRegen: passives.manaRegen, staminaRegen: passives.staminaRegen,
+      manaRegen: Math.max(2, passives.manaRegen ?? 0), staminaRegen: Math.max(22, passives.staminaRegen ?? 0),
     }, refill);
     this.syncPlayerSkills();
   }
@@ -305,18 +311,72 @@ export class CombatWorld {
     const types = ['ash_wolf','crown_soldier','thornling','rook_bandit','sand_scorpion','dune_raider','glass_serpent','sand_wraith','frost_wolf','ice_wraith','crown_scout','ironwatch_guard','crossbow_sentry','hushed_guard','hollow_shade','royal_champion','cellar_rat_swarm','sickened_stag','sergeant_hobb','thornwarden','sandglass_colossus','captain_voss','hush_mother_vesk','chancellor_morrow'];
     const colors = [0x9b7561,0x9dabb8,0x65945d,0x8e7657,0xb78b49,0xa97943,0x6eabb0,0xc6b98e,0x8ab5c8,0x9bd8e5,0x8e9c9e,0x737b83,0x9c8a73,0x777b91,0x77718f,0xb99b65,0x82766b,0x786e60,0x965d4d,0x6c8b4d,0xb39b62,0x7898b4,0x8070a8,0x9b6574];
     types.forEach((type, i) => {
-      const key = this.textureKey(type); if (this.scene.textures.exists(key)) return;
-      const boss = i >= 18; const w = boss ? 96 : 48; const h = boss ? 96 : 48;
+      const key = this.textureKey(type);
+      if (this.scene.textures.exists(key)) return;
+      const boss = i >= 18;
+      const w = boss ? 96 : 56;
+      const h = boss ? 112 : 68;
+      const color = colors[i];
+      const dark = Phaser.Display.Color.IntegerToColor(color).darken(42).color;
+      const light = Phaser.Display.Color.IntegerToColor(color).brighten(28).color;
       const g = this.scene.add.graphics({ x: 0, y: 0 });
-      g.fillStyle(colors[i], 1); g.fillRoundedRect(w * 0.2, h * 0.14, w * 0.6, h * 0.78, boss ? 18 : 10);
-      g.fillStyle(0x20202a, 1); g.fillCircle(w * 0.38, h * 0.36, boss ? 5 : 3); g.fillCircle(w * 0.62, h * 0.36, boss ? 5 : 3);
-      g.fillStyle(0xd9c7a1, 0.8); g.fillRect(w * 0.38, h * 0.72, w * 0.24, h * 0.06);
-      if (boss) { g.lineStyle(5, 0xd6b56e, 1); g.strokeRoundedRect(w * 0.12, h * 0.08, w * 0.76, h * 0.86, 20); }
-      g.generateTexture(key, w, h); g.destroy();
+      const cx = w / 2;
+      // Ground shadow and a readable, full-body silhouette.
+      g.fillStyle(0x080707, 0.38); g.fillEllipse(cx, h - 4, w * 0.66, 9);
+      // Cloak / rear silhouette; varies by creature family.
+      if (type.includes('wolf') || type.includes('stag') || type.includes('serpent') || type.includes('scorpion')) {
+        g.fillStyle(dark, 1);
+        g.fillTriangle(cx - 12, h * 0.42, cx - 25, h * 0.75, cx - 5, h * 0.68);
+        g.fillTriangle(cx + 12, h * 0.42, cx + 25, h * 0.75, cx + 5, h * 0.68);
+      } else {
+        g.fillStyle(dark, 1);
+        g.fillTriangle(cx - w * 0.22, h * 0.38, cx - w * 0.31, h * 0.88, cx + w * 0.12, h * 0.78);
+      }
+      // Legs and boots.
+      g.fillStyle(0x29242a, 1);
+      g.fillRoundedRect(cx - (boss ? 17 : 10), h * 0.69, boss ? 13 : 9, h * 0.25, 3);
+      g.fillRoundedRect(cx + (boss ? 4 : 2), h * 0.69, boss ? 13 : 9, h * 0.25, 3);
+      g.fillStyle(0x8b684d, 1);
+      g.fillRoundedRect(cx - (boss ? 19 : 12), h * 0.89, boss ? 17 : 12, 6, 2);
+      g.fillRoundedRect(cx + (boss ? 2 : 0), h * 0.89, boss ? 17 : 12, 6, 2);
+      // Torso armor with a bright edge and central plate.
+      g.fillStyle(dark, 1); g.fillRoundedRect(cx - w * 0.24, h * 0.31, w * 0.48, h * 0.43, boss ? 12 : 7);
+      g.fillStyle(color, 1); g.fillRoundedRect(cx - w * 0.19, h * 0.3, w * 0.38, h * 0.4, boss ? 10 : 6);
+      g.fillStyle(light, 0.9); g.fillTriangle(cx, h * 0.34, cx - w * 0.1, h * 0.62, cx + w * 0.1, h * 0.62);
+      // Head, helmet/horns, and unmistakable eyes.
+      const headR = boss ? 17 : 11;
+      const headY = h * 0.22;
+      g.fillStyle(0x211c20, 1); g.fillCircle(cx, headY, headR + 3);
+      g.fillStyle(light, 1); g.fillCircle(cx, headY, headR);
+      g.fillStyle(dark, 1); g.fillRoundedRect(cx - headR * 0.82, headY - 2, headR * 1.64, headR * 0.9, 4);
+      g.fillStyle(0xffd78a, 1);
+      g.fillCircle(cx - headR * 0.38, headY + 1, boss ? 3.2 : 2.2);
+      g.fillCircle(cx + headR * 0.38, headY + 1, boss ? 3.2 : 2.2);
+      if (boss || type.includes('soldier') || type.includes('guard') || type.includes('champion') || type.includes('hobb') || type.includes('voss') || type.includes('morrow')) {
+        g.lineStyle(boss ? 4 : 2.5, 0xd9bd80, 1);
+        g.strokeRoundedRect(cx - headR - 4, headY - headR * 0.72, headR * 2 + 8, headR * 1.2, 5);
+        g.lineBetween(cx - headR * 0.7, headY - headR, cx - headR * 1.25, headY - headR * 1.75);
+        g.lineBetween(cx + headR * 0.7, headY - headR, cx + headR * 1.25, headY - headR * 1.75);
+      }
+      // A visible weapon or claw makes the enemy's attack direction readable.
+      g.lineStyle(boss ? 5 : 3, 0x332b2a, 1);
+      g.lineBetween(cx + w * 0.19, h * 0.48, cx + w * 0.38, h * 0.78);
+      g.lineStyle(boss ? 4 : 2, 0xe2c78c, 1);
+      g.lineBetween(cx + w * 0.38, h * 0.78, cx + w * 0.43, h * 0.88);
+      if (boss) {
+        g.lineStyle(3, 0xd6b56e, 0.95);
+        g.strokeRoundedRect(3, 3, w - 6, h - 7, 17);
+      }
+      g.generateTexture(key, w, h);
+      g.destroy();
     });
     const projectileKey = `${this.texturePrefix}-projectile`;
     if (!this.scene.textures.exists(projectileKey)) {
-      const g = this.scene.add.graphics({ x: 0, y: 0 }); g.fillStyle(0xffc27a, 1); g.fillCircle(8, 8, 7); g.generateTexture(projectileKey, 16, 16); g.destroy();
+      const g = this.scene.add.graphics({ x: 0, y: 0 });
+      g.fillStyle(0x6b2d28, 0.45); g.fillCircle(8, 8, 8);
+      g.fillStyle(0xffd18a, 1); g.fillCircle(8, 8, 5);
+      g.fillStyle(0xffffff, 0.9); g.fillCircle(6, 6, 2);
+      g.generateTexture(projectileKey, 16, 16); g.destroy();
     }
   }
 }

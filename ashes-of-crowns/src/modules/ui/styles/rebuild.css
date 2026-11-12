@@ -1,0 +1,97 @@
+/*
+ * ASHES OF CROWNS — rebuild-v2 viewport contract.
+ * The Phaser canvas and every DOM overlay share one centered 16:9 stage.
+ * This prevents HUD/touch controls from drifting into the letterbox margins
+ * on ultra-wide Android landscape screens.
+ */
+:root, html, body, #app, #game-root {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+#app, #game-root { position: fixed; inset: 0; background: #100d0d; }
+#game-root { display: grid; place-items: center; }
+#game-root canvas {
+  display: block;
+  width: min(100vw, 177.7778dvh) !important;
+  height: min(56.25vw, 100dvh) !important;
+  max-width: 100vw;
+  max-height: 100dvh;
+  touch-action: none;
+}
+.aoc-ui {
+  position: fixed;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: min(100vw, 177.7778dvh);
+  height: min(56.25vw, 100dvh);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  contain: layout paint;
+}
+html.aoc-portrait-mode .aoc-ui { visibility: hidden; }
+
+/* Landscape game menus use a compact two-column composition. */
+.aoc-ui .menu__content {
+  width: min(100%, 900px);
+  max-height: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vw, 52px);
+  padding: 18px clamp(18px, 3vw, 42px);
+}
+.aoc-ui .menu__title, .aoc-ui .menu__buttons { flex: 1 1 0; min-width: 0; }
+.aoc-ui .menu__buttons { gap: clamp(6px, 1.4vh, 12px); }
+.aoc-ui .menu__buttons .btn--big { min-height: clamp(46px, 10vh, 64px); }
+.aoc-ui .menu__corner { z-index: 5; }
+
+/* Keep the HUD inside the same stage as the canvas. */
+.aoc-ui .hud { gap: clamp(4px, 1vh, 8px); padding: max(8px, var(--sa-t)) max(10px, var(--sa-r)) 0 max(10px, var(--sa-l)); }
+.aoc-ui .hud__vitals { width: min(34vw, 300px); }
+.aoc-ui .hud__boss { width: min(48vw, 620px); }
+.aoc-ui .hud__objectives { width: min(30vw, 250px); }
+
+/* Touch controls scale with stage height, not the physical phone width. */
+.aoc-ui .touch { padding: 0 max(12px, var(--sa-r)) max(10px, var(--sa-b)) max(12px, var(--sa-l)); }
+.aoc-ui .stick { width: clamp(88px, 21vh, 132px); height: clamp(88px, 21vh, 132px); }
+.aoc-ui .touch__right { gap: clamp(4px, 1vh, 9px); }
+.aoc-ui .touch__cluster { width: clamp(150px, 34vh, 205px); height: clamp(132px, 31vh, 184px); }
+.aoc-ui .abtn--attack { width: clamp(68px, 17vh, 94px); height: clamp(68px, 17vh, 94px); }
+.aoc-ui .abtn--jump { width: clamp(48px, 12vh, 66px); height: clamp(48px, 12vh, 66px); inset-block-end: clamp(78px, 20vh, 106px); }
+.aoc-ui .abtn--dodge { width: clamp(48px, 12vh, 64px); height: clamp(48px, 12vh, 64px); inset-inline-end: clamp(78px, 20vh, 106px); }
+.aoc-ui .abtn--interact { width: clamp(42px, 10vh, 56px); height: clamp(42px, 10vh, 56px); inset-inline-end: clamp(86px, 22vh, 116px); inset-block-end: clamp(66px, 17vh, 90px); }
+.aoc-ui .abtn--skill, .aoc-ui .abtn--heavy, .aoc-ui .abtn--block { width: clamp(42px, 10vh, 54px); height: clamp(42px, 10vh, 54px); }
+.aoc-ui .touch__skills { gap: clamp(4px, 1vh, 8px); }
+
+/* Utility actions no longer sit on top of the vitals panel. */
+.aoc-ui .aoc-utility-controls {
+  top: auto;
+  right: auto;
+  left: max(12px, var(--sa-l));
+  bottom: clamp(132px, 29vh, 178px);
+  gap: 6px;
+}
+.aoc-ui .aoc-utility-controls .aoc-extra-control {
+  min-width: 58px;
+  min-height: 34px;
+  padding-inline: 9px;
+  font-size: 10px;
+}
+
+/* Short landscape screens: reduce secondary information before controls collide. */
+@media (max-height: 430px) {
+  .aoc-ui .hud__obj-text, .aoc-ui .hud__obj-head { display: none; }
+  .aoc-ui .hud__objectives { padding: 4px 7px; max-height: 18vh; }
+  .aoc-ui .hud__vitals { padding: 5px 7px; }
+  .aoc-ui .menu__content { gap: 14px; padding-block: 8px; }
+  .aoc-ui .menu__crest { width: 34px; height: 34px; }
+  .aoc-ui .logo { font-size: clamp(1.35rem, 5vh, 2rem); }
+}
+@media (orientation: portrait) {
+  #game-root canvas, .aoc-ui { visibility: hidden; }
+}

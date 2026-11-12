@@ -26,6 +26,7 @@ export class GameScene extends Phaser.Scene {
   combat!: CombatWorld;
   currentRegion: RegionId = 'ashen_village';
   currentLevelId = 'ashen_village_main';
+  private currentClass: 'warrior' | 'assassin' | 'mage' = 'warrior';
   trackedQuest: string | null = null;
 
   private inputBridge = new InputBridge();
@@ -136,7 +137,7 @@ export class GameScene extends Phaser.Scene {
       removeItem: (key: string) => { try { localStorage.removeItem(key); } catch { /* ignored */ } },
     };
     this.ui = createUI({ parent: document.getElementById('app') ?? document.body, backend: createUIBackend(this), storage, autoFlow: false, showMenu: true, handleBackKey: true });
-    this.ui.on('game:new', ({ slot }) => this.startNewGame(slot));
+    this.ui.on('game:new', ({ slot, classId }) => this.startNewGame(slot, classId));
     this.ui.on('game:continue', ({ slot }) => void this.loadSlot(`slot${slot}`));
     this.ui.on('game:load', ({ slot }) => void this.loadSlot(`slot${slot}`));
     this.ui.on('game:pause', () => { if (this.started && this.scene.isActive()) this.scene.pause(); this.aren?.lockInput(true); });
@@ -235,13 +236,15 @@ export class GameScene extends Phaser.Scene {
     on('persistence:degraded', () => this.ui?.toast({ text: 'Storage unavailable: saves will last only for this session.', kind: 'warning' }));
   }
 
-  private startNewGame(slot = 1): void {
+  private startNewGame(slot = 1, classId: 'warrior' | 'assassin' | 'mage' = 'warrior'): void {
+    this.currentClass = classId;
     this.activeSaveSlot = `slot${slot}`;
     this.services.rpg.newGame(); this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
     this.started = true;
     this.startLevel(this.currentLevelId, 'start');
-    this.ui.enterGame(); this.ui.toast({ text: 'The road begins in the ashes of home.', kind: 'info' });
+    this.cameras.main.fadeIn(1250, 7, 5, 7);
+    this.ui.enterGame(); this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
     void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
   }
 
@@ -281,6 +284,8 @@ export class GameScene extends Phaser.Scene {
     this.playtimeMs = Number(state?.progress?.playtimeMs ?? 0);
     this.trackedQuest = typeof flags.__trackedQuest === 'string' && flags.__trackedQuest ? flags.__trackedQuest : null;
     this.currentRegion = (state.currentRegion || 'ashen_village') as RegionId;
+    const savedClass = flags.__class;
+    this.currentClass = savedClass === 'assassin' || savedClass === 'mage' ? savedClass : 'warrior';
     const fallbackLevel = this.services.world.content.regions.get(this.currentRegion)?.entryLevel || 'ashen_village_main';
     const requestedLevel = String(flags.__level || fallbackLevel);
     this.currentLevelId = this.services.world.getLevel(requestedLevel) ? requestedLevel : fallbackLevel;
@@ -302,7 +307,7 @@ export class GameScene extends Phaser.Scene {
       quests, decisions: { __world: worldData, __rpg: rpgData }, narrative: this.services.world.getHiddenVariables(), relationships: Object.fromEntries(['tamsin', 'kael', 'lyra', 'brom'].map(id => [id, this.services.world.getRelationship(id)])),
       difficulty: 'normal', currentRegion: this.currentRegion,
       unlockedSkins: this.services.rpg.serialize().skinsUnlocked,
-      progress: { playtimeMs: this.playtimeMs, regionsUnlocked: map.nodes.filter((n: any) => n.unlocked).map((n: any) => n.id), regionsCompleted: map.nodes.filter((n: any) => n.stats.percent >= 100).map((n: any) => n.id), bossesDefeated: this.services.rpg.serialize().defeatedBosses, flags: { __world: worldData, __rpg: rpgData, __level: this.currentLevelId, __trackedQuest: this.trackedQuest ?? '' }, endingsSeen: this.services.world.getEnding() ? [this.services.world.getEnding()] : [] },
+      progress: { playtimeMs: this.playtimeMs, regionsUnlocked: map.nodes.filter((n: any) => n.unlocked).map((n: any) => n.id), regionsCompleted: map.nodes.filter((n: any) => n.stats.percent >= 100).map((n: any) => n.id), bossesDefeated: this.services.rpg.serialize().defeatedBosses, flags: { __world: worldData, __rpg: rpgData, __level: this.currentLevelId, __trackedQuest: this.trackedQuest ?? '', __class: this.currentClass }, endingsSeen: this.services.world.getEnding() ? [this.services.world.getEnding()] : [] },
     };
   }
 
@@ -341,9 +346,15 @@ export class GameScene extends Phaser.Scene {
     const y = savedPos ? savedPos.y : spawn.y;
     const savedStats = this.lastSaveState?.player?.stats ?? {};
     const stats = this.services.rpg.getStats();
+    const classStats = this.currentClass === 'warrior'
+      ? { health: 1.22, attack: 1.04, defense: 1.28, speed: 0.96, mana: 0.9, stamina: 1.12, manaRegen: 1, staminaRegen: 1.08 }
+      : this.currentClass === 'assassin'
+        ? { health: 0.92, attack: 1.18, defense: 0.92, speed: 1.18, mana: 0.92, stamina: 1.08, manaRegen: 1, staminaRegen: 1.12 }
+        : { health: 0.94, attack: 0.94, defense: 0.92, speed: 1, mana: 1.5, stamina: 0.92, manaRegen: 1.55, staminaRegen: 0.95 };
+    const regen = this.services.rpg.getRegenPerSecond();
     this.aren = new Player(this, {
       x, y,
-      stats: { maxHealth: stats.health, attack: stats.attack, defense: stats.defense, speed: stats.speed, maxMana: stats.mana, maxStamina: stats.stamina, manaRegen: this.services.rpg.getRegenPerSecond().mana, staminaRegen: this.services.rpg.getRegenPerSecond().stamina },
+      stats: { maxHealth: Math.round(stats.health * classStats.health), attack: Math.round(stats.attack * classStats.attack), defense: Math.round(stats.defense * classStats.defense), speed: Math.round(stats.speed * classStats.speed), maxMana: Math.round(stats.mana * classStats.mana), maxStamina: Math.round(stats.stamina * classStats.stamina), manaRegen: Math.max(2, regen.mana * classStats.manaRegen), staminaRegen: Math.max(22, regen.stamina * classStats.staminaRegen) },
       touch: false, autoRespawn: false, fallKillY: level.size.h + 160,
       camera: { bounds: { x: 0, y: 0, width: level.size.w, height: level.size.h }, lerpX: 0.12, lerpY: 0.1 },
       inputProvider: () => this.inputBridge.frame(),
@@ -393,27 +404,79 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawAtmosphere(level: LevelDef): void {
-    const g = this.add.graphics().setDepth(-20);
     const sky = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.sky).color;
     const mid = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.mid).color;
     const fore = Phaser.Display.Color.HexStringToColor(level.atmosphere.palette.fore).color;
-    g.fillGradientStyle(sky, sky, mid, mid, 1); g.fillRect(0, 0, level.size.w, level.size.h);
-    const baseY = level.size.h - 140;
-    g.fillStyle(mid, 0.62);
-    for (let i = 0; i < level.size.w; i += 360) {
-      const peak = Math.max(70, baseY - 260 - ((i * 17) % 190));
-      g.fillTriangle(i, baseY, i + 190, peak, i + 390, baseY);
+    const w = level.size.w, h = level.size.h, horizon = h - 150;
+
+    // Deep sky, soft horizon glow and a distant moon.
+    const skyLayer = this.add.graphics().setDepth(-30);
+    skyLayer.fillGradientStyle(sky, sky, mid, mid, 1);
+    skyLayer.fillRect(0, 0, w, h);
+    skyLayer.fillStyle(0xe6a66d, 0.075);
+    skyLayer.fillCircle(w * 0.73, h * 0.28, Math.min(230, h * 0.32));
+    skyLayer.fillStyle(0xf0d5ae, 0.72);
+    skyLayer.fillCircle(w * 0.76, h * 0.2, 27);
+    skyLayer.fillStyle(sky, 0.8);
+    skyLayer.fillCircle(w * 0.775, h * 0.19, 25);
+
+    // Star field and drifting ash.
+    const stars = this.add.graphics().setDepth(-25);
+    for (let i = 0; i < 95; i++) {
+      const x = (i * 197 + (i % 7) * 31) % w;
+      const y = 24 + ((i * 113) % Math.max(80, Math.floor(h * 0.62)));
+      stars.fillStyle(i % 9 === 0 ? 0xffd99c : 0xd9c9b7, i % 9 === 0 ? 0.7 : 0.32);
+      stars.fillCircle(x, y, i % 9 === 0 ? 1.8 : 1);
     }
-    g.fillStyle(fore, 0.8);
-    for (let i = 0; i < level.size.w; i += 220) {
-      const height = 55 + ((i * 13) % 110);
-      g.fillRect(i, baseY - height, 110 + (i % 80), height);
-      g.fillRect(i + 25, baseY - height - 35, 10, 35);
+
+    // Three distinct depth planes replace the repeated triangle/rectangle pattern.
+    const far = this.add.graphics().setDepth(-22);
+    far.fillStyle(Phaser.Display.Color.IntegerToColor(mid).darken(12).color, 0.58);
+    far.beginPath(); far.moveTo(0, horizon);
+    for (let x = 0; x <= w + 240; x += 240) far.lineTo(x, horizon - 100 - ((x * 13) % 170));
+    far.lineTo(w, h); far.lineTo(0, h); far.closePath(); far.fillPath();
+
+    const ruins = this.add.graphics().setDepth(-18);
+    ruins.fillStyle(Phaser.Display.Color.IntegerToColor(fore).darken(24).color, 0.92);
+    for (let i = 0; i < Math.ceil(w / 420); i++) {
+      const x = i * 420 + 70, base = horizon + 34;
+      const towerH = 105 + ((i * 71) % 100);
+      ruins.fillRect(x, base - towerH, 72, towerH);
+      ruins.fillRect(x - 14, base - towerH - 12, 100, 15);
+      ruins.fillRect(x + 18, base - towerH - 48, 10, 38);
+      ruins.fillRect(x + 43, base - towerH - 30, 8, 18);
+      ruins.fillRect(x + 82, base - 76, 128, 76);
+      ruins.fillRect(x + 96, base - 102, 18, 28);
+      ruins.fillRect(x + 180, base - 126, 16, 50);
+      ruins.fillStyle(0x171315, 0.85);
+      ruins.fillRoundedRect(x + 23, base - towerH + 36, 18, 42, 8);
+      ruins.fillStyle(Phaser.Display.Color.IntegerToColor(fore).darken(24).color, 0.92);
     }
-    g.fillStyle(0xffb35c, 0.12);
-    for (let i = 0; i < 55; i++) g.fillCircle((i * 317) % level.size.w, 80 + (i * 83) % 570, 1 + (i % 3));
+
+    // Foreground ridge, broken masonry and a warm light at ground level.
+    const ground = this.add.graphics().setDepth(2);
+    ground.fillStyle(0x171313, 0.42);
+    ground.fillRect(0, horizon + 36, w, h - horizon);
+    ground.fillStyle(fore, 0.92);
+    ground.beginPath(); ground.moveTo(0, horizon + 70);
+    for (let x = 0; x <= w + 160; x += 160) ground.lineTo(x, horizon + 48 + ((x * 7) % 34));
+    ground.lineTo(w, h); ground.lineTo(0, h); ground.closePath(); ground.fillPath();
+    ground.fillStyle(0x171313, 0.48);
+    for (let i = 0; i < Math.ceil(w / 260); i++) {
+      const x = i * 260 + 32;
+      ground.fillRoundedRect(x, horizon + 60, 90, 12, 4);
+      ground.fillRect(x + 18, horizon + 48, 15, 13);
+      ground.fillRect(x + 62, horizon + 43, 12, 18);
+    }
+    ground.fillStyle(0xf2a45e, 0.16);
+    ground.fillEllipse(w * 0.48, horizon + 90, Math.min(520, w * 0.42), 42);
+
     if (level.atmosphere.weather === 'ash' || level.atmosphere.weather === 'embers') {
-      for (let i = 0; i < 38; i++) this.add.circle((i * 191) % level.size.w, 80 + (i * 61) % 620, 1 + i % 2, 0xd7c1a5, 0.35).setDepth(-5);
+      for (let i = 0; i < 52; i++) {
+        const x = (i * 191) % w, y = 70 + (i * 61) % Math.max(100, h - 120);
+        const ember = this.add.circle(x, y, 1 + i % 2, i % 4 === 0 ? 0xffb76d : 0xd7c1a5, 0.32 + (i % 3) * 0.1).setDepth(1);
+        this.tweens.add({ targets: ember, y: y - 28 - (i % 4) * 12, alpha: 0.05, duration: 2600 + (i % 5) * 700, delay: i * 55, repeat: -1, yoyo: true });
+      }
     }
   }
 

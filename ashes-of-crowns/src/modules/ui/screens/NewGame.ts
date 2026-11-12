@@ -10,6 +10,7 @@ export class NewGameScreen extends Screen {
   override readonly pausesGame = false;
   private slots: SaveSlotSummary[] = [];
   private selected = 1;
+  private selectedClass: 'warrior' | 'assassin' | 'mage' = 'warrior';
 
   protected override onOpen(): void { this.selected = 0; }
 
@@ -35,6 +36,23 @@ export class NewGameScreen extends Screen {
         h('div', { class: 'newgame__story panel panel--inset' },
           icon('crown', 'newgame__crest'),
           h('p', { class: 'story-text' }, ctx.t('new.premise'))),
+        h('div', { class: 'newgame__classes panel panel--inset' },
+          sectionTitle(ctx.settings.lang === 'fa' ? 'کلاس قهرمان را انتخاب کن' : 'Choose your class', 'swords'),
+          h('div', { class: 'row row--center', style: 'gap:10px;flex-wrap:wrap' },
+            ...([
+              { id: 'warrior' as const, fa: 'جنگجو', en: 'Warrior', descFa: 'سلامت و دفاع بیشتر؛ ضربهٔ قدرتی و فریاد نبرد', descEn: 'More health and defense; built for direct combat', icon: 'shield' },
+              { id: 'assassin' as const, fa: 'قاتل', en: 'Assassin', descFa: 'سرعت و ضربهٔ بحرانی بیشتر؛ خنجر از پشت و گام سایه', descEn: 'Faster movement and stronger strikes', icon: 'swords' },
+              { id: 'mage' as const, fa: 'جادوگر', en: 'Mage', descFa: 'مانای بیشتر؛ پرتاب صاعقه، یخ و جادوی آتشین', descEn: 'More mana and regeneration; skill-focused', icon: 'sparkles' },
+            ]).map(c => btn({
+              label: ctx.settings.lang === 'fa' ? c.fa : c.en,
+              icon: c.icon,
+              variant: this.selectedClass === c.id ? 'primary' : 'secondary',
+              onClick: () => { this.selectedClass = c.id; this.rerender(); },
+            }))),
+          h('p', { class: 'muted small' }, (() => {
+            const c = { warrior: ['سلامت و دفاع بیشتر؛ ضربهٔ قدرتی و فریاد نبرد', 'More health and defense; built for direct combat'], assassin: ['سرعت و ضربهٔ بحرانی بیشتر؛ خنجر از پشت و گام سایه', 'Faster movement and stronger strikes'], mage: ['مانای بیشتر؛ پرتاب صاعقه، یخ و جادوی آتشین', 'More mana and regeneration; skill-focused'] }[this.selectedClass];
+            return c[ctx.settings.lang === 'fa' ? 0 : 1];
+          })())),
         h('div', { class: 'newgame__slots' },
           sectionTitle(ctx.t('new.chooseSlot'), 'save'),
           this.slots.map((s) => slotCard(ctx, {
@@ -58,7 +76,7 @@ export class NewGameScreen extends Screen {
       if (!ok) return;
     }
     ctx.sfx('confirm');
-    ctx.events.emit('game:new', { slot: sel.slot });
+    ctx.events.emit('game:new', { slot: sel.slot, classId: this.selectedClass });
     if (ctx.autoFlow) ctx.enterGame();
   }
 }

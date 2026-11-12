@@ -74,6 +74,8 @@ export class AudioManager {
   private pausedForHidden = false;
   private unlockCleanup: (() => void) | null = null;
   private visCleanup: (() => void) | null = null;
+  private ambientOscillators: OscillatorNode[] = [];
+  private ambientGain: GainNode | null = null;
 
   readonly counters = { fetches: 0, decodes: 0, cacheHits: 0, sfxPlayed: 0, sfxDroppedNotLoaded: 0, sfxDroppedLimit: 0, errors: 0 };
 
@@ -143,6 +145,7 @@ export class AudioManager {
     this.bus.emit(PersistenceEvents.AUDIO_UNLOCKED);
     this.attachVisibility();
     this.refreshMusic(); // start music that was requested before unlock
+    if (!Object.keys(this.o.regionMusic ?? {}).length && !this.o.combatMusicId) this.startProceduralAmbient();
     if (this.wantedAmbience.length) void this.setAmbience(this.wantedAmbience);
     return true;
   }
@@ -266,8 +269,16 @@ export class AudioManager {
    */
   playSfx(id: string, opts: { volume?: number; rate?: number; pan?: number } = {}): boolean {
     const asset = this.manifest[id];
-    if (!asset || asset.category === 'music') {
+    if (!asset) {
+      // Only synthesize recognized gameplay SFX; unknown IDs must remain observable errors.
+      if (/^(hit|damage|impact|attack|sword|slash|combat|confirm|level|success|save|ui[_-](click|confirm|back)|footstep|step|dash|jump|heal|block|parry|magic|spell|fire|ice|enemy|boss|coin|loot|death)([_-].*)?$/i.test(id)) {
+        return this.playProceduralSfx(id, opts);
+      }
       this.fail(id, new Error('unknown or non-SFX audio id'));
+      return false;
+    }
+    if (asset.category === 'music') {
+      this.fail(id, new Error('music asset cannot be played as SFX'));
       return false;
     }
     if (!this.unlocked || !this.ctx) return false;
@@ -576,11 +587,92 @@ export class AudioManager {
       a.gain.disconnect();
     }
     this.ambience.clear();
+    for (const osc of this.ambientOscillators) { try { osc.stop(); } catch { /* already stopped */ } osc.disconnect(); }
+    this.ambientOscillators = [];
+    this.ambientGain?.disconnect(); this.ambientGain = null;
     for (const t of [...this.tracks.values()]) this.disposeTrack(t);
     this.buffers.clear();
     this.loading.clear();
     void this.ctx?.close().catch(() => undefined);
     this.ctx = null;
+  }
+
+  /** Subtle synthesized ambience keeps the world from being silent when no music files are bundled. */
+  private startProceduralAmbient(): void {
+    const ctx = this.ctx;
+    if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.ambientOscillators.length) return;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 2.5);
+    gain.connect(this.musicBus);
+    this.ambientGain = gain;
+    for (const [frequency, detune] of [[55, -3], [82.41, 2], [110, 4]] as const) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine'; osc.frequency.value = frequency; osc.detune.value = detune;
+      const voice = ctx.createGain(); voice.gain.value = frequency === 55 ? 0.48 : 0.16;
+      osc.connect(voice); voice.connect(gain); osc.start();
+      this.ambientOscillators.push(osc);
+    }
+  }
+
+  /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */
+  private playProceduralSfx(id: string, opts: { volume?: number; rate?: number; pan?: number }): boolean {
+    const ctx = this.ctx;
+    if (!ctx || !this.unlocked || this.vol.muted) return false;
+    const name = id.toLowerCase();
+    const now = ctx.currentTime;
+    const rate = Math.min(2.5, Math.max(0.45, opts.rate ?? 1));
+    const volume = Math.min(1, Math.max(0.05, opts.volume ?? 0.75));
+    const kind = /magic|spell|fire|ice/.test(name) ? 'magic'
+      : /footstep|step/.test(name) ? 'step'
+      : /dash|jump|dodge/.test(name) ? 'movement'
+      : /block|parry/.test(name) ? 'guard'
+      : /heal|level|success|save|coin|loot|confirm/.test(name) ? 'reward'
+      : /death|enemy|boss/.test(name) ? 'heavy'
+      : /hit|damage|impact|attack|sword|slash|combat/.test(name) ? 'hit' : 'ui';
+    const presets: Record<string, { wave: OscillatorType; from: number; to: number; duration: number; gain: number }> = {
+      magic: { wave: 'sine', from: 760, to: 180, duration: 0.34, gain: 0.16 },
+      step: { wave: 'triangle', from: 95, to: 48, duration: 0.075, gain: 0.11 },
+      movement: { wave: 'sawtooth', from: 520, to: 145, duration: 0.2, gain: 0.12 },
+      guard: { wave: 'triangle', from: 410, to: 190, duration: 0.16, gain: 0.18 },
+      reward: { wave: 'sine', from: 520, to: 1040, duration: 0.28, gain: 0.12 },
+      heavy: { wave: 'sawtooth', from: 125, to: 38, duration: 0.32, gain: 0.2 },
+      hit: { wave: 'sawtooth', from: 190, to: 58, duration: 0.17, gain: 0.18 },
+      ui: { wave: 'sine', from: 460, to: 330, duration: 0.09, gain: 0.075 },
+    };
+    const p = presets[kind];
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = p.wave;
+    osc.frequency.setValueAtTime(p.from * rate, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(28, p.to * rate), now + p.duration);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(p.gain * volume, now + Math.min(0.018, p.duration * 0.2));
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + p.duration);
+    let tail: AudioNode = gain;
+    if (opts.pan !== undefined && typeof ctx.createStereoPanner === 'function') {
+      const pan = ctx.createStereoPanner(); pan.pan.value = Math.max(-1, Math.min(1, opts.pan));
+      gain.connect(pan); tail = pan;
+    }
+    osc.connect(gain); tail.connect(this.sfxBus); osc.start(now); osc.stop(now + p.duration + 0.015);
+
+    // A quiet, short noise layer adds texture to blade impacts, movement and spell bursts.
+    if (kind === 'hit' || kind === 'heavy' || kind === 'movement' || kind === 'magic') {
+      const length = Math.max(1, Math.floor(ctx.sampleRate * (kind === 'magic' ? 0.22 : 0.09)));
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+      const noise = ctx.createBufferSource(); noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter(); filter.type = kind === 'magic' ? 'bandpass' : 'lowpass';
+      filter.frequency.value = kind === 'magic' ? 1500 : 850;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(p.gain * volume * 0.34, now);
+      ng.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'magic' ? 0.22 : 0.09));
+      noise.connect(filter); filter.connect(ng); ng.connect(this.sfxBus);
+      noise.start(now); noise.stop(now + (kind === 'magic' ? 0.22 : 0.09));
+    }
+    this.counters.sfxPlayed++;
+    return true;
   }
 
   private fail(id: string, err: unknown): void {

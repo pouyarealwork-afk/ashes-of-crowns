@@ -1,0 +1,33 @@
+name: Rebuild v2 verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "ashes-of-crowns/**"
+  push:
+    branches: [rebuild-v2]
+    paths:
+      - "ashes-of-crowns/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ashes-of-crowns
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Production build
+        run: npm run build
+      - name: Core, module and integration tests
+        run: npm run test:core
