@@ -229,7 +229,7 @@ export class CombatEngine {
     const count = previous && this.now <= previous.expiresAt ? Math.min(3, previous.count + 1) : 1;
     const multiplier = 1 + (count - 1) * 0.14;
     // A short recovery after the third strike creates a readable punish window.
-    const expiresAt = this.now + (count >= 3 ? 1900 : 3200);
+    const expiresAt = this.now + (count >= 3 ? 1200 : 3200);
     this.enemyCombos.set(enemy.id, { count, expiresAt });
     this.emit('combat:enemy-combo', { enemyId: enemy.id, count, multiplier });
     return { count, multiplier };
