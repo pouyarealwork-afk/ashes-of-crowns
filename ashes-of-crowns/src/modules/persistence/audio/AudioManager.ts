@@ -322,6 +322,47 @@ export class AudioManager {
     };
     src.start();
     this.lastPlayed.set(id, now);
+    // Distinctive secondary layers: metallic blade ring, low impact body, airy spell shimmer and coin chime.
+    if (kind === 'hit' && /sword|slash|attack/.test(name)) {
+      const clang = ctx.createOscillator();
+      const cg = ctx.createGain();
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1250;
+      clang.type = 'triangle'; clang.frequency.setValueAtTime(1450 * rate, now);
+      clang.frequency.exponentialRampToValueAtTime(620 * rate, now + 0.13);
+      cg.gain.setValueAtTime(0.0001, now); cg.gain.linearRampToValueAtTime(0.055 * volume, now + 0.008);
+      cg.gain.exponentialRampToValueAtTime(0.0001, now + 0.19);
+      clang.connect(hp); hp.connect(cg); cg.connect(this.sfxBus); clang.start(now); clang.stop(now + 0.2);
+    } else if (kind === 'heavy' || (kind === 'hit' && /impact|damage/.test(name))) {
+      const thump = ctx.createOscillator();
+      const tg = ctx.createGain();
+      thump.type = 'sine'; thump.frequency.setValueAtTime(92 * rate, now);
+      thump.frequency.exponentialRampToValueAtTime(34, now + 0.24);
+      tg.gain.setValueAtTime(0.0001, now); tg.gain.linearRampToValueAtTime(0.12 * volume, now + 0.012);
+      tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.27);
+      thump.connect(tg); tg.connect(this.sfxBus); thump.start(now); thump.stop(now + 0.29);
+    } else if (kind === 'reward') {
+      [1, 1.5, 2].forEach((ratio, index) => {
+        const bell = ctx.createOscillator();
+        const bg = ctx.createGain();
+        bell.type = 'sine'; bell.frequency.setValueAtTime((880 * ratio) * rate, now + index * 0.035);
+        bg.gain.setValueAtTime(0.0001, now + index * 0.035);
+        bg.gain.linearRampToValueAtTime((0.035 / (index + 1)) * volume, now + index * 0.035 + 0.008);
+        bg.gain.exponentialRampToValueAtTime(0.0001, now + 0.42 + index * 0.035);
+        bell.connect(bg); bg.connect(this.sfxBus); bell.start(now + index * 0.035); bell.stop(now + 0.45 + index * 0.035);
+      });
+    } else if (kind === 'magic') {
+      const shimmer = ctx.createOscillator();
+      const sg = ctx.createGain();
+      const shimmerFilter = ctx.createBiquadFilter();
+      shimmer.type = 'sine'; shimmer.frequency.setValueAtTime(1320 * rate, now);
+      shimmer.frequency.exponentialRampToValueAtTime(460 * rate, now + 0.36);
+      shimmerFilter.type = 'bandpass'; shimmerFilter.frequency.value = 1750; shimmerFilter.Q.value = 0.7;
+      sg.gain.setValueAtTime(0.0001, now); sg.gain.linearRampToValueAtTime(0.035 * volume, now + 0.025);
+      sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+      shimmer.connect(shimmerFilter); shimmerFilter.connect(sg); sg.connect(this.sfxBus);
+      shimmer.start(now); shimmer.stop(now + 0.4);
+    }
+
     this.counters.sfxPlayed++;
     return true;
   }
@@ -603,18 +644,21 @@ export class AudioManager {
   private startProceduralAmbient(): void {
     const ctx = this.ctx;
     if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.ambientOscillators.length) return;
+    const now = ctx.currentTime;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 3.2);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.026, now + 5.5);
     const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass'; filter.frequency.value = 420; filter.Q.value = 0.42;
+    filter.type = 'lowpass'; filter.frequency.value = 510; filter.Q.value = 0.55;
     gain.connect(filter); filter.connect(this.musicBus);
     this.ambientGain = gain;
     this.ambientFilter = filter;
-    // Original, slow minor-coloured drone: low fundamentals with very quiet upper harmonics.
+
+    // Original dark-fantasy ambient score: layered minor drone, distant fifths and slow breathing harmonics.
     const voices = [
-      [55, -3, 'sine', 0.38], [82.41, 2, 'sine', 0.16], [110, 4, 'sine', 0.09],
-      [164.81, -5, 'triangle', 0.035], [220, 3, 'triangle', 0.018],
+      [41.2, -2, 'sine', 0.34], [55, 2, 'sine', 0.24], [82.41, -4, 'sine', 0.15],
+      [110, 3, 'triangle', 0.085], [123.47, -5, 'sine', 0.045],
+      [164.81, 4, 'triangle', 0.026], [246.94, -3, 'sine', 0.012],
     ] as const;
     for (const [frequency, detune, wave, level] of voices) {
       const osc = ctx.createOscillator();
@@ -623,12 +667,27 @@ export class AudioManager {
       osc.connect(voice); voice.connect(gain); osc.start();
       this.ambientOscillators.push(osc);
     }
-    // Slow filter movement prevents the fallback ambience from sounding like a static test tone.
-    const lfo = ctx.createOscillator();
-    const depth = ctx.createGain();
-    lfo.type = 'sine'; lfo.frequency.value = 0.075; depth.gain.value = 78;
-    lfo.connect(depth); depth.connect(filter.frequency); lfo.start();
-    this.ambientOscillators.push(lfo);
+
+    // A very slow filter swell and independent amplitude breathing prevent a static test-tone sound.
+    const filterLfo = ctx.createOscillator();
+    const filterDepth = ctx.createGain();
+    filterLfo.type = 'sine'; filterLfo.frequency.value = 0.043; filterDepth.gain.value = 115;
+    filterLfo.connect(filterDepth); filterDepth.connect(filter.frequency); filterLfo.start();
+    this.ambientOscillators.push(filterLfo);
+
+    const pulse = ctx.createOscillator();
+    const pulseDepth = ctx.createGain();
+    pulse.type = 'sine'; pulse.frequency.value = 0.11; pulseDepth.gain.value = 0.004;
+    pulse.connect(pulseDepth); pulseDepth.connect(gain.gain); pulse.start();
+    this.ambientOscillators.push(pulse);
+
+    // Soft, high distant overtone, kept deliberately quiet so dialogue and combat remain clear.
+    const overtone = ctx.createOscillator();
+    const overtoneGain = ctx.createGain();
+    overtone.type = 'sine'; overtone.frequency.value = 329.63; overtone.detune.value = 7;
+    overtoneGain.gain.value = 0.008;
+    overtone.connect(overtoneGain); overtoneGain.connect(gain); overtone.start();
+    this.ambientOscillators.push(overtone);
   }
 
   /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */
