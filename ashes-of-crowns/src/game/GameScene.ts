@@ -895,6 +895,8 @@ export class GameScene extends Phaser.Scene {
   private async runWorldDialogue(treeId: string): Promise<void> {
     if (this.dialogueRunning || !this.ui) return;
     this.dialogueRunning = true;
+    // Keep utility actions out of the dialogue layer so they cannot cover its exit control.
+    this.hideExtraControls();
     // Freeze movement and clear residual momentum before the dialogue UI opens.
     this.aren?.lockInput(true);
     const playerBody = this.aren?.body as Phaser.Physics.Arcade.Body | undefined;
@@ -921,6 +923,7 @@ export class GameScene extends Phaser.Scene {
     } catch (err) { this.ui?.toast({ text: `Dialogue error: ${(err as Error).message}`, kind: 'error' }); }
     finally {
       this.dialogueRunning = false;
+      if (this.started && this.uiUtilityControls) this.uiUtilityControls.style.display = 'flex';
       const body = this.aren?.body as Phaser.Physics.Arcade.Body | undefined;
       body?.setVelocity(0, 0);
       if (this.started && !this.ui?.isBlocking) this.aren?.lockInput(false);
