@@ -95,3 +95,12 @@
 }
 .aoc-ui .dlg__exit:focus-visible { outline: 2px solid #e5b46f; outline-offset: 3px; }
 .aoc-ui[dir="rtl"] .dlg__exit { letter-spacing: 0; }
+
+
+/* Dialogue exit has its own reserved header space; utility actions are hidden during dialogue. */
+.aoc-ui .dlg__box { padding-block-start: 54px; }
+.aoc-ui .dlg__exit { min-height: 36px; padding: 7px 13px; }
+@media (max-height: 460px) {
+  .aoc-ui .dlg__box { padding-block-start: 46px; }
+  .aoc-ui .dlg__exit { min-height: 32px; padding: 5px 10px; }
+}
