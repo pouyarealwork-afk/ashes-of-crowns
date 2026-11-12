@@ -552,7 +552,7 @@ export class CombatWorld {
         return;
       }
       if (now < (this.hazardCooldowns.get(index) ?? 0) || !intersects) continue;
-      const multiplier = type.includes('avalanche') || type.includes('void') || type.includes('pit') ? 1.8 : type.includes('ember') || type.includes('fire') ? 1.15 : 1;
+      const multiplier = type.includes('avalanche') ? 1.8 : type.includes('ember') || type.includes('fire') ? 1.15 : 1;
       const dir = this.player.x >= r.x + r.width / 2 ? 1 : -1;
       const result = this.applyIncomingHit(`hazard:${hazard.type}`, Math.max(1, Math.round(hazard.damage * multiplier)), dir as 1 | -1, type.includes('avalanche') ? 260 : 80, type.includes('void') || type.includes('pit'));
       this.bus.emit('combat:hazard-hit', { hazardType: hazard.type, damage: result.applied, blocked: result.blocked, dodged: result.dodged });
@@ -565,7 +565,7 @@ export class CombatWorld {
     const label = this.scene.add.text(this.player.x, this.player.y - 74, 'TRAP RECOVERY', {
       fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold',
       color: '#ffe0a8', stroke: '#24110f', strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(1100).setScrollFactor(0);
+    }).setOrigin(0.5).setDepth(1100);
     this.scene.tweens.add({
       targets: label, y: label.y - 22, alpha: 0, duration: 850, ease: 'Cubic.Out',
       onComplete: () => label.destroy(),
