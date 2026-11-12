@@ -141,8 +141,14 @@ export class CombatWorld {
       if (!enemy.alive) { sprite.disableBody(true, false); sprite.setAlpha(0.25); continue; }
       const body = sprite.body as Phaser.Physics.Arcade.Body;
       body.setVelocityX(enemy.vx);
-      if (enemy.ai === 'flying') body.setVelocityY(Math.sin(_time / 420 + enemy.x) * 18);
+      // Only flyers are gravity-free; leave ground-enemy Y velocity to Arcade Physics.
+      if (enemy.ai === 'flying') body.setVelocityY(enemy.vy);
       sprite.setFlipX(enemy.facing < 0);
+      const moving = Math.abs(enemy.vx) > 12;
+      const lean = enemy.ai === 'flying'
+        ? Math.max(-9, Math.min(9, enemy.vx * 0.035))
+        : moving ? Math.sin(_time / 82 + enemy.x * 0.03) * 3.2 : Math.sin(_time / 520 + enemy.x) * 1.1;
+      sprite.setAngle(enemy.windupRemainingMs > 0 ? enemy.facing * 4 : lean);
       if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff);
       else if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
       else if (enemy.windupRemainingMs > 0) sprite.setTint(0xffb45c);
@@ -167,12 +173,42 @@ export class CombatWorld {
     const stats = this.player.stats;
     const outcome = this.engine.useAbility(id, { mana: stats.mana, stamina: stats.stamina, baseAttack: stats.config.attack }, this.rpg, {
       x: this.player.x, y: this.player.y, health: stats.health, maxHealth: stats.config.maxHealth, facing: this.player.facing,
-    }, (mana, stamina) => stats.spendMana(mana) && stats.spendStamina(stamina));
+    }, (mana, stamina) => { if (stats.mana < mana || stats.stamina < stamina) return false; if (mana > 0 && !stats.spendMana(mana)) return false; return stamina <= 0 || stats.spendStamina(stamina); });
     if (outcome.ok && outcome.effect?.healPct) stats.heal(stats.config.maxHealth * outcome.effect.healPct);
+    if (outcome.ok) this.playAbilityVfx(id, outcome.effect);
     if (outcome.ok && outcome.effect?.dashDistance) {
       const body = this.player.body as Phaser.Physics.Arcade.Body; body.setVelocityX(this.player.facing * Math.min(650, outcome.effect.dashDistance * 2.5));
     }
     return outcome;
+  }
+
+  /** Lightweight class-coloured combat feedback built from Phaser primitives (no external assets required). */
+  private playAbilityVfx(id: string, effect: any): void {
+    const x = this.player.x + this.player.facing * 34;
+    const y = this.player.y - 42;
+    const mage = id.startsWith('a_');
+    const assassin = id.startsWith('s_');
+    const color = mage ? 0x75d8ff : assassin ? 0xb58aff : 0xffbd72;
+    const radius = Math.max(34, Math.min(210, effect?.radius ?? 72));
+    const ring = this.scene.add.circle(this.player.x, y, radius, color, effect?.kind === 'buff' ? 0.12 : 0.2)
+      .setStrokeStyle(mage ? 3 : 4, color, 0.9).setDepth(18);
+    this.scene.tweens.add({ targets: ring, scale: effect?.kind === 'buff' ? 1.12 : 1.55, alpha: 0, duration: effect?.kind === 'ultimate' ? 720 : 420, ease: 'Cubic.Out', onComplete: () => ring.destroy() });
+
+    if (effect?.kind === 'projectile' || id === 'a_meteor') {
+      const target = this.engine.getAlive()
+        .filter(e => (e.x - this.player.x) * this.player.facing >= -12)
+        .sort((a, b) => Math.hypot(a.x - this.player.x, a.y - this.player.y) - Math.hypot(b.x - this.player.x, b.y - this.player.y))[0];
+      const orb = this.scene.add.circle(id === 'a_meteor' ? (target?.x ?? x) : x, id === 'a_meteor' ? (target?.y ?? y) - 190 : y, id === 'a_meteor' ? 18 : 10, color, 1).setDepth(22);
+      this.scene.tweens.add({ targets: orb, x: target?.x ?? this.player.x + this.player.facing * 280, y: target?.y ?? y, scale: id === 'a_meteor' ? 1.8 : 1.25, duration: id === 'a_meteor' ? 520 : 260, ease: 'Cubic.In', onComplete: () => orb.destroy() });
+    } else if (effect?.kind === 'melee' || effect?.kind === 'execute') {
+      const slash = this.scene.add.graphics().setDepth(21);
+      slash.lineStyle(5, color, 0.95);
+      slash.beginPath(); slash.moveTo(this.player.x, y - 18); slash.lineTo(this.player.x + this.player.facing * 104, y + 28); slash.strokePath();
+      this.scene.tweens.add({ targets: slash, alpha: 0, duration: 230, onComplete: () => slash.destroy() });
+    } else if (effect?.kind === 'dash') {
+      const trail = this.scene.add.circle(this.player.x - this.player.facing * 24, y, 22, color, 0.5).setDepth(17);
+      this.scene.tweens.add({ targets: trail, scaleX: 2.4, alpha: 0, duration: 320, onComplete: () => trail.destroy() });
+    }
   }
 
   /** Connect the world's companion system and consume its assist responses. */

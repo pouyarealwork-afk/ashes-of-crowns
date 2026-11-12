@@ -76,6 +76,7 @@ export class AudioManager {
   private visCleanup: (() => void) | null = null;
   private ambientOscillators: OscillatorNode[] = [];
   private ambientGain: GainNode | null = null;
+  private ambientFilter: BiquadFilterNode | null = null;
 
   readonly counters = { fetches: 0, decodes: 0, cacheHits: 0, sfxPlayed: 0, sfxDroppedNotLoaded: 0, sfxDroppedLimit: 0, errors: 0 };
 
@@ -590,6 +591,7 @@ export class AudioManager {
     for (const osc of this.ambientOscillators) { try { osc.stop(); } catch { /* already stopped */ } osc.disconnect(); }
     this.ambientOscillators = [];
     this.ambientGain?.disconnect(); this.ambientGain = null;
+    this.ambientFilter?.disconnect(); this.ambientFilter = null;
     for (const t of [...this.tracks.values()]) this.disposeTrack(t);
     this.buffers.clear();
     this.loading.clear();
@@ -603,16 +605,30 @@ export class AudioManager {
     if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.ambientOscillators.length) return;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 2.5);
-    gain.connect(this.musicBus);
+    gain.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 3.2);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 420; filter.Q.value = 0.42;
+    gain.connect(filter); filter.connect(this.musicBus);
     this.ambientGain = gain;
-    for (const [frequency, detune] of [[55, -3], [82.41, 2], [110, 4]] as const) {
+    this.ambientFilter = filter;
+    // Original, slow minor-coloured drone: low fundamentals with very quiet upper harmonics.
+    const voices = [
+      [55, -3, 'sine', 0.38], [82.41, 2, 'sine', 0.16], [110, 4, 'sine', 0.09],
+      [164.81, -5, 'triangle', 0.035], [220, 3, 'triangle', 0.018],
+    ] as const;
+    for (const [frequency, detune, wave, level] of voices) {
       const osc = ctx.createOscillator();
-      osc.type = 'sine'; osc.frequency.value = frequency; osc.detune.value = detune;
-      const voice = ctx.createGain(); voice.gain.value = frequency === 55 ? 0.48 : 0.16;
+      osc.type = wave; osc.frequency.value = frequency; osc.detune.value = detune;
+      const voice = ctx.createGain(); voice.gain.value = level;
       osc.connect(voice); voice.connect(gain); osc.start();
       this.ambientOscillators.push(osc);
     }
+    // Slow filter movement prevents the fallback ambience from sounding like a static test tone.
+    const lfo = ctx.createOscillator();
+    const depth = ctx.createGain();
+    lfo.type = 'sine'; lfo.frequency.value = 0.075; depth.gain.value = 78;
+    lfo.connect(depth); depth.connect(filter.frequency); lfo.start();
+    this.ambientOscillators.push(lfo);
   }
 
   /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */

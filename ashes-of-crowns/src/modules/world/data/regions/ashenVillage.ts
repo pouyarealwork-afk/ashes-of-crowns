@@ -92,59 +92,59 @@ export const ashenVillage: RegionContent = {
       c: N('aren', 'پس از همان‌جا آغاز می‌کنم که همه‌چیز شروع شد؛ از آهنگری.', { effects: [fl('opening_seen')] }),
     }),
     CUT('d_hobb_pre', 'a', {
-      a: N('hobb', 'Valcrest! Sergeant Hobb, Crown Reclamation. There\'s forty silver on your head and eleven villagers who\'ll hang if you run.', { mood: 'cruel', next: 'b' }),
-      b: N('aren', 'Those people are not yours to hang.', { choices: [
-        C('"Stand down and walk away." (give him the chance)', 'c', { tags: ['mercy'], effects: [vr('mercy', 1)] }),
-        C('"Then come and collect me."', 'c', { tags: ['ruthless'], effects: [vr('ambition', 1)] }) ] }),
-      c: N('hobb', 'Boys. Burn the rest.', { mood: 'cruel' }),
+      a: N('hobb', 'وال‌کرست! گروهبان هاب هستم، از واحد بازپس‌گیری تاج. برای سرت چهل سکهٔ نقره جایزه گذاشته‌اند و اگر فرار کنی، یازده روستایی را به دار می‌کشند.', { mood: 'cruel', next: 'b' }),
+      b: N('aren', 'این مردم مال تو نیستند که به دارشان بکشی.', { choices: [
+        C('«عقب بکش و برو؛ هنوز فرصت داری.»', 'c', { tags: ['mercy'], effects: [vr('mercy', 1)] }),
+        C('«پس بیا و خودت دستگیرم کن.»', 'c', { tags: ['ruthless'], effects: [vr('ambition', 1)] }) ] }),
+      c: N('hobb', 'سربازها! بقیه‌اش را به آتش بکشید.', { mood: 'cruel' }),
     }),
     CUT('d_burn_order', 'a', {
-      a: N('narrator', 'The order is nailed to a charred post: BURN HEARTHMERE. Sheltering a traitor. Under it, a wax seal pressed with a falcon and crossed spears.', { next: 'b' }),
-      b: N('aren', 'Darken\'s seal. He signed the order to burn the village that raised us both.', { mood: 'cold', effects: [fl('saw_darken_seal'), vr('trust', -1)], next: 'c' }),
-      c: N('aren', 'The forest folk kept the Crown\'s records. If anyone can prove what happened, it\'s the Greenwatch.'),
+      a: N('narrator', 'فرمان را به تیرکی سوخته میخ کرده‌اند: «هِرث‌میر را بسوزانید؛ به یک خائن پناه داده است.» زیر نوشته، مُهری از موم دیده می‌شود؛ شاهینی بر فراز دو نیزهٔ ضربدری.', { next: 'b' }),
+      b: N('aren', 'مُهر دارکن است. خودش فرمان سوزاندن روستایی را امضا کرده که هر دوی ما را بزرگ کرد.', { mood: 'cold', effects: [fl('saw_darken_seal'), vr('trust', -1)], next: 'c' }),
+      c: N('aren', 'مردم جنگل اسناد تاج‌وتخت را نگه می‌دارند. اگر کسی بتواند حقیقت را ثابت کند، نگهبانان سبز هستند.'),
     }),
     CUT('d_tamsin_join', 'a', {
-      a: N('tamsin', 'That falcon seal... my father forged the spear-tips for that regiment. He told me they\'d never be turned on Hearthmere. I\'m coming with you, Valcrest.', { mood: 'fierce', choices: [
-        C('"I could use a shield. Welcome."', 'b', { tags: ['loyal'], effects: [rl('tamsin', 8), vr('trust', 1)] }),
-        C('"It\'s too dangerous."', 'c', { tags: ['distance'], effects: [rl('tamsin', -4)] }) ] }),
-      b: N('tamsin', 'You won\'t regret it. Or you will, and I\'ll say I told you so.', { effects: [rec('tamsin')] }),
-      c: N('tamsin', 'Dangerous is staying here and waiting for the next torch. I\'m coming.', { effects: [rec('tamsin')] }),
+      a: N('tamsin', 'آن مُهر شاهین... پدرم نوک نیزه‌های همان هنگ را می‌ساخت. به من گفته بود هرگز آن‌ها را به‌سوی هِرث‌میر نمی‌گیرند. من هم با تو می‌آیم، وال‌کرست.', { mood: 'fierce', choices: [
+        C('«به یک همراه قابل‌اعتماد نیاز دارم. خوش آمدی.»', 'b', { tags: ['loyal'], effects: [rl('tamsin', 8), vr('trust', 1)] }),
+        C('«این سفر بیش از حد خطرناک است.»', 'c', { tags: ['distance'], effects: [rl('tamsin', -4)] }) ] }),
+      b: N('tamsin', 'پشیمان نمی‌شوی. البته شاید هم بشوی؛ آن‌وقت می‌گویم که از اول بهت هشدار داده بودم.', { effects: [rec('tamsin')] }),
+      c: N('tamsin', 'ماندن اینجا و منتظر مشعل بعدی نشستن خطرناک‌تر است. من می‌آیم.', { effects: [rec('tamsin')] }),
     }),
     T('d_tamsin_meet', 'tamsin', 'a', {
-      a: N('tamsin', 'Don\'t move. Let me see the face... By the Ember. Aren Valcrest. They said you hanged.', { mood: 'wary', choices: [
-        C('"They tried. I need to reach the manor ruins and the sword."', 'b', { tags: ['honest'] }),
-        C('"Keep your voice down, or Hobb will hear."', 'b') ] }),
-      b: N('tamsin', 'The blade is in the manor rubble — I dragged it from the fire myself. Hobb\'s patrol keeps the road east. Take the forge yard, then the ruins. I\'ll be here.', { effects: [fl('tamsin_met')] }),
+      a: N('tamsin', 'تکان نخور. بگذار صورتت را ببینم... به اخگر سوگند! آرن وال‌کرست. می‌گفتند اعدامت کرده‌اند.', { mood: 'wary', choices: [
+        C('«تلاششان را کردند. باید به ویرانه‌های عمارت و شمشیرم برسم.»', 'b', { tags: ['honest'] }),
+        C('«آهسته‌تر حرف بزن؛ هاب ممکن است صدایت را بشنود.»', 'b') ] }),
+      b: N('tamsin', 'شمشیر میان آوار عمارت است؛ خودم آن را از آتش بیرون کشیدم. افراد هاب جادهٔ شرقی را زیر نظر دارند. از محوطهٔ آهنگری برو و بعد خودت را به ویرانه‌ها برسان. من همین‌جا می‌مانم.', { effects: [fl('tamsin_met')] }),
     }),
     T('d_tamsin_camp', 'tamsin', 'a', {
-      a: N('tamsin', 'Still here, Valcrest. What do you need?', { variants: [
-        { when: R('tamsin', '>=', 60), text: 'You know, I stopped counting the miles. Ask me anything.' },
-        { when: R('tamsin', '<', 10), text: 'I follow you because I choose to. Don\'t make me regret it.' }],
-        choices: [C('"Tell me about the village before the fire."', 'b'), C('"Nothing. Rest well."')] }),
-      b: N('tamsin', 'Every bell had a name. Morning bell was Greta, the noon bell was my mother\'s. When they melted them for the war, my father said iron remembers who it was.', { effects: [rl('tamsin', 2)] }),
+      a: N('tamsin', 'هنوز اینجایی، وال‌کرست. چه کمکی از دستم برمی‌آید؟', { variants: [
+        { when: R('tamsin', '>=', 60), text: 'می‌دانی، دیگر شمارش راه‌هایی را که آمده‌ایم کنار گذاشته‌ام. هرچه می‌خواهی بپرس.' },
+        { when: R('tamsin', '<', 10), text: 'با انتخاب خودم همراهت شده‌ام. کاری نکن از این انتخاب پشیمان شوم.' }],
+        choices: [C('«از روستا، پیش از آتش‌سوزی برایم بگو.»', 'b'), C('«چیزی نیست. خوب استراحت کن.»')] }),
+      b: N('tamsin', 'هر ناقوس نامی داشت. ناقوس صبح گرتا بود و ناقوس ظهر به نام مادرم. وقتی برای جنگ ذوبشان کردند، پدرم گفت آهن فراموش نمی‌کند که روزی چه بوده است.', { effects: [rl('tamsin', 2)] }),
     }),
     T('d_marta', 'marta', 'a', {
-      a: N('marta', 'Quiet. Eleven souls sleep under that well. If you\'re a soldier, leave. If you\'re Aren — hold out your hands. Anything in them?', { variants: [{ when: Q('s1_cellar', 'active'), text: 'Any bread yet? The little ones stopped asking. That\'s worse.' }],
-        choices: [C('"I\'ll find food for the cellar."', 'ok', { effects: [qs('s1_cellar')], tags: ['mercy'] }), C('"I can\'t help. I\'m sorry."', undefined, { effects: [vr('mercy', -1)] })] }),
-      ok: N('marta', 'The pantry of the old baker. Third beam, behind the oven. Soldiers missed it.'),
-      deliver: N('marta', 'Bread. Real bread. Sweet saints. How much do you carry?', { choices: [
-        C('"All of it. It\'s yours."', 'all', { tags: ['mercy', 'honest'], effects: [vr('mercy', 2), vr('honor', 1), fl('bread_all'), fl('bread_resolved'), fl('village_hope'), rl('tamsin', 3)] }),
-        C('"Half. I have a road to walk."', 'half', { tags: ['pragmatic'], effects: [vr('ambition', 1), fl('bread_resolved')] }),
-        C('"A loaf for the cellar. The rest is mine."', 'half', { tags: ['greed'], effects: [vr('mercy', -1), vr('ambition', 1), fl('bread_resolved'), rl('tamsin', -3)] })] }),
-      all: N('marta', 'Hearthmere will remember. Mind the well, boy. There\'s more in it than water.', { effects: [reward({ xp: 120, gold: 20 })] }),
-      half: N('marta', 'It will do. We\'ve survived on less.', { effects: [reward({ xp: 80, gold: 10 })] }),
-      waiting: N('marta', 'Find the bread, Aren. The pantry beam.'),
-      done: N('marta', 'The children play at being you now. A tall figure with a wooden sword. Go well.'),
+      a: N('marta', 'آرام‌تر. یازده نفر زیر آن چاه پناه گرفته‌اند. اگر سربازی، برو. اما اگر آرنی، دست‌هایت را نشانم بده. چیزی برایمان آورده‌ای؟', { variants: [{ when: Q('s1_cellar', 'active'), text: 'هنوز نانی پیدا نکرده‌ای؟ بچه‌ها دیگر درخواست نمی‌کنند؛ و این از همه بدتر است.' }],
+        choices: [C('«برای پناهگاه غذا پیدا می‌کنم.»', 'ok', { effects: [qs('s1_cellar')], tags: ['mercy'] }), C('«نمی‌توانم کمکی کنم. متأسفم.»', undefined, { effects: [vr('mercy', -1)] })] }),
+      ok: N('marta', 'انبار نانوای پیر؛ پشت تنور، پشت تیر چوبی سوم. سربازها آنجا را ندیده‌اند.'),
+      deliver: N('marta', 'نان... نان واقعی. ای قدیسان مهربان! چقدر با خودت آورده‌ای؟', { choices: [
+        C('«همه‌اش برای شماست.»', 'all', { tags: ['mercy', 'honest'], effects: [vr('mercy', 2), vr('honor', 1), fl('bread_all'), fl('bread_resolved'), fl('village_hope'), rl('tamsin', 3)] }),
+        C('«نصفش را می‌دهم؛ خودم هم راهی طولانی در پیش دارم.»', 'half', { tags: ['pragmatic'], effects: [vr('ambition', 1), fl('bread_resolved')] }),
+        C('«یک قرص نان برای پناهگاه؛ باقی‌اش برای خودم.»', 'half', { tags: ['greed'], effects: [vr('mercy', -1), vr('ambition', 1), fl('bread_resolved'), rl('tamsin', -3)] })] }),
+      all: N('marta', 'هِرث‌میر این مهربانی را فراموش نمی‌کند. مراقب چاه باش، پسر. درونش چیزی بیش از آب پنهان است.', { effects: [reward({ xp: 120, gold: 20 })] }),
+      half: N('marta', 'همین هم غنیمت است. با کمتر از این هم دوام آورده‌ایم.', { effects: [reward({ xp: 80, gold: 10 })] }),
+      waiting: N('marta', 'نان را پیدا کن، آرن. پشت تیر انبار نانوایی.'),
+      done: N('marta', 'بچه‌ها حالا نقش تو را بازی می‌کنند؛ قهرمانی بلندقد با شمشیری چوبی. به سلامت، آرن.'),
     }, { entries: [{ when: AND(Q('s1_cellar', 'active'), COL('pantry_bread'), NOT(F('bread_resolved'))), node: 'deliver' }, { when: Q('s1_cellar', 'completed'), node: 'done' }, { when: Q('s1_cellar', 'active'), node: 'waiting' }] }),
     T('d_jorin', 'jorin', 'a', {
-      a: N('jorin', 'The signet of Valcrest. A heavy, handsome thing. The Crown pays well for such trinkets — I pay better. Three hundred gold.', { effects: [qs('s1_debt')], choices: [
-        C('"Take it. It\'s only metal now."', 'sell', { tags: ['greed'], effects: [vr('ambition', 2), vr('honor', -1), fl('signet_sold'), fl('jorin_resolved'), reward({ gold: 300 })] }),
-        C('"This is the last of my name. It stays."', 'refuse', { tags: ['honest'], effects: [vr('honor', 1), fl('jorin_resolved')] }),
-        C('"Walk away before I take your purse instead."', 'threat', { tags: ['ruthless'], effects: [vr('mercy', -1), vr('ambition', 1), fl('jorin_threatened'), fl('jorin_resolved')] })] }),
-      sell: N('jorin', 'A pleasure. Should anyone ask, I never saw you.', { effects: [] }),
-      refuse: N('jorin', 'Sentimental. Sentiment pays no debts. If you change your mind I\'ll be here — or in the Hollow City, if the coin runs.', {}),
-      threat: N('jorin', 'Easy, easy. I\'ll find other fools. Remember: debts follow people.'),
-      done: N('jorin', 'We\'ve done our business, Valcrest.'),
+      a: N('jorin', 'انگشتر مُهر وال‌کرست؛ سنگین و چشم‌نواز است. تاج‌وتخت برای چنین یادگاری‌هایی خوب پول می‌دهد؛ من بهتر می‌پردازم. سیصد سکهٔ طلا.', { effects: [qs('s1_debt')], choices: [
+        C('«بگیرش. حالا دیگر فقط تکه‌ای فلز است.»', 'sell', { tags: ['greed'], effects: [vr('ambition', 2), vr('honor', -1), fl('signet_sold'), fl('jorin_resolved'), reward({ gold: 300 })] }),
+        C('«این آخرین یادگار نام خاندانم است. پیش خودم می‌ماند.»', 'refuse', { tags: ['honest'], effects: [vr('honor', 1), fl('jorin_resolved')] }),
+        C('«قبل از آن‌که کیفت را بگیرم، از اینجا دور شو.»', 'threat', { tags: ['ruthless'], effects: [vr('mercy', -1), vr('ambition', 1), fl('jorin_threatened'), fl('jorin_resolved')] })] }),
+      sell: N('jorin', 'معاملهٔ خوبی بود. اگر کسی پرسید، من هرگز تو را ندیده‌ام.', { effects: [] }),
+      refuse: N('jorin', 'احساساتی شده‌ای. احساسات بدهی کسی را نمی‌پردازند. اگر نظرت عوض شد، همین‌جا هستم؛ یا اگر دنبال پول بیشتری بودی، در شهر توخالی پیدایم می‌کنی.', {}),
+      threat: N('jorin', 'آرام، آرام. احمق‌های دیگری پیدا می‌کنم. یادت باشد: بدهی آدم را هر جا برود دنبال می‌کند.'),
+      done: N('jorin', 'حسابمان را صاف کرده‌ایم، وال‌کرست.'),
     }, { entries: [{ when: F('jorin_resolved'), node: 'done' }] }),
   ],
 

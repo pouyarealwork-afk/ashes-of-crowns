@@ -221,6 +221,12 @@ export class GameScene extends Phaser.Scene {
         this.scene.restart({ levelId: p.level, spawn: p.spawn ?? 'start' });
       }
     });
+    on('combat:ability-used', (p: any) => {
+      const id = String(p?.abilityId ?? '');
+      this.services.persistence.audio.playSfx(id.startsWith('a_') ? 'magic' : id.startsWith('s_') ? 'dash' : 'sword');
+    });
+    on('combat:enemy-hit', (p: any) => this.services.persistence.audio.playSfx(p?.critical ? 'impact-critical' : 'hit', { volume: p?.critical ? 0.95 : 0.55 }));
+    on('combat:boss-phase', () => this.services.persistence.audio.playSfx('boss_phase', { volume: 0.9 }));
     on('combat:boss-intro', (p: any) => {
       this.currentBoss = { id: p.bossId, name: p.name ?? 'Warden', phase: 1 };
       this.ui?.banner(p.name ?? 'A powerful foe approaches', p.title ?? 'Prepare yourself', 'skull');
@@ -239,12 +245,19 @@ export class GameScene extends Phaser.Scene {
   private startNewGame(slot = 1, classId: 'warrior' | 'assassin' | 'mage' = 'warrior'): void {
     this.currentClass = classId;
     this.activeSaveSlot = `slot${slot}`;
-    this.services.rpg.newGame(); this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
+    this.services.rpg.newGame();
+    const signatureAbility = classId === 'warrior' ? 'w_power_strike' : classId === 'assassin' ? 's_backstab' : 'a_arc_bolt';
+    this.services.rpg.skills.grantStartingAbility(signatureAbility);
+    this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
     this.started = true;
     this.startLevel(this.currentLevelId, 'start');
     this.cameras.main.fadeIn(1250, 7, 5, 7);
-    this.ui.enterGame(); this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
+    this.ui.enterGame();
+    this.aren.lockInput(true);
+    this.started = false;
+    this.playOpeningCinematic();
+    this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
     void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
   }
 
@@ -689,6 +702,65 @@ export class GameScene extends Phaser.Scene {
       skills: hotbar.slice(0, 3).map((id: string | null) => id ? ({ id, name: abilities.find((a: any) => a.id === id)?.id ?? id, manaCost: abilities.find((a: any) => a.id === id)?.manaCost ?? 0, icon: 'sparkles' }) : null),
       objectives: objective && selectedQuest ? [{ title: selectedQuest.title, text: objective.text }] : [],
       boss: this.currentBoss ? { name: this.currentBoss.name, health: this.combat?.engine.getAlive().find(e => e.bossId === this.currentBoss?.id)?.health ?? 0, maxHealth: this.combat?.engine.getAlive().find(e => e.bossId === this.currentBoss?.id)?.maxHealth ?? 1, phase: this.currentBoss.phase } : null,
+    });
+  }
+
+  /** First-play title sequence; the opening story trigger waits until the player regains control. */
+  private playOpeningCinematic(): void {
+    const fa = this.ui?.language === 'fa';
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '99999', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '18px', padding: '28px',
+      background: 'radial-gradient(ellipse at 50% 58%, rgba(89,43,28,.96), rgba(10,8,10,.99) 68%)',
+      color: '#ead8bd', textAlign: 'center', opacity: '0', transition: 'opacity 850ms ease',
+      pointerEvents: 'auto', boxSizing: 'border-box', overflow: 'hidden',
+    });
+    const style = document.createElement('style');
+    style.textContent = '@keyframes aoc-ember-rise{0%{transform:translateY(15vh) scale(.5);opacity:0}20%{opacity:.8}100%{transform:translateY(-65vh) scale(1.4);opacity:0}}';
+    overlay.appendChild(style);
+    for (let i = 0; i < 13; i++) {
+      const ember = document.createElement('span');
+      Object.assign(ember.style, {
+        position: 'absolute', bottom: '-8px', left: ((i * 37) % 96 + 2) + '%',
+        width: (2 + i % 3) + 'px', height: (2 + i % 3) + 'px', borderRadius: '50%',
+        background: '#e69a55', boxShadow: '0 0 12px #e69a55',
+        animation: 'aoc-ember-rise ' + (2.6 + (i % 4) * 0.55) + 's linear ' + (i * 0.13) + 's infinite',
+      });
+      overlay.appendChild(ember);
+    }
+    const title = document.createElement('div');
+    title.textContent = fa ? 'خاکسترِ تاج‌ها' : 'ASHES OF CROWNS';
+    Object.assign(title.style, {
+      fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 7vw, 68px)', letterSpacing: '0.08em',
+      color: '#e7bd86', textShadow: '0 0 28px rgba(221,133,69,.35)', position: 'relative',
+      transition: 'opacity 800ms ease',
+    });
+    const line = document.createElement('p');
+    line.dir = fa ? 'rtl' : 'ltr';
+    line.textContent = fa
+      ? 'سه روز از محاکمه گذشته است. نامت را گرفتند؛ اما سوگندت هنوز زنده است.'
+      : 'Three days have passed since the trial. They took your name, but your oath remains.';
+    Object.assign(line.style, {
+      maxWidth: '720px', fontFamily: 'Georgia, serif', fontSize: 'clamp(16px, 2.5vw, 24px)',
+      lineHeight: '1.9', color: '#d9c7b0', opacity: '0', transition: 'opacity 900ms ease', position: 'relative',
+    });
+    const hint = document.createElement('div');
+    hint.textContent = fa ? 'داستان آرن وال‌کرست' : 'THE STORY OF AREN VALCREST';
+    Object.assign(hint.style, {
+      fontSize: '11px', letterSpacing: '0.24em', color: '#a98a6b',
+      opacity: '0', transition: 'opacity 900ms ease', position: 'relative',
+    });
+    overlay.append(title, line, hint);
+    (this.ui?.root ?? document.body).appendChild(overlay);
+    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+    this.time.delayedCall(650, () => { line.style.opacity = '1'; hint.style.opacity = '1'; });
+    this.time.delayedCall(2950, () => { line.style.opacity = '0'; hint.style.opacity = '0'; title.style.opacity = '0'; });
+    this.time.delayedCall(3850, () => { overlay.style.opacity = '0'; });
+    this.time.delayedCall(4750, () => {
+      overlay.remove();
+      if (this.aren) this.aren.lockInput(false);
+      this.started = true;
     });
   }
 
