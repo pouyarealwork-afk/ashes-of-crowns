@@ -865,63 +865,200 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** First-play title sequence; the opening story trigger waits until the player regains control. */
+  /** A skippable, multi-shot opening sequence shown only when starting a new game. */
   private playOpeningCinematic(): void {
     const fa = this.ui?.language === 'fa';
-    const overlay = document.createElement('div');
-    Object.assign(overlay.style, {
-      position: 'fixed', inset: '0', zIndex: '99999', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: '18px', padding: '28px',
-      background: 'radial-gradient(ellipse at 50% 58%, rgba(89,43,28,.96), rgba(10,8,10,.99) 68%)',
-      color: '#ead8bd', textAlign: 'center', opacity: '0', transition: 'opacity 850ms ease',
-      pointerEvents: 'auto', boxSizing: 'border-box', overflow: 'hidden',
-    });
-    const style = document.createElement('style');
-    style.textContent = '@keyframes aoc-ember-rise{0%{transform:translateY(15vh) scale(.5);opacity:0}20%{opacity:.8}100%{transform:translateY(-65vh) scale(1.4);opacity:0}}';
-    overlay.appendChild(style);
-    for (let i = 0; i < 13; i++) {
-      const ember = document.createElement('span');
-      Object.assign(ember.style, {
-        position: 'absolute', bottom: '-8px', left: ((i * 37) % 96 + 2) + '%',
-        width: (2 + i % 3) + 'px', height: (2 + i % 3) + 'px', borderRadius: '50%',
-        background: '#e69a55', boxShadow: '0 0 12px #e69a55',
-        animation: 'aoc-ember-rise ' + (2.6 + (i % 4) * 0.55) + 's linear ' + (i * 0.13) + 's infinite',
-      });
-      overlay.appendChild(ember);
+    const overlay = document.createElement('section');
+    overlay.className = 'aoc-opening-cinematic';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-label', fa ? 'میان‌پرده آغاز داستان' : 'Opening cinematic');
+    overlay.innerHTML = `
+      <style>
+        .aoc-opening-cinematic{position:fixed;inset:0;z-index:100000;overflow:hidden;background:#050507;color:#ead9c1;display:grid;place-items:center;opacity:0;transition:opacity 1.1s ease;font-family:Georgia,'Times New Roman',serif;isolation:isolate}
+        .aoc-opening-cinematic *{box-sizing:border-box}
+        .aoc-opening-cinematic.is-visible{opacity:1}
+        .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-5%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.08);transition:transform 12s cubic-bezier(.16,.55,.25,1),filter 1.2s ease;filter:brightness(.72) saturate(.78)}
+        .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1);filter:brightness(1) saturate(.95)}
+        .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}
+        .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:blur(18px);animation:aoc-haze-drift 9s ease-in-out infinite alternate}
+        .aoc-opening-cinematic .aoc-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 25%,rgba(0,0,0,.25) 68%,rgba(0,0,0,.9) 130%)}
+        .aoc-opening-cinematic .aoc-grain{position:absolute;inset:-50%;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");animation:aoc-grain-shift .22s steps(2) infinite;pointer-events:none}
+        .aoc-opening-cinematic .aoc-bars:before,.aoc-opening-cinematic .aoc-bars:after{content:'';position:absolute;left:0;right:0;height:8.5vh;background:#030305;z-index:5;transition:height 1.1s cubic-bezier(.7,0,.2,1)}
+        .aoc-opening-cinematic .aoc-bars:before{top:0}.aoc-opening-cinematic .aoc-bars:after{bottom:0}
+        .aoc-opening-cinematic .aoc-copy{position:absolute;z-index:7;left:8%;right:8%;top:50%;transform:translateY(-42%);text-align:center;opacity:0;transition:opacity 1s ease,transform 1.2s ease;pointer-events:none;text-shadow:0 3px 22px #000}
+        .aoc-opening-cinematic .aoc-copy.is-active{opacity:1;transform:translateY(-50%)}
+        .aoc-opening-cinematic .aoc-kicker{font:600 10px/1.8 system-ui,sans-serif;letter-spacing:.42em;color:#c99a6d;margin-bottom:20px}
+        .aoc-opening-cinematic .aoc-line{font-size:clamp(19px,3.1vw,36px);line-height:1.85;font-weight:400;color:#f0dfc8;margin:0 auto;max-width:980px}
+        .aoc-opening-cinematic[dir=rtl] .aoc-line{font-family:Georgia,'Noto Naskh Arabic',serif}
+        .aoc-opening-cinematic .aoc-title{font-size:clamp(35px,7vw,86px);letter-spacing:.12em;color:#e5bd87;text-shadow:0 0 28px rgba(207,125,68,.5),0 4px 30px #000}
+        .aoc-opening-cinematic .aoc-subtitle{margin-top:18px;font:500 10px/2 system-ui,sans-serif;letter-spacing:.38em;color:#c7a47f}
+        .aoc-opening-cinematic .aoc-skip{position:absolute;z-index:12;bottom:12vh;right:5vw;border:1px solid rgba(219,184,143,.45);background:rgba(10,8,9,.55);color:#e8d5bd;padding:10px 16px;border-radius:2px;font:600 11px system-ui,sans-serif;letter-spacing:.08em;cursor:pointer;backdrop-filter:blur(8px)}
+        .aoc-opening-cinematic[dir=rtl] .aoc-skip{right:auto;left:5vw}
+        .aoc-opening-cinematic .aoc-skip:active{background:rgba(112,63,40,.8)}
+        .aoc-opening-cinematic .aoc-rule{width:clamp(70px,12vw,150px);height:1px;background:linear-gradient(90deg,transparent,#c18a5d,transparent);margin:20px auto}
+        .aoc-opening-cinematic .aoc-embers{position:absolute;inset:0;z-index:4;pointer-events:none}
+        .aoc-opening-cinematic .aoc-ember{position:absolute;bottom:-5%;width:3px;height:3px;border-radius:50%;background:#ffbd78;box-shadow:0 0 12px 3px rgba(237,135,69,.6);animation:aoc-ember-rise var(--dur) linear var(--delay) infinite}
+        .aoc-opening-cinematic .aoc-flash{position:absolute;inset:0;background:#f1c18b;opacity:0;z-index:6;pointer-events:none}
+        .aoc-opening-cinematic .aoc-flash.is-flashing{animation:aoc-flash .7s ease-out}
+        @keyframes aoc-ember-rise{0%{transform:translate3d(0,0,0) scale(.4);opacity:0}15%{opacity:.8}100%{transform:translate3d(var(--drift),-115vh,0) scale(1.5);opacity:0}}
+        @keyframes aoc-haze-drift{from{transform:translateX(-3%) scale(1)}to{transform:translateX(4%) scale(1.12)}}
+        @keyframes aoc-grain-shift{0%{transform:translate(0,0)}25%{transform:translate(2%,-1%)}50%{transform:translate(-1%,2%)}75%{transform:translate(1%,1%)}100%{transform:translate(-2%,-1%)}}
+        @keyframes aoc-flash{0%{opacity:0}12%{opacity:.55}100%{opacity:0}}
+        @media(prefers-reduced-motion:reduce){.aoc-opening-cinematic *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+      </style>
+      <div class="aoc-shot">
+        <svg class="aoc-art" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <linearGradient id="aoc-sky" x2="0" y2="1"><stop stop-color="#080a12"/><stop offset=".55" stop-color="#382323"/><stop offset="1" stop-color="#120e13"/></linearGradient>
+            <radialGradient id="aoc-moon"><stop stop-color="#f6d9ad" stop-opacity=".95"/><stop offset=".35" stop-color="#d7a77b" stop-opacity=".35"/><stop offset="1" stop-color="#d7a77b" stop-opacity="0"/></radialGradient>
+            <linearGradient id="aoc-fire" x2="0" y2="1"><stop stop-color="#ffc17b"/><stop offset="1" stop-color="#8e3e27" stop-opacity="0"/></linearGradient>
+            <filter id="aoc-blur"><feGaussianBlur stdDeviation="22"/></filter>
+          </defs>
+          <rect width="1600" height="900" fill="url(#aoc-sky)"/>
+          <circle cx="1160" cy="245" r="220" fill="url(#aoc-moon)"/>
+          <circle cx="1160" cy="245" r="68" fill="#e8c8a1" opacity=".72"/>
+          <path d="M0 440 Q240 330 480 435 T960 410 T1600 420 V900 H0Z" fill="#1a1720"/>
+          <path d="M0 540 L130 470 220 520 340 390 420 515 550 445 690 520 810 410 930 505 1070 420 1200 510 1370 390 1600 510 V900 H0Z" fill="#100f17"/>
+          <g fill="#0a0b10" stroke="#5b3d34" stroke-width="5" stroke-opacity=".45">
+            <path d="M720 550V320H790V265H830V320H900V550Z"/><path d="M770 265V225H790V190H815V225H838V265Z"/>
+            <path d="M900 550V355H970V290H1000V355H1060V550Z"/><path d="M1060 550V390H1110V330H1140V390H1200V550Z"/>
+            <path d="M720 350L690 350V330H720M900 385L875 385V365H900M1060 420L1035 420V400H1060"/>
+          </g>
+          <g fill="#e28d55" opacity=".9"><path d="M782 360h14v28h-14z"/><path d="M942 398h13v25h-13z"/><path d="M1100 430h12v22h-12z"/></g>
+          <g fill="#090a0e"><path d="M0 650Q180 560 360 650T730 640T1100 650T1600 620V900H0Z"/><path d="M80 710l40-130 35 130zm90 0l30-95 30 95zm1110-40l45-170 40 170zm100 20l35-120 42 120z"/></g>
+          <g opacity=".42" filter="url(#aoc-blur)" fill="#c16c45"><ellipse cx="350" cy="720" rx="250" ry="45"/><ellipse cx="1260" cy="680" rx="260" ry="55"/></g>
+          <g fill="#08090d">
+            <path d="M0 790Q210 710 430 790T850 780T1250 790T1600 760V900H0Z"/>
+            <path d="M570 900l60-185 45 185zm70 0l50-145 35 145zm-250 0l45-120 40 120z"/>
+            <path d="M1240 900l65-210 50 210zm85 0l48-150 42 150z"/>
+          </g>
+          <g transform="translate(780 610)" fill="#050609">
+            <path d="M-24 0q-25-30-8-57q22-24 42 0q18 25-2 57z"/><path d="M-20-47l-15-20 24 10 18-12-4 25z"/>
+            <path d="M-18 0l-25 100h20l25-70 18 70h20L12 0z"/>
+            <path d="M-20 5l-55 42 8 12 62-30 50 25 8-13L10 5z"/>
+            <path d="M-2-25q80-20 105 32l-10 10q-35-34-93-17z"/>
+            <path d="M95 30l24-70 8 3-13 77z"/>
+          </g>
+          <g fill="#d77e4a" opacity=".8"><circle cx="760" cy="580" r="5"/><circle cx="810" cy="560" r="3"/><circle cx="830" cy="620" r="4"/></g>
+          <path d="M0 870Q260 820 520 870T1050 865T1600 850" fill="none" stroke="#6b4639" stroke-opacity=".35" stroke-width="3"/>
+        </svg>
+        <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
+      </div>
+      <div class="aoc-embers"></div><div class="aoc-flash"></div><div class="aoc-bars"></div>
+      <div class="aoc-copy" data-shot="0"><div class="aoc-kicker"></div><p class="aoc-line"></p><div class="aoc-rule"></div></div>
+      <button class="aoc-skip" type="button"></button>
+    `;
+    overlay.dir = fa ? 'rtl' : 'ltr';
+    const copy = overlay.querySelector<HTMLElement>('.aoc-copy')!;
+    const kicker = overlay.querySelector<HTMLElement>('.aoc-kicker')!;
+    const line = overlay.querySelector<HTMLElement>('.aoc-line')!;
+    const rule = overlay.querySelector<HTMLElement>('.aoc-rule')!;
+    const skip = overlay.querySelector<HTMLButtonElement>('.aoc-skip')!;
+    const embers = overlay.querySelector<HTMLElement>('.aoc-embers')!;
+    const flash = overlay.querySelector<HTMLElement>('.aoc-flash')!;
+    skip.textContent = fa ? 'رد کردن  ⏭' : 'SKIP  ⏭';
+
+    for (let i = 0; i < 34; i++) {
+      const ember = document.createElement('i');
+      ember.className = 'aoc-ember';
+      ember.style.left = ((i * 29) % 100) + '%';
+      ember.style.setProperty('--dur', (4.5 + (i % 7) * 1.15) + 's');
+      ember.style.setProperty('--delay', (-((i * 13) % 90) / 10) + 's');
+      ember.style.setProperty('--drift', (((i * 17) % 100) - 50) + 'px');
+      embers.appendChild(ember);
     }
-    const title = document.createElement('div');
-    title.textContent = fa ? 'خاکسترِ تاج‌ها' : 'ASHES OF CROWNS';
-    Object.assign(title.style, {
-      fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 7vw, 68px)', letterSpacing: '0.08em',
-      color: '#e7bd86', textShadow: '0 0 28px rgba(221,133,69,.35)', position: 'relative',
-      transition: 'opacity 800ms ease',
+
+    document.body.appendChild(overlay);
+    let finished = false;
+    let audioContext: AudioContext | undefined;
+    let audioNodes: OscillatorNode[] = [];
+    const timers: Phaser.Time.TimerEvent[] = [];
+    const schedule = (delay: number, fn: () => void) => timers.push(this.time.delayedCall(delay, fn));
+    const setCaption = (eyebrow: string, text: string, title = false) => {
+      copy.classList.remove('is-active');
+      schedule(80, () => {
+        kicker.textContent = eyebrow;
+        line.textContent = text;
+        line.classList.toggle('aoc-title', title);
+        rule.style.opacity = title ? '0' : '1';
+        copy.classList.add('is-active');
+      });
+    };
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      timers.forEach(timer => timer.remove(false));
+      window.removeEventListener('keydown', onKeyDown);
+      skip.removeEventListener('click', finish);
+      overlay.style.opacity = '0';
+      if (audioContext) {
+        try { audioNodes.forEach(node => { node.stop(); node.disconnect(); }); } catch { /* already stopped */ }
+        void audioContext.close().catch(() => undefined);
+      }
+      window.setTimeout(() => {
+        overlay.remove();
+        if (this.aren) this.aren.lockInput(false);
+        this.started = true;
+      }, 950);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Escape' || event.code === 'Space' || event.code === 'Enter') {
+        event.preventDefault();
+        finish();
+      }
+    };
+    skip.addEventListener('click', finish);
+    window.addEventListener('keydown', onKeyDown);
+    requestAnimationFrame(() => overlay.classList.add('is-visible'));
+
+    // A restrained, low cinematic drone; it is optional and respects browser audio policies.
+    try {
+      audioContext = new AudioContext();
+      const master = audioContext.createGain();
+      master.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      master.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 2.4);
+      master.connect(audioContext.destination);
+      [55, 82.41, 110.2].forEach((frequency, index) => {
+        const oscillator = audioContext!.createOscillator();
+        const gain = audioContext!.createGain();
+        oscillator.type = index === 0 ? 'sine' : 'triangle';
+        oscillator.frequency.value = frequency;
+        gain.gain.value = index === 0 ? 0.7 : 0.18;
+        oscillator.connect(gain); gain.connect(master); oscillator.start();
+        audioNodes.push(oscillator);
+      });
+    } catch { /* Audio may be unavailable; the visual sequence remains complete. */ }
+
+    const captions = fa ? [
+      ['پیش‌درآمد', 'پیش از آن‌که پادشاهی‌ها در آتش فرو بروند…'],
+      ['سرزمین خاکستر', 'تاج‌ها شکستند؛ و نام‌ها، زیر خاکستر تاریخ مدفون شدند.'],
+      ['سه روز پیش', 'سه روز از محاکمه گذشته است. نامت را گرفتند…'],
+      ['سوگند', 'اما سوگندت هنوز زنده است.'],
+    ] : [
+      ['PROLOGUE', 'Before the kingdoms vanished into flame…'],
+      ['A LAND IN ASHES', 'Crowns were broken. Names were buried beneath the weight of history.'],
+      ['THREE DAYS AGO', 'Three days have passed since the trial. They took your name…'],
+      ['THE OATH', 'But your oath remains.'],
+    ];
+    setCaption(captions[0][0], captions[0][1]);
+    schedule(3200, () => { setCaption(captions[1][0], captions[1][1]); flash.classList.add('is-flashing'); });
+    schedule(6500, () => { setCaption(captions[2][0], captions[2][1]); });
+    schedule(9300, () => { setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(11900, () => {
+      copy.classList.remove('is-active');
+      schedule(450, () => {
+        kicker.textContent = '';
+        line.textContent = fa ? 'خاکسترِ تاج‌ها' : 'ASHES OF CROWNS';
+        line.classList.add('aoc-title');
+        rule.style.opacity = '0';
+        const subtitle = document.createElement('div');
+        subtitle.className = 'aoc-subtitle';
+        subtitle.textContent = fa ? 'داستان آرن وال‌کرست' : 'THE STORY OF AREN VALCREST';
+        copy.appendChild(subtitle);
+        copy.classList.add('is-active');
+      });
     });
-    const line = document.createElement('p');
-    line.dir = fa ? 'rtl' : 'ltr';
-    line.textContent = fa
-      ? 'سه روز از محاکمه گذشته است. نامت را گرفتند؛ اما سوگندت هنوز زنده است.'
-      : 'Three days have passed since the trial. They took your name, but your oath remains.';
-    Object.assign(line.style, {
-      maxWidth: '720px', fontFamily: 'Georgia, serif', fontSize: 'clamp(16px, 2.5vw, 24px)',
-      lineHeight: '1.9', color: '#d9c7b0', opacity: '0', transition: 'opacity 900ms ease', position: 'relative',
-    });
-    const hint = document.createElement('div');
-    hint.textContent = fa ? 'داستان آرن وال‌کرست' : 'THE STORY OF AREN VALCREST';
-    Object.assign(hint.style, {
-      fontSize: '11px', letterSpacing: '0.24em', color: '#a98a6b',
-      opacity: '0', transition: 'opacity 900ms ease', position: 'relative',
-    });
-    overlay.append(title, line, hint);
-    (this.ui?.root ?? document.body).appendChild(overlay);
-    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
-    this.time.delayedCall(650, () => { line.style.opacity = '1'; hint.style.opacity = '1'; });
-    this.time.delayedCall(2950, () => { line.style.opacity = '0'; hint.style.opacity = '0'; title.style.opacity = '0'; });
-    this.time.delayedCall(3850, () => { overlay.style.opacity = '0'; });
-    this.time.delayedCall(4750, () => {
-      overlay.remove();
-      if (this.aren) this.aren.lockInput(false);
-      this.started = true;
-    });
+    schedule(15100, finish);
   }
 
   private playUiTone(name: string): void {
