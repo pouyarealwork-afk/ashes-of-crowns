@@ -312,7 +312,13 @@ export class CombatWorld {
     label.setText(`ENEMY CHAIN ${payload.count}/3  ·  ×${payload.multiplier.toFixed(2)}`)
       .setPosition(sprite.x, sprite.y - sprite.displayHeight - 12).setAlpha(1).setScale(1.12);
     this.scene.tweens.killTweensOf(label);
-    this.scene.tweens.add({ targets: label, scale: 1, alpha: payload.count >= 3 ? 0.68 : 1, duration: 150, ease: 'Back.Out' });
+    this.scene.tweens.add({
+      targets: label, scale: 1, alpha: 1, duration: 150, ease: 'Back.Out',
+      onComplete: () => this.scene.tweens.add({
+        targets: label, alpha: 0, delay: 760, duration: 220, ease: 'Quad.In',
+        onComplete: () => { if (this.enemyComboLabels.get(payload.enemyId) === label) this.enemyComboLabels.delete(payload.enemyId); label.destroy(); },
+      }),
+    });
   }
 
   /** Telegraphs are deliberately large, directional and time-limited so attacks can be read on phones. */
@@ -331,8 +337,12 @@ export class CombatWorld {
     art.fillStyle(boss ? 0xff5969 : 0xffd28a, 0.95);
     const direction = enemy.facing;
     art.fillTriangle(direction * 16, -8, direction * (boss ? 48 : 30), -8, direction * 32, -34);
-    const label = this.scene.add.text(0, boss ? -60 : -48, boss ? 'BOSS ATTACK' : '!', {
-      fontFamily: 'monospace', fontSize: boss ? '13px' : '20px', fontStyle: 'bold',
+    const attackName = boss
+      ? (enemy.bossPhase === 3 ? 'FAN VOLLEY' : enemy.bossPhase === 2 ? 'GROUND SHOCKWAVE' : 'WIDE CLEAVE')
+      : enemy.ai === 'ranged' || enemy.ai === 'support' ? 'RANGED SHOT'
+        : enemy.ai === 'charger' ? 'CHARGE' : enemy.ai === 'ambusher' ? 'AMBUSH' : 'MELEE STRIKE';
+    const label = this.scene.add.text(0, boss ? -60 : -48, boss ? attackName : attackName, {
+      fontFamily: 'monospace', fontSize: boss ? '11px' : '10px', fontStyle: 'bold',
       color: boss ? '#ff9a9f' : '#ffd08b', stroke: '#180d0d', strokeThickness: 4,
     }).setOrigin(0.5);
     marker.add([art, label]);
