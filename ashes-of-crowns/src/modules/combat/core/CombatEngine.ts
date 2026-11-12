@@ -99,6 +99,7 @@ export class CombatEngine {
       if (!enemy.alive) continue;
       const action = this.ai.update(enemy, player, dt);
       enemy.vx = action.vx;
+      enemy.vy = action.vy;
       if (action.telegraph && !enemy.telegraphActive) {
         enemy.telegraphActive = true;
         this.emit('combat:telegraph', { enemyId: enemy.id, attack: enemy.ai, durationMs: enemy.attackWindupMs });

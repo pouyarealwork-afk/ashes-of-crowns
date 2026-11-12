@@ -141,7 +141,8 @@ export class CombatWorld {
       if (!enemy.alive) { sprite.disableBody(true, false); sprite.setAlpha(0.25); continue; }
       const body = sprite.body as Phaser.Physics.Arcade.Body;
       body.setVelocityX(enemy.vx);
-      if (enemy.ai === 'flying') body.setVelocityY(Math.sin(_time / 420 + enemy.x) * 18);
+      // EnemyAI owns both axes so flyers can track the player rather than float on a decorative sine wave.
+      body.setVelocityY(enemy.ai === 'flying' ? enemy.vy : 0);
       sprite.setFlipX(enemy.facing < 0);
       if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff);
       else if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
