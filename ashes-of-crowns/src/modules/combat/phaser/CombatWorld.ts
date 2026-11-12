@@ -73,6 +73,7 @@ export class CombatWorld {
   private projectiles: Phaser.Physics.Arcade.Group;
   private texturePrefix: string;
   private disposed = false;
+  private visualAccumulator = 0;
   private groundTargets: Phaser.Types.Physics.Arcade.ArcadeColliderType[] = [];
   private nextAssistAt = 0;
   private hazards: NonNullable<CombatWorldOptions['hazards']> = [];
@@ -134,16 +135,25 @@ export class CombatWorld {
     for (const enemy of this.engine.enemies.values()) { const sprite = this.sprites.get(enemy.id); if (sprite?.active) { enemy.x = sprite.x; enemy.y = sprite.y; } }
     const playerView = { x: p.x, y: p.y, health: p.stats.health, maxHealth: p.stats.config.maxHealth, facing: p.facing, isDead: p.playerState === 'dead', isBlocking: p.playerState === 'block' };
     this.engine.update(delta, playerView, (enemy, damage, ranged) => this.performEnemyAttack(enemy, damage, ranged));
+    this.visualAccumulator += delta;
+    const updateVisuals = this.visualAccumulator >= 33;
+    if (updateVisuals) this.visualAccumulator %= 33;
     const healthRegen = this.rpg?.getPassives().healthRegen ?? 0;
     if (healthRegen > 0 && p.playerState !== 'dead') p.stats.heal(healthRegen * Math.min(50, delta) / 1000);
     for (const enemy of this.engine.enemies.values()) {
       const sprite = this.sprites.get(enemy.id); if (!sprite) continue;
-      if (!enemy.alive) { sprite.disableBody(true, false); sprite.setAlpha(0.25); continue; }
+      if (!enemy.alive) {
+        if ((sprite.body as Phaser.Physics.Arcade.Body | null)?.enable) sprite.disableBody(true, false);
+        if (sprite.alpha !== 0.25) sprite.setAlpha(0.25);
+        continue;
+      }
       const body = sprite.body as Phaser.Physics.Arcade.Body;
       body.setVelocityX(enemy.vx);
       // Only flyers are gravity-free; leave ground-enemy Y velocity to Arcade Physics.
       if (enemy.ai === 'flying') body.setVelocityY(enemy.vy);
-      sprite.setFlipX(enemy.facing < 0);
+      if (!updateVisuals) continue;
+      const flip = enemy.facing < 0;
+      if (sprite.flipX !== flip) sprite.setFlipX(flip);
       const moving = Math.abs(enemy.vx) > 12;
       const lean = enemy.ai === 'flying'
         ? Math.max(-9, Math.min(9, enemy.vx * 0.035))
@@ -153,10 +163,9 @@ export class CombatWorld {
       else if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
       else if (enemy.windupRemainingMs > 0) sprite.setTint(0xffb45c);
       else sprite.clearTint();
-      if (enemy.windupRemainingMs > 0) {
-        const pulse = 1 + Math.sin(_time / 48) * 0.045;
-        sprite.setScale((getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1) * pulse);
-      } else sprite.setScale((getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1));
+      const baseScale = (getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1);
+      const pulse = enemy.windupRemainingMs > 0 ? 1 + Math.sin(_time / 48) * 0.035 : 1;
+      sprite.setScale(baseScale * pulse);
     }
     this.checkHazards();
     if (this.scene.time.now >= this.nextAssistAt && this.engine.getAlive().length) {
