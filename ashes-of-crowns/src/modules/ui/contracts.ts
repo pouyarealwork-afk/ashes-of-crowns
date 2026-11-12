@@ -318,6 +318,7 @@ export interface UIEvents {
   'input:action': { action: InputAction; pressed: boolean };
   'dialogue:choice': { dialogueId: string; nodeId: string; choiceId: string; meta?: unknown };
   'dialogue:end': { dialogueId: string; choices: string[] };
+  'dialogue:cancel': { dialogueId: string };
   'settings:changed': { settings: UISettings; key: keyof UISettings };
   'ending:finished': { ending: EndingId };
   'ui:screen': { id: string; open: boolean };
