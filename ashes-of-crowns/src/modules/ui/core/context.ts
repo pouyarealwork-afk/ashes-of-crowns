@@ -31,6 +31,7 @@ export interface UIContext {
 
   open(id: ScreenId, params?: unknown, mode?: OpenMode): void;
   back(): void;
+  close(id: ScreenId): void;
   closeAll(): void;
   isInGame(): boolean;
   /** Hide menus, show the HUD. Called automatically after game:new / game:continue / game:load unless disabled. */
