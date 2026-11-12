@@ -590,7 +590,7 @@ export class AudioManager {
   /** Subtle synthesized ambience keeps the world from being silent when no music files are bundled. */
   private startProceduralAmbient(): void {
     const ctx = this.ctx;
-    if (!ctx || !this.unlocked || this.ambientOscillators.length) return;
+    if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.ambientOscillators.length) return;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.018, ctx.currentTime + 2.5);
@@ -608,7 +608,7 @@ export class AudioManager {
   /** Small WebAudio one-shots are a safe fallback for missing bundled SFX. */
   private playProceduralSfx(id: string, opts: { volume?: number; rate?: number; pan?: number }): boolean {
     const ctx = this.ctx;
-    if (!ctx || !this.unlocked || this.vol.muted) return false;
+    if (!ctx || typeof ctx.createOscillator !== 'function' || !this.unlocked || this.vol.muted) return false;
     const name = id.toLowerCase();
     const isHit = /hit|damage|impact|attack|sword|slash|combat/.test(name);
     const isConfirm = /confirm|level|success|save/.test(name);
