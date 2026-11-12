@@ -80,6 +80,25 @@ test('combo multiplier increases every fifth confirmed hit', () => {
   for (let i=0;i<5;i++) c.resolvePlayerAttack(attack, {x:0,y:0,width:100,height:100}, {x:0,y:30,health:50,maxHealth:100,facing:1}, `combo-${i}`);
   assert.equal(multipliers[4], 1.1);
 });
+test('enemies build readable three-hit combo chains with escalating damage and recovery', () => {
+  const events = [];
+  const bus = { on(){}, off(){}, emit:(name, payload)=>events.push([name, payload]) };
+  const c = new CombatEngine({ emitter: bus, rng });
+  const enemy = c.spawn('ash_wolf', { x: 30, y: 0 });
+  enemy.attackCooldownMs = 0;
+  const strikes = [];
+  const player = { x: 0, y: 0, health: 100, maxHealth: 100, facing: 1 };
+  for (let i = 0; i < 180 && strikes.length < 4; i++) {
+    c.update(50, player, (_attacker, damage) => strikes.push(damage));
+  }
+  assert.equal(strikes.length, 4, 'enemy should complete three strikes and then restart its chain');
+  assert.ok(Math.abs(strikes[1] / strikes[0] - 1.14) < 0.001, 'second strike should scale by 14 percent');
+  assert.ok(Math.abs(strikes[2] / strikes[0] - 1.28) < 0.001, 'finisher should scale by 28 percent');
+  assert.ok(Math.abs(strikes[3] / strikes[0] - 1) < 0.001, 'recovery window should reset the next chain');
+  const chainEvents = events.filter(([name]) => name === 'combat:enemy-combo').map(([, payload]) => payload.count);
+  assert.deepEqual(chainEvents.slice(0, 4), [1, 2, 3, 1]);
+  assert.ok(enemy.attackCooldownMs > 0, 'finisher should create a recovery window');
+});
 test('rectangle collision helper uses strict overlap', () => {
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:9,y:9,width:2,height:2 }), true);
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:10,y:0,width:2,height:2 }), false);
