@@ -40,9 +40,9 @@ export class NewGameScreen extends Screen {
           sectionTitle(ctx.settings.lang === 'fa' ? 'کلاس قهرمان را انتخاب کن' : 'Choose your class', 'swords'),
           h('div', { class: 'row row--center', style: 'gap:10px;flex-wrap:wrap' },
             ...([
-              { id: 'warrior' as const, fa: 'جنگجو', en: 'Warrior', descFa: 'سلامت و دفاع بیشتر؛ مناسب نبرد مستقیم', descEn: 'More health and defense; built for direct combat', icon: 'shield' },
-              { id: 'assassin' as const, fa: 'قاتل', en: 'Assassin', descFa: 'سرعت و قدرت ضربه بیشتر؛ مناسب حملات سریع', descEn: 'Faster movement and stronger strikes', icon: 'swords' },
-              { id: 'mage' as const, fa: 'جادوگر', en: 'Mage', descFa: 'مانا و بازیابی بیشتر؛ مناسب مهارت‌ها', descEn: 'More mana and regeneration; skill-focused', icon: 'sparkles' },
+              { id: 'warrior' as const, fa: 'جنگجو', en: 'Warrior', descFa: 'سلامت و دفاع بیشتر؛ ضربهٔ قدرتی و فریاد نبرد', descEn: 'More health and defense; built for direct combat', icon: 'shield' },
+              { id: 'assassin' as const, fa: 'قاتل', en: 'Assassin', descFa: 'سرعت و ضربهٔ بحرانی بیشتر؛ خنجر از پشت و گام سایه', descEn: 'Faster movement and stronger strikes', icon: 'swords' },
+              { id: 'mage' as const, fa: 'جادوگر', en: 'Mage', descFa: 'مانای بیشتر؛ پرتاب صاعقه، یخ و جادوی آتشین', descEn: 'More mana and regeneration; skill-focused', icon: 'sparkles' },
             ]).map(c => btn({
               label: ctx.settings.lang === 'fa' ? c.fa : c.en,
               icon: c.icon,
@@ -50,7 +50,7 @@ export class NewGameScreen extends Screen {
               onClick: () => { this.selectedClass = c.id; this.rerender(); },
             }))),
           h('p', { class: 'muted small' }, (() => {
-            const c = { warrior: ['سلامت و دفاع بیشتر؛ مناسب نبرد مستقیم', 'More health and defense; built for direct combat'], assassin: ['سرعت و قدرت ضربه بیشتر؛ مناسب حملات سریع', 'Faster movement and stronger strikes'], mage: ['مانا و بازیابی بیشتر؛ مناسب مهارت‌ها', 'More mana and regeneration; skill-focused'] }[this.selectedClass];
+            const c = { warrior: ['سلامت و دفاع بیشتر؛ ضربهٔ قدرتی و فریاد نبرد', 'More health and defense; built for direct combat'], assassin: ['سرعت و ضربهٔ بحرانی بیشتر؛ خنجر از پشت و گام سایه', 'Faster movement and stronger strikes'], mage: ['مانای بیشتر؛ پرتاب صاعقه، یخ و جادوی آتشین', 'More mana and regeneration; skill-focused'] }[this.selectedClass];
             return c[ctx.settings.lang === 'fa' ? 0 : 1];
           })())),
         h('div', { class: 'newgame__slots' },
