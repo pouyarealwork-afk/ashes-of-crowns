@@ -62,6 +62,7 @@ export class GameScene extends Phaser.Scene {
   private pixelPackStatus?: HTMLElement;
   private pixelPackLoading = false;
   private pixelPackLoaded = false;
+  private pixelPackPanelHidden: boolean | null = null;
   private pixelPackObjectUrls: string[] = [];
 
   constructor() { super('GameScene'); }
@@ -205,7 +206,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updatePixelPackPanelVisibility(): void {
-    if (this.pixelPackPanel) this.pixelPackPanel.style.display = this.started ? 'none' : 'flex';
+    if (!this.pixelPackPanel) return;
+    const hidden = this.started;
+    if (this.pixelPackPanelHidden === hidden) return;
+    this.pixelPackPanelHidden = hidden;
+    this.pixelPackPanel.style.display = hidden ? 'none' : 'flex';
   }
 
   private async installPixelPack(fromCache: boolean): Promise<void> {
