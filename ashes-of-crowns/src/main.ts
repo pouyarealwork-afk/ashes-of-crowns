@@ -9,6 +9,8 @@ if (!host) throw new Error('Missing #game-root');
 // proportions on wider/narrower landscape phones instead of stretching it.
 const game = new Phaser.Game({
   type: Phaser.AUTO,
+  // Cap the internal render resolution on high-DPI phones; this avoids shading 3–4x more pixels than needed.
+  resolution: Math.min(window.devicePixelRatio || 1, 1.25),
   parent: host,
   backgroundColor: '#171315',
   scale: {
@@ -22,7 +24,7 @@ const game = new Phaser.Game({
     arcade: { gravity: { x: 0, y: 1400 }, debug: false, fps: 60 },
   },
   input: { activePointers: 4 },
-  render: { antialias: true, pixelArt: false, roundPixels: true },
+  render: { antialias: false, pixelArt: false, roundPixels: true, powerPreference: 'high-performance', batchSize: 4096 },
   scene: [GameScene],
 });
 
