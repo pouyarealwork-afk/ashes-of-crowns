@@ -85,6 +85,20 @@ test('rectangle collision helper uses strict overlap', () => {
   assert.equal(intersects({ x:0,y:0,width:10,height:10 }, { x:10,y:0,width:2,height:2 }), false);
   assert.equal(enemyRect({ x: 20, y: 30, tier: 'boss' }).width, 88);
 });
+test('stun cancels an enemy wind-up before the strike resolves', () => {
+  const c = new CombatEngine({ rng });
+  const e = c.spawn('ash_wolf', { x: 30, y: 0 });
+  e.attackCooldownMs = 0;
+  const player = { x: 0, y: 0, health: 100, maxHealth: 100, facing: 1 };
+  let strikes = 0;
+  c.update(16, player, () => { strikes++; });
+  assert.ok(e.windupRemainingMs > 0, 'enemy should telegraph before the hit');
+  c.damageEnemy(e.id, { amount: 1, stunMs: 900 });
+  c.update(16, player, () => { strikes++; });
+  assert.equal(e.windupRemainingMs, 0);
+  assert.equal(e.telegraphActive, false);
+  assert.equal(strikes, 0, 'stunned enemy must not finish its attack');
+});
 test('flying enemy pursues the player on both axes', () => {
   const ai = new EnemyAIController();
   const enemy = { ai:'flying', x:100, y:100, vx:0, vy:0, facing:1, alive:true, aggro:true,

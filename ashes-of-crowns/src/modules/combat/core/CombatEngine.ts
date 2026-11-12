@@ -98,6 +98,10 @@ export class CombatEngine {
       if (tick.damage > 0) this.damageEnemy(enemy.id, { amount: tick.damage, school: 'true', sourceId: 'status' });
       if (!enemy.alive) continue;
       const action = this.ai.update(enemy, player, dt);
+      if (enemy.stunRemainingMs > 0 && enemy.windupRemainingMs > 0) {
+        enemy.windupRemainingMs = 0;
+        enemy.telegraphActive = false;
+      }
       enemy.vx = action.vx;
       enemy.vy = action.vy;
       if (action.telegraph && !enemy.telegraphActive) {
