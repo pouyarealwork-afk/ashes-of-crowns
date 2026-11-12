@@ -6,7 +6,7 @@ on:
     paths:
       - "ashes-of-crowns/**"
   push:
-    branches: [rebuild-v2]
+    branches: [main, rebuild-v2]
     paths:
       - "ashes-of-crowns/**"
   workflow_dispatch:
