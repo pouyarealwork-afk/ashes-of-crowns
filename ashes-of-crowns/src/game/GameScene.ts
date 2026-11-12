@@ -660,6 +660,7 @@ export class GameScene extends Phaser.Scene {
     const key = `aoc-npc-${id}`;
     if (this.textures.exists(key)) return key;
     const texture = this.textures.createCanvas(key, 96, 128);
+    if (!texture) throw new Error('Unable to create NPC canvas texture');
     const ctx = texture.getContext();
     const color = (value: number): string => `#${value.toString(16).padStart(6, '0')}`;
     const base = color(cloth);
