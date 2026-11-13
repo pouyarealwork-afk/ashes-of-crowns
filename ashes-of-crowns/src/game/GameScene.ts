@@ -447,7 +447,7 @@ export class GameScene extends Phaser.Scene {
     const warm = desert || region.includes('ashen') || crown;
     const accent = frost ? 0x9bd9ef : forest ? 0x9fbd77 : hollow ? 0xb58be0 : 0xe6a66d;
 
-    const skyLayer = this.add.graphics().setDepth(-40);
+    const skyLayer = this.add.graphics().setDepth(-40).setScrollFactor(0.035);
     skyLayer.fillGradientStyle(sky, sky, mid, mid, 1);
     skyLayer.fillRect(0, 0, w, h);
     skyLayer.fillStyle(accent, 0.055); skyLayer.fillCircle(w * 0.72, h * 0.27, Math.min(330, h * 0.42));
@@ -458,7 +458,7 @@ export class GameScene extends Phaser.Scene {
     skyLayer.fillStyle(0xf2e7d3, 0.82); skyLayer.fillCircle(moonX, moonY, moonR);
     skyLayer.fillStyle(sky, 0.72); skyLayer.fillCircle(moonX + moonR * 0.55, moonY - moonR * 0.24, moonR * 0.88);
 
-    const stars = this.add.graphics().setDepth(-36);
+    const stars = this.add.graphics().setDepth(-36).setScrollFactor(0.12);
     for (let i = 0; i < 126; i++) {
       const x = (i * 197 + (i % 7) * 31) % w;
       const y = 20 + ((i * 113) % Math.max(90, Math.floor(h * 0.58)));
@@ -472,7 +472,7 @@ export class GameScene extends Phaser.Scene {
 
     // Three mountain and ridge layers create depth without image assets.
     const ridge = (depth: number, color: number, alpha: number, step: number, base: number, height: number, seed: number) => {
-      const g = this.add.graphics().setDepth(depth);
+      const g = this.add.graphics().setDepth(depth).setScrollFactor(depth <= -30 ? 0.16 : depth <= -27 ? 0.28 : 0.42);
       g.fillStyle(color, alpha); g.beginPath(); g.moveTo(0, horizon + base);
       for (let x = 0; x <= w + step; x += step) {
         const variation = ((Math.floor(x / step) * 73 + seed * 41) % 100) / 100;
@@ -486,7 +486,7 @@ export class GameScene extends Phaser.Scene {
     ridge(-23, Phaser.Display.Color.IntegerToColor(fore).darken(28).color, 0.82, 370, 52, 82, 8);
 
     // Architectural silhouettes vary by region: ruined hamlet, forest canopy, dunes, ice peaks or gothic city.
-    const distant = this.add.graphics().setDepth(-18);
+    const distant = this.add.graphics().setDepth(-18).setScrollFactor(0.58);
     const stone = Phaser.Display.Color.IntegerToColor(fore).darken(28).color;
     const stoneHi = Phaser.Display.Color.IntegerToColor(fore).darken(8).color;
     if (forest) {
