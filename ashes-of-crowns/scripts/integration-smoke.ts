@@ -17,10 +17,14 @@ async function main(): Promise<void> {
   const worldForMap = createWorldModule(); const overworld = buildOverworld(worldForMap);
   assert.equal(overworld.segments.length, 6, 'all six regions are included in one overworld');
   assert.equal(new Set(overworld.segments.map(s => s.region)).size, 6, 'each region has its own segment');
-  assert.ok(overworld.level.size.w > 40000, 'the world is larger than 40,000 world units');
+  assert.ok(overworld.level.size.w > 40000, 'the atlas extends beyond the original campaign corridor');
+  assert.ok(overworld.level.size.h > 9000, 'the atlas has substantial vertical exploration space');
+  assert.ok(overworld.segments.length >= 10, 'two expansion waves add four exploration pockets');
+  assert.ok(overworld.segments.some((s,i)=>i>0&&s.offsetY!==overworld.segments[i-1].offsetY),'regions occupy multiple vertical bands');
+  assert.ok(Object.values(overworld.exitSources).some((s:any)=>s.route),'region graph links become playable passages');
+  assert.ok(Object.values(overworld.exitSources).filter((s:any)=>s.teleport).length>=8,'each expansion pocket has entrance and return exits');
   assert.ok(overworld.level.platforms.length > 90, 'all six regions contribute their platforms');
   assert.ok(overworld.level.enemies.length > 25, 'all six regions contribute their enemies');
-  for (let i=1;i<overworld.segments.length;i++) assert.equal(overworld.segments[i].offsetX,overworld.segments[i-1].offsetX+overworld.segments[i-1].width,'region segments are contiguous');
 
   const input = new InputBridge();
   const keys: Record<string, { isDown: boolean }> = Object.fromEntries(['left','right','a','d','shift','space','up','w','z','j','x','c','e','v','one','two','three'].map(k => [k, { isDown: false }]));

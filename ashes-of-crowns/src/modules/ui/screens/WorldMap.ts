@@ -36,16 +36,11 @@ export class WorldMapScreen extends Screen {
           sel ? this.detail(sel, m.current === sel.id) : emptyState(ctx.t('map.select'), 'map'))));
   }
 
-  /** Dotted road linking unlocked regions in story order. SVG nodes must be created in the SVG namespace. */
+  /** Draw authored branches and loops in the region graph. */
   private pathEl(regions: MapRegion[]): SVGElement {
-    const g = svgEl('g');
-    for (let i = 1; i < regions.length; i++) {
-      const a = regions[i - 1], b = regions[i];
-      g.appendChild(svgEl('line', {
-        x1: a.x, y1: a.y, x2: b.x, y2: b.y,
-        class: cx('road', (a.state === 'locked' || b.state === 'locked') && 'is-locked'),
-        'vector-effect': 'non-scaling-stroke',
-      }));
+    const g=svgEl('g'),byId=new Map(regions.map(r=>[r.id,r])),drawn=new Set<string>();
+    for(const a of regions)for(const id of a.connections??[]){const b=byId.get(id);if(!b)continue;const key=[a.id,b.id].sort().join('|');if(drawn.has(key))continue;drawn.add(key);
+      g.appendChild(svgEl('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:cx('road',(a.state==='locked'||b.state==='locked')&&'is-locked'),'vector-effect':'non-scaling-stroke'}));
     }
     return g;
   }

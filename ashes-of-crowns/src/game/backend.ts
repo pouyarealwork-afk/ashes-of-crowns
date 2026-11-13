@@ -74,7 +74,14 @@ export function createUIBackend(scene: GameScene): UIBackend {
       setTracked: (id: string, tracked: boolean) => { scene.trackedQuest = tracked ? id : (scene.trackedQuest === id ? null : scene.trackedQuest); return { ok: true }; },
     },
     world: {
-      getMap: () => ({ regions: world.getMapView().nodes.map((n: any) => ({ id: n.id, name: n.name, description: n.tagline, x: n.pos.x * 100, y: n.pos.y * 100, state: n.unlocked ? (n.stats.percent >= 100 ? 'cleared' : 'unlocked') : 'locked' })), current: scene.currentRegion }),
+      getMap: () => {
+        const view=world.getMapView();
+        return { regions:view.nodes.map((n:any)=>({id:n.id,name:n.name,description:n.tagline,
+          x:({ashen_village:12,whispering_forest:34,forgotten_desert:56,frozen_highlands:34,hollow_city:56,crownfall:78} as Record<string,number>)[n.id],
+          y:({ashen_village:55,whispering_forest:32,forgotten_desert:55,frozen_highlands:8,hollow_city:88,crownfall:32} as Record<string,number>)[n.id],
+          connections:view.edges.filter((e:any)=>e.from===n.id).map((e:any)=>e.to),
+          state:n.unlocked?(n.stats.percent>=100?'cleared':'unlocked'):'locked'})),current:scene.currentRegion};
+      },
       fastTravel: (region: any) => world.travel(scene.currentRegion as any, region) ? { ok: true } : { ok: false, reason: 'That route is not available yet.' },
     },
     crafting: {

@@ -10,7 +10,7 @@ import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
 import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, type PropKind } from '../art/world';
-import { buildOverworld } from './Overworld';
+import { buildOverworld, type OverworldExitSource, type OverworldSegment } from './Overworld';
 import { createUIBackend } from './backend';
 import { paintAren } from '../art/aren';
 import { paintCourtActor } from '../art/cinematic';
@@ -54,9 +54,10 @@ export class GameScene extends Phaser.Scene {
   private uiUtilityControls?: HTMLElement;
   private currentBoss: { id: string; name: string; phase: number } | null = null;
   private pendingBossIntros = new Map<string, { id: string; name: string; title: string }>();
-  private overworldSegments: Array<{ region: RegionId; levelId: string; offsetX: number; offsetY: number; width: number }> = [];
-  private overworldExitSources: Record<string, { levelId: string; exitId: string }> = {};
+  private overworldSegments: OverworldSegment[] = [];
+  private overworldExitSources: Record<string, OverworldExitSource> = {};
   private overworldGates: Array<{ from: RegionId; to: RegionId; wall: Phaser.Physics.Arcade.Image; label: Phaser.GameObjects.Text }> = [];
+  private regionIntroActive = false;
   private pendingEndingId: string | null = null;
   private pendingEndingSlides: string[] = [];
   activeSaveSlot = 'slot1';
@@ -365,6 +366,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startLevel(levelId: string, spawnName = 'start'): void {
+    const previousRegion = this.currentRegion;
+    const previousLevelId = this.currentLevelId;
     this.currentBoss = null; this.pendingBossIntros.clear(); this.destroyLevel();
     this.overworldSegments = []; this.overworldExitSources = {}; this.overworldGates = [];
     const requestedLevelId = levelId;
@@ -395,15 +398,7 @@ export class GameScene extends Phaser.Scene {
       // Surface details are baked into the shared material texture to keep the object count low.
 
     }
-    if (this.overworldSegments.length > 1) for (let i = 1; i < this.overworldSegments.length; i++) {
-      const from = this.overworldSegments[i - 1].region, to = this.overworldSegments[i].region;
-      if (this.services.world.canTravel(from, to)) continue;
-      const wall = this.platforms.create(this.overworldSegments[i].offsetX, level.size.h / 2, 'aoc-pixel') as Phaser.Physics.Arcade.Image;
-      wall.setDisplaySize(22, level.size.h).setTint(0x76564d).setAlpha(0.82).setDepth(7).refreshBody();
-      const gateText = this.ui?.language === 'fa' ? 'مسیر بسته' : 'SEALED ROAD';
-      const label = this.add.text(wall.x, 110, gateText, { fontFamily: 'monospace', fontSize: '11px', color: '#f1c98b', stroke: '#1b1212', strokeThickness: 4 }).setOrigin(0.5).setDepth(8);
-      this.overworldGates.push({ from, to, wall, label });
-    }
+    // The atlas is connected by authored region routes, not chapter-order walls.
     this.drawHazards(level);
     this.drawLore(level);
     this.drawNpcs(runtime.npcs, level);
@@ -459,6 +454,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.resume();
     this.started = true;
     if (this.uiUtilityControls) this.uiUtilityControls.style.display = 'flex';
+    if ((entryRegion && previousRegion !== entryRegion.id) || spawnName.startsWith('exp_') || (!entryRegion && requestedLevelId !== previousLevelId && requestedLevelId !== 'aoc_overworld')) this.playRegionArrival(this.currentRegion, this.expansionTitle(spawnName) ?? level.name);
     this.activeZones.clear(); this.activePois.clear(); this.blockedExitAt.clear(); this.hudAccumulator = 0; this.triggerAccumulator = 0;
     this.ui?.setBackend(createUIBackend(this));
     this.ui?.showHud(true);
@@ -489,14 +485,14 @@ export class GameScene extends Phaser.Scene {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
         const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
         const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
-        this.add.tileSprite(segment.offsetX, 0, segment.width, level.size.h, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
+        this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
         // Keep the six biome backdrops anchored to their world segments, but move each
         // texture at its own camera rate. This preserves region boundaries while adding
         // real parallax instead of leaving the entire overworld backdrop static.
         const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
         for (const [d, factor, depth] of layers) {
           const key = ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d));
-          const layer = this.add.tileSprite(segment.offsetX, 0, segment.width, level.size.h, key).setOrigin(0, 0).setDepth(depth);
+          const layer = this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, key).setOrigin(0, 0).setDepth(depth);
           this.parallax.push({ ts: layer, f: factor });
         }
         // Small, biome-specific ambient motion makes each region feel alive without
@@ -513,7 +509,7 @@ export class GameScene extends Phaser.Scene {
         const style = weatherStyle[weather];
         if (style) for (let i = 0; i < 4; i++) {
           const x = segment.offsetX + segment.width * (i + 1) / 5;
-          const y = segment.offsetY + 130 + (i * 83) % 340;
+          const y = segment.offsetY + 130 + (i * 83) % Math.max(160, segment.height - 220);
           const mote = this.add.rectangle(x, y, style.width, style.height, style.color, style.alpha).setDepth(3);
           this.tweens.add({ targets: mote, x: x + (weather === 'sandstorm' ? 34 : 12), y: y + style.rise, alpha: style.alpha * 0.28, duration: 2600 + i * 430, yoyo: true, repeat: -1, delay: i * 170, ease: 'Sine.InOut' });
         }
@@ -535,7 +531,7 @@ export class GameScene extends Phaser.Scene {
 
   private updateParallax(): void {
     const cam = this.cameras.main;
-    for (const p of this.parallax) p.ts.tilePositionX = Math.round(cam.scrollX * p.f);
+    for (const p of this.parallax) { p.ts.tilePositionX = Math.round(cam.scrollX * p.f); p.ts.tilePositionY = Math.round(cam.scrollY * p.f); }
   }
 
   /** One pixel-art texture per (material, size): painted to the exact collider size so pixels never stretch. */
@@ -717,20 +713,49 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private updateOverworldRegion(x: number): void {
+  private updateOverworldRegion(x: number, y: number): void {
     if (this.overworldSegments.length < 2) return;
-    const seg = this.overworldSegments.find(s => x >= s.offsetX && x < s.offsetX + s.width) ?? this.overworldSegments[this.overworldSegments.length - 1];
+    const seg = this.overworldSegments.find(s => x >= s.offsetX && x < s.offsetX + s.width && y >= s.offsetY && y < s.offsetY + s.height);
+    if (!seg) return;
     if (seg.region === this.currentRegion) return;
     this.currentRegion = seg.region; this.combat?.engine.setRegion(seg.region);
     this.game.events.emit('world:region-changed', { regionId: seg.region }); this.game.events.emit('region:entered', { region: seg.region });
     const regionNamesFa: Record<string, string> = { ashen_village: 'روستای خاکستر', whispering_forest: 'جنگل نجواگر', forgotten_desert: 'بیابان فراموش‌شده', frozen_highlands: 'بلندای یخ‌زده', hollow_city: 'شهر توخالی', crownfall: 'سقوط تاج' };
     const region = this.services.world.content.regions.get(seg.region);
     this.ui?.toast({ text: this.ui?.language === 'fa' ? regionNamesFa[seg.region] ?? region?.name ?? seg.region : region?.name ?? seg.region, kind: 'info' });
+    this.playRegionArrival(seg.region, region?.name ?? seg.region);
+  }
+
+  private expansionTitle(spawn: string): string | undefined {
+    return ({ exp_abyss: 'The Cinder Deep', exp_skyreach: 'The Skyreach Crown', exp_buried_sea: 'The Buried Sea', exp_outer_rift: 'The Outer Ember Rift' } as Record<string,string>)[spawn];
+  }
+
+  private playRegionArrival(regionId: RegionId, subArea?: string): void {
+    if (this.regionIntroActive || !this.aren || !this.started) return;
+    const region = this.services.world.content.regions.get(regionId); if (!region) return;
+    this.regionIntroActive = true; this.aren.lockInput(true);
+    const names: Record<string,string> = { ashen_village:'روستای خاکستر',whispering_forest:'جنگل نجواگر',forgotten_desert:'بیابان فراموش‌شده',frozen_highlands:'بلندای یخ‌زده',hollow_city:'شهر توخالی',crownfall:'سقوط تاج' };
+    const captions: Record<string,string> = { ashen_village:'جایی که خاکستر، خاطره‌ها را می‌بلعد',whispering_forest:'درختان اینجا رازها را به یاد می‌سپارند',forgotten_desert:'زیر شن‌ها، شهری هنوز نفس می‌کشد',frozen_highlands:'باد، نام مردگان را از قله‌ها می‌خواند',hollow_city:'در ژرفای زمین، سکوت فرمانروایی می‌کند',crownfall:'آخرین شعله‌های تاج هنوز خاموش نشده‌اند' };
+    const colors: Record<string,number> = { ashen_village:0xd18a55,whispering_forest:0x9bbd70,forgotten_desert:0xe0b06b,frozen_highlands:0x9cc9dc,hollow_city:0xb69ad9,crownfall:0xd46c55 };
+    const title = subArea && subArea !== region.name ? subArea : (this.ui?.language === 'fa' ? names[regionId] : region.name);
+    const caption = this.ui?.language === 'fa' ? captions[regionId] : region.tagline;
+    const panel=this.add.container(640,360).setScrollFactor(0).setDepth(1500).setAlpha(0).setY(374);
+    panel.add([
+      this.add.rectangle(0,0,1280,720,0x09080d,.64),
+      this.add.rectangle(0,-58,520,2,colors[regionId]??0xd2a46d,.92),
+      this.add.rectangle(0,66,520,2,colors[regionId]??0xd2a46d,.72),
+      this.add.text(0,-32,this.ui?.language==='fa'?'قلمروی تازه':'A NEW FRONTIER',{fontFamily:'monospace',fontSize:'11px',color:'#d7c5a4',letterSpacing:4}).setOrigin(.5),
+      this.add.text(0,8,title,{fontFamily:'Georgia, serif',fontSize:this.ui?.language==='fa'?'34px':'38px',color:'#f3e6ce',stroke:'#130f12',strokeThickness:5}).setOrigin(.5),
+      this.add.text(0,42,caption??'',{fontFamily:'Georgia, serif',fontSize:'13px',color:'#c7b7a0',stroke:'#130f12',strokeThickness:3,align:'center',wordWrap:{width:760}}).setOrigin(.5),
+    ]);
+    this.tweens.add({targets:panel,alpha:1,y:360,duration:230,ease:'Cubic.Out'});
+    this.time.delayedCall(1120,()=>this.aren?.lockInput(false));
+    this.time.delayedCall(1480,()=>this.tweens.add({targets:panel,alpha:0,y:346,duration:300,ease:'Cubic.In',onComplete:()=>{panel.destroy();this.regionIntroActive=false;}}));
   }
 
   private updateWorldTriggers(): void {
     const px = this.aren.x, py = this.aren.y;
-    this.updateOverworldRegion(px);
+    this.updateOverworldRegion(px, py);
     for (const gate of [...this.overworldGates]) if (this.services.world.canTravel(gate.from, gate.to)) { gate.wall.destroy(); gate.label.destroy(); this.overworldGates.splice(this.overworldGates.indexOf(gate), 1); }
     for (const zone of this.levelDef.zones) {
       const inside = px >= zone.rect.x && px <= zone.rect.x + zone.rect.w && py >= zone.rect.y && py <= zone.rect.y + zone.rect.h;
@@ -756,7 +781,11 @@ export class GameScene extends Phaser.Scene {
     for (const exit of this.levelDef.exits) {
       const r = exit.rect;
       if (px >= r.x && px <= r.x + r.w && py >= r.y - 20 && py <= r.y + r.h + 20) {
-        const source = this.overworldExitSources[exit.id]; const result = this.services.world.useExit(source?.levelId ?? this.currentLevelId, source?.exitId ?? exit.id);
+        const source = this.overworldExitSources[exit.id];
+        if (source && 'teleport' in source) { this.scene.restart({ levelId: 'aoc_overworld', spawn: source.spawnName }); return; }
+        const result = source?.route
+          ? (this.services.world.travel(source.from, source.to) ? { ok: true } : { ok: false, reason: exit.lockedText ?? 'The passage is sealed.' })
+          : this.services.world.useExit(source && !source.route ? source.levelId : this.currentLevelId, source && !source.route ? source.exitId : exit.id);
         if (!result.ok) { const now = this.time.now; if (now - (this.blockedExitAt.get(exit.id) ?? 0) > 2200) { this.blockedExitAt.set(exit.id, now); this.ui?.toast({ text: result.reason ?? 'The way is sealed.', kind: 'warning' }); } }
         else return;
       }
