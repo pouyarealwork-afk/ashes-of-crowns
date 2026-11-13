@@ -92,7 +92,7 @@ export class GameScene extends Phaser.Scene {
         persistence: new PersistenceModule({
           gameVersion: '1.0.0', bus,
           autosave: { intervalMs: 90000, minGapMs: 12000 },
-          audio: { regionMusic: {}, combatMusicId: undefined },
+          audio: { manifest: {}, regionMusic: {}, combatMusicId: undefined },
         }),
       };
       this.wireSharedEvents();
@@ -444,7 +444,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.currentBoss = null;
-    this.combat = new CombatWorld({ scene: this, player: this.aren as any, rpg: this.services.rpg as any, region: level.region, level: this.services.rpg.getLevel(), spawns: level.enemies, hazards: level.hazards.map(h => ({ type: h.type, rect: { x: h.rect.x, y: h.rect.y, width: h.rect.w, height: h.rect.h }, damage: h.damage })), ground: this.platforms });
+    this.combat = new CombatWorld({ scene: this, player: this.aren as any, rpg: this.services.rpg as any, region: level.region, level: this.services.rpg.getLevel(), spawns: level.enemies, hazards: level.hazards.map((h: any) => ({ type: h.type, rect: { x: h.rect.x, y: h.rect.y, width: h.rect.w, height: h.rect.h }, damage: h.damage })), ground: this.platforms });
     const ngScale = this.services.rpg.ngPlus.getScaling();
     if (ngScale.cycle > 0) for (const enemy of this.combat.engine.getAlive()) {
       enemy.maxHealth = Math.round(enemy.maxHealth * ngScale.enemyHealthMult); enemy.health = enemy.maxHealth;
