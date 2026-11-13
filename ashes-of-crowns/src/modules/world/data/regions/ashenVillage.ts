@@ -18,7 +18,7 @@ export const ashenVillage: RegionContent = {
   levels: [
     {
       id: 'ashen_village_main', region: 'ashen_village', name: 'Cinderhollow Road', size: { w: 6400, h: 900 }, atmosphere: ATMOS_MAIN,
-      spawns: { start: { x: 140, y: 700 }, from_cellar: { x: 3240, y: 700 }, from_forest: { x: 6200, y: 700 } },
+      spawns: { start: { x: 360, y: 700 }, from_cellar: { x: 3240, y: 700 }, from_forest: { x: 6200, y: 700 } },
       platforms: [
         P(0, 760, 1500, 140), P(1700, 760, 1300, 140), P(3150, 760, 1500, 140), P(4850, 760, 1550, 140),
         P(420, 640, 220, 24, 'wood'), P(760, 560, 200, 24, 'wood'), P(1180, 620, 240, 24, 'oneway'),

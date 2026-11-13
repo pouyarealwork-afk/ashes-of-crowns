@@ -111,3 +111,11 @@
 .aoc-ui .abtn--dodge { width: calc(56px * var(--cs)); height: calc(56px * var(--cs)); inset-inline-end: calc(94px * var(--cs)); inset-block-end: calc(8px * var(--cs)); }
 .aoc-ui .abtn--interact { width: calc(48px * var(--cs)); height: calc(48px * var(--cs)); inset-inline-end: calc(102px * var(--cs)); inset-block-end: calc(80px * var(--cs)); }
 .aoc-ui .abtn--skill { width: calc(48px * var(--cs)); height: calc(48px * var(--cs)); }
+
+
+/* Compact landscape controls: keep the hero and combat lane visible on phones. */
+@media (max-height: 720px) {
+  .aoc-ui { --ctl-scale: .78; }
+  .aoc-ui .touch { padding-bottom: max(9px, var(--sa-b)); }
+  .aoc-ui .touch__right { gap: 6px; }
+}

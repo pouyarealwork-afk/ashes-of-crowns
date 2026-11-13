@@ -393,7 +393,7 @@ export class GameScene extends Phaser.Scene {
     const regen = this.services.rpg.getRegenPerSecond();
     this.aren = new Player(this, {
       x, y,
-      stats: { maxHealth: Math.round(stats.health * classStats.health), attack: Math.round(stats.attack * classStats.attack), defense: Math.round(stats.defense * classStats.defense), speed: Math.round(stats.speed * classStats.speed), maxMana: Math.round(stats.mana * classStats.mana), maxStamina: Math.round(stats.stamina * classStats.stamina), manaRegen: Math.max(2, regen.mana * classStats.manaRegen), staminaRegen: Math.max(22, regen.stamina * classStats.staminaRegen) },
+      stats: { maxHealth: Math.max(1, Math.round(stats.health * classStats.health)), attack: Math.max(1, Math.round(stats.attack * classStats.attack)), defense: Math.max(0, Math.round(stats.defense * classStats.defense)), speed: Math.max(1, Math.round(stats.speed * classStats.speed)), maxMana: Math.max(1, Math.round(stats.mana * classStats.mana)), maxStamina: Math.max(1, Math.round(stats.stamina * classStats.stamina)), manaRegen: Math.max(2, regen.mana * classStats.manaRegen), staminaRegen: Math.max(22, regen.stamina * classStats.staminaRegen) },
       touch: false, autoRespawn: false, fallKillY: level.size.h + 260,
       camera: { bounds: { x: 0, y: 0, width: level.size.w, height: level.size.h }, lerpX: 0.12, lerpY: 0.1 },
       inputProvider: () => this.inputBridge.frame(),
@@ -401,6 +401,9 @@ export class GameScene extends Phaser.Scene {
     if (savedPos && savedStats.health !== undefined) { this.aren.stats.health = Math.min(this.aren.stats.config.maxHealth, savedStats.health); this.aren.stats.mana = Math.min(this.aren.stats.config.maxMana, savedStats.mana ?? this.aren.stats.mana); this.aren.stats.stamina = Math.min(this.aren.stats.config.maxStamina, savedStats.stamina ?? this.aren.stats.stamina); }
     this.lastSaveState = null;
     this.aren.addGround(this.platforms);
+    // Keep the hero above foreground dressing and reset the camera after the level is built.
+    this.aren.setVisible(true).setAlpha(1).setDepth(20);
+    this.aren.cameraRig?.snap();
     this.syncCompanions();
     this.aren.setCheckpoint(spawn.x, spawn.y);
     const respawnPoint = this.services.persistence.checkpoints.getRespawnPoint();
@@ -821,11 +824,11 @@ export class GameScene extends Phaser.Scene {
       const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
       // NPCs were rendered at over twice Aren's visual height and looked detached
       // from the playable world. Keep their feet anchored and bring them to a shared scale.
-      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8).setScale(0.46);
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8).setScale(0.34);
       // Keep NPC feet on the same plane as Aren; the subtle cloth sway does not lift them.
-      this.tweens.add({ targets: actor, scaleY: 0.447, angle: 0.35, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: actor, scaleY: 0.345, angle: 0.28, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       this.tweens.add({ targets: shadow, scaleX: 1.035, alpha: 0.39, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      const plaque = this.add.container(x, y - 66, [
+      const plaque = this.add.container(x, y - 52, [
         this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.82).setStrokeStyle(1, 0x9a774b, 0.82),
         this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
         this.add.circle(-42, 0, 2, 0xe5bd79, 0.9),

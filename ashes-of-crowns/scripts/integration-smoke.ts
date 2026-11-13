@@ -5,8 +5,14 @@ import { RpgModule } from '../src/modules/rpg';
 import { createWorldModule } from '../src/modules/world';
 import { MemoryBackend, PersistenceModule, SimpleEmitter } from '../src/modules/persistence';
 import { InputBridge } from '../src/game/InputBridge';
+import { ashenVillage } from '../src/modules/world/data/regions/ashenVillage';
 
 async function main(): Promise<void> {
+  const opening = ashenVillage.levels.find(level => level.id === 'ashen_village_main')!;
+  const openingSpawn = opening.spawns.start;
+  assert.ok(openingSpawn.x >= 300, 'opening spawn stays clear of the mobile joystick overlay');
+  assert.ok(opening.platforms.some(([x, y, w]) => openingSpawn.x >= x && openingSpawn.x <= x + w && y >= openingSpawn.y && y - openingSpawn.y <= 100), 'opening spawn is positioned directly above a safe ground platform');
+
   const input = new InputBridge();
   const keys: Record<string, { isDown: boolean }> = Object.fromEntries(['left','right','a','d','shift','space','up','w','z','j','x','c','e','v','one','two','three'].map(k => [k, { isDown: false }]));
   input.attach(keys);
