@@ -915,7 +915,7 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic{position:fixed;inset:0;z-index:100000;overflow:hidden;background:#050507;color:#ead9c1;display:grid;place-items:center;opacity:0;transition:opacity 1.1s ease;font-family:Georgia,'Times New Roman',serif;isolation:isolate}
         .aoc-opening-cinematic *{box-sizing:border-box}
         .aoc-opening-cinematic.is-visible{opacity:1}
-        .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-3%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.045);transition:transform 12s cubic-bezier(.16,.55,.25,1);contain:paint}
+        .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-3%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.045);transition:transform 60s cubic-bezier(.16,.55,.25,1);contain:paint}
         .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1)}
         .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}
         .aoc-opening-cinematic .aoc-scene-world{opacity:0;transition:opacity 1.8s ease}
@@ -925,14 +925,14 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-shot.scene-green .aoc-haze{background:linear-gradient(180deg,transparent,rgba(113,175,91,.10),rgba(20,48,33,.34))}
         .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-haze{background:linear-gradient(180deg,transparent,rgba(195,153,104,.12),rgba(18,13,17,.65))}
         .aoc-opening-cinematic .aoc-shot.scene-green .aoc-embers{display:none}
-        .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 25s cubic-bezier(.2,.55,.25,1) both}
+        .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 60s cubic-bezier(.2,.55,.25,1) both}
         .aoc-opening-cinematic .aoc-shot:after{content:'';position:absolute;inset:-20%;pointer-events:none;background:linear-gradient(112deg,transparent 35%,rgba(255,194,137,.075) 48%,transparent 60%);transform:translateX(-65%);animation:aoc-light-sweep 8s ease-in-out 1.2s infinite}
         .aoc-opening-cinematic .aoc-haze{opacity:.82}
         @keyframes aoc-camera-drift{0%{transform:scale(1.02) translate3d(1.2%,.8%,0)}45%{transform:scale(1.11) translate3d(-1.4%,-.5%,0)}100%{transform:scale(1.12) translate3d(-1.5%,-.8%,0)}}
         /* Each story beat gets its own camera move, not one repeated zoom on a still. */
         .aoc-opening-cinematic .aoc-shot.scene-green .aoc-art{animation:aoc-green-pan 5.2s cubic-bezier(.2,.55,.25,1) both}
         .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-art{animation:aoc-trial-dolly 8.5s cubic-bezier(.2,.55,.25,1) both}
-        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-art{animation:aoc-ashes-reveal 12s cubic-bezier(.2,.55,.25,1) both}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-art{animation:aoc-ashes-reveal 60s cubic-bezier(.2,.55,.25,1) both}
         @keyframes aoc-green-pan{0%{transform:scale(1.12) translate3d(3.5%,1.2%,0)}100%{transform:scale(1.03) translate3d(-2.5%,-.6%,0)}}
         @keyframes aoc-trial-dolly{0%{transform:scale(1.04) translate3d(-1.8%,.4%,0)}55%{transform:scale(1.12) translate3d(1.2%,-.5%,0)}100%{transform:scale(1.08) translate3d(0,-.2%,0)}}
         @keyframes aoc-ashes-reveal{0%{transform:scale(1.18) translate3d(0,2.4%,0);filter:brightness(1.45)}12%{filter:brightness(.72)}42%{transform:scale(1.09) translate3d(-1.2%,-.3%,0);filter:brightness(.88)}100%{transform:scale(1.04) translate3d(1.4%,-.8%,0);filter:brightness(.78)}}
@@ -1003,6 +1003,17 @@ export class GameScene extends Phaser.Scene {
         @keyframes aoc-haze-drift{from{transform:translateX(-3%) scale(1)}to{transform:translateX(4%) scale(1.12)}}
         @keyframes aoc-grain-shift{0%{transform:translate(0,0)}25%{transform:translate(2%,-1%)}50%{transform:translate(-1%,2%)}75%{transform:translate(1%,1%)}100%{transform:translate(-2%,-1%)}}
         @keyframes aoc-flash{0%{opacity:0}12%{opacity:.55}100%{opacity:0}}
+        .aoc-opening-cinematic .aoc-shot.scene-verdict{animation:aoc-verdict-shake .55s ease-out 1}
+        .aoc-opening-cinematic .aoc-shot.scene-verdict:before{content:'';position:absolute;inset:0;z-index:4;background:radial-gradient(ellipse at 50% 58%,rgba(245,183,112,.42),transparent 58%);animation:aoc-verdict-glow 2.4s ease-in-out infinite alternate}
+        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-trial-world{filter:contrast(1.12) saturate(.78)}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-ashes-world{animation:aoc-ruin-light 4s ease-in-out infinite alternate}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-cine-figure{animation:aoc-figure-breathe 2.8s ease-in-out infinite}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-ground-mist{opacity:.45}
+        .aoc-opening-cinematic .aoc-embers{mix-blend-mode:screen}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-bird-flock{animation-duration:7s}
+        @keyframes aoc-verdict-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-.5%)}40%{transform:translateX(.4%)}60%{transform:translateX(-.25%)}80%{transform:translateX(.15%)}}
+        @keyframes aoc-verdict-glow{from{opacity:.15}to{opacity:.75}}
+        @keyframes aoc-ruin-light{from{filter:brightness(.76) saturate(.82)}to{filter:brightness(1.08) saturate(1.08)}}
         @media(prefers-reduced-motion:reduce){.aoc-opening-cinematic *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
       </style>
       <div class="aoc-shot">
@@ -1111,6 +1122,8 @@ export class GameScene extends Phaser.Scene {
     let audioContext: AudioContext | undefined;
     let audioNodes: OscillatorNode[] = [];
     const timers: Phaser.Time.TimerEvent[] = [];
+    const browserTimers: number[] = [];
+    const later = (delay: number, fn: () => void) => browserTimers.push(window.setTimeout(fn, delay));
     const schedule = (delay: number, fn: () => void) => timers.push(this.time.delayedCall(delay, fn));
     const setScene = (scene: 'green' | 'trial' | 'ashes') => { shot.classList.remove('scene-green', 'scene-trial', 'scene-ashes'); shot.classList.add(`scene-${scene}`); };
     const setCaption = (eyebrow: string, text: string, title = false) => {
@@ -1127,6 +1140,9 @@ export class GameScene extends Phaser.Scene {
       if (finished) return;
       finished = true;
       timers.forEach(timer => timer.remove(false));
+      browserTimers.forEach(id => window.clearTimeout(id));
+      window.removeEventListener('pointerdown', unlockScore);
+      window.removeEventListener('keydown', unlockScore);
       window.removeEventListener('keydown', onKeyDown);
       skip.removeEventListener('click', finish);
       overlay.style.opacity = '0';
@@ -1151,46 +1167,81 @@ export class GameScene extends Phaser.Scene {
     window.addEventListener('keydown', onKeyDown);
     requestAnimationFrame(() => overlay.classList.add('is-visible'));
 
-    // A gentle, consonant fantasy score: warm sustained chords with a quiet, slow arpeggio.
-    try {
-      audioContext = new AudioContext();
-      const master = audioContext.createGain();
-      master.gain.setValueAtTime(0.0001, audioContext.currentTime);
-      master.gain.exponentialRampToValueAtTime(0.032, audioContext.currentTime + 3.2);
-      master.connect(audioContext.destination);
-      const pad = [130.81, 164.81, 196, 261.63];
-      pad.forEach((frequency, index) => {
-        const oscillator = audioContext!.createOscillator();
-        const gain = audioContext!.createGain();
-        oscillator.type = 'sine'; oscillator.frequency.value = frequency;
-        gain.gain.value = [0.17, 0.11, 0.09, 0.045][index];
-        oscillator.connect(gain); gain.connect(master); oscillator.start(); audioNodes.push(oscillator);
-      });
-      const melody = audioContext.createOscillator(); const melodyGain = audioContext.createGain();
-      melody.type = 'sine'; melody.frequency.setValueAtTime(392, audioContext.currentTime + 1.2);
-      [[1.2,392],[3.4,493.88],[5.6,587.33],[8.2,493.88],[10.5,440],[12.8,392],[15.4,349.23],[18,392],[20.5,440],[22.8,392]].forEach(([at, hz]) => melody.frequency.setValueAtTime(hz, audioContext!.currentTime + at));
-      melodyGain.gain.setValueAtTime(0.0001, audioContext.currentTime); melodyGain.gain.linearRampToValueAtTime(0.035, audioContext.currentTime + 2); melodyGain.connect(master); melody.connect(melodyGain); melody.start(); audioNodes.push(melody);
-    } catch { /* Audio may be unavailable; the visual sequence remains complete. */ }
+    // Original one-minute orchestral-style score: layered pads, low strings, a plucked
+    // ostinato, a rising lead and restrained cinematic impacts. Audio starts on the first
+    // real user gesture because mobile browsers prohibit autoplay.
+    let scoreStarted = false;
+    const unlockScore = () => {
+      if (scoreStarted || !audioContext || finished) return;
+      scoreStarted = true;
+      void audioContext.resume().then(() => {
+        if (!audioContext || finished) return;
+        const ctx = audioContext, now = ctx.currentTime;
+        const master = ctx.createGain(); master.gain.setValueAtTime(0.0001, now); master.gain.linearRampToValueAtTime(0.34, now + 2.8); master.connect(ctx.destination);
+        const low = ctx.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = 1800; low.connect(master);
+        const chordBus = ctx.createGain(); chordBus.gain.value = 0.20; chordBus.connect(low);
+        const progression = [[110,164.81,220,261.63],[87.31,130.81,174.61,220],[98,146.83,196,246.94],[73.42,110,146.83,196],[87.31,130.81,174.61,220],[65.41,98,130.81,164.81]];
+        progression.forEach((chord, index) => {
+          const at = now + index * 10;
+          chord.forEach((hz, voice) => {
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.type = voice === 0 ? 'triangle' : 'sine'; osc.frequency.value = hz;
+            gain.gain.setValueAtTime(0.0001, at); gain.gain.linearRampToValueAtTime(voice === 0 ? 0.22 : 0.075, at + 1.8); gain.gain.setValueAtTime(voice === 0 ? 0.22 : 0.075, at + 8.8); gain.gain.linearRampToValueAtTime(0.0001, at + 10);
+            osc.connect(gain); gain.connect(chordBus); osc.start(at); osc.stop(at + 10.1); audioNodes.push(osc);
+          });
+        });
+        // Slow low-string pulses build tension beneath the harmony.
+        for (let beat = 0; beat < 30; beat++) {
+          const at = now + beat * 2;
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.type = 'triangle'; osc.frequency.value = [55,43.65,49,36.71,43.65,32.7][Math.floor(beat / 5)];
+          gain.gain.setValueAtTime(0.0001, at); gain.gain.linearRampToValueAtTime(0.12, at + 0.12); gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.35);
+          osc.connect(gain); gain.connect(master); osc.start(at); osc.stop(at + 1.4); audioNodes.push(osc);
+        }
+        // A delicate plucked motif evolves into a more urgent rising melody.
+        const motif = [0,7,12,7,3,7,10,7,0,7,12,15,14,10,7,3,0,7,12,19,17,14,12,7,3,7,10,14,17,14,10,7];
+        const root = [220,174.61,196,146.83,174.61,130.81];
+        motif.forEach((step, index) => {
+          const at = now + 1.5 + index * 1.72;
+          const hz = root[Math.min(5, Math.floor(index / 6))] * Math.pow(2, step / 12);
+          const osc = ctx.createOscillator(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
+          osc.type = 'triangle'; osc.frequency.value = hz; filter.type = 'lowpass'; filter.frequency.value = 2200;
+          gain.gain.setValueAtTime(0.0001, at); gain.gain.linearRampToValueAtTime(index > 23 ? 0.12 : 0.075, at + 0.025); gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.65);
+          osc.connect(filter); filter.connect(gain); gain.connect(master); osc.start(at); osc.stop(at + 0.7); audioNodes.push(osc);
+        });
+        // A warm, airy fifth enters for the oath/title passage.
+        [392,587.33].forEach((hz, i) => { const osc=ctx.createOscillator(), gain=ctx.createGain(); osc.type='sine'; osc.frequency.value=hz; gain.gain.setValueAtTime(0.0001,now+42); gain.gain.linearRampToValueAtTime(i?0.025:0.04,now+47); gain.gain.setValueAtTime(i?0.025:0.04,now+56); gain.gain.linearRampToValueAtTime(0.0001,now+60); osc.connect(gain); gain.connect(master); osc.start(now+42); osc.stop(now+60.1); audioNodes.push(osc); });
+        // Final crescendo and controlled cinematic hit.
+        const hitAt = now + 54.5;
+        const hit = ctx.createOscillator(), hitGain = ctx.createGain(); hit.type='sine'; hit.frequency.setValueAtTime(92,hitAt); hit.frequency.exponentialRampToValueAtTime(38,hitAt+1.2); hitGain.gain.setValueAtTime(0.0001,hitAt); hitGain.gain.linearRampToValueAtTime(0.2,hitAt+0.04); hitGain.gain.exponentialRampToValueAtTime(0.0001,hitAt+2.2); hit.connect(hitGain); hitGain.connect(master); hit.start(hitAt); hit.stop(hitAt+2.3); audioNodes.push(hit);
+        master.gain.setValueAtTime(0.34, now + 57); master.gain.linearRampToValueAtTime(0.0001, now + 60);
+      }).catch(() => { scoreStarted = false; });
+    };
+    window.addEventListener('pointerdown', unlockScore, { once: true });
+    window.addEventListener('keydown', unlockScore, { once: true });
 
     const captions = fa ? [
-      ['پیش از خاکستر', 'این سرزمین روزگاری زیر نور آفتاب نفس می‌کشید؛ رودها زلال بودند و ناقوس‌ها برای جشن به صدا درمی‌آمدند.'],
-      ['تالار پادشاه', 'اما در یک شب، نام آرن وال‌کرست را به خیانت گره زدند.'],
-      ['محاکمه', 'در برابر تاج و شورا ایستادی؛ بی‌آن‌که فرصتی برای گفتن حقیقت داشته باشی.'],
-      ['سقوط', 'حکم صادر شد. خانه‌ات سوخت و سرزمینت به خاکستر نشست.'],
-      ['سوگند', 'اما حقیقت هنوز زنده است… و تو هنوز ایستاده‌ای.'],
+      ['پیش از خاکستر', 'پادشاهی در آرامش نفس می‌کشید؛ رودها روشن بودند و ناقوس‌ها نوید فردایی امن می‌دادند.'],
+      ['سوگندِ نگهبان', 'آرن وال‌کرست، شمشیرش را برای پاسداری از تاج و مردم بالا برد.'],
+      ['خیانت در تالار', 'اما زمزمه‌ای در گوش پادشاه نشست؛ حقیقت، پیش از شنیده‌شدن محکوم شد.'],
+      ['حکم پادشاه', 'درهای تالار بسته شد. نگهبانان راه را سد کردند و نام آرن به ننگ آلوده شد.'],
+      ['شبِ آتش', 'شعله‌ها خانه را بلعیدند؛ آنچه از سرزمین ماند، خاکستر و سکوت بود.'],
+      ['سوگندِ خاکستر', 'از دل ویرانی برمی‌خیزی؛ نه برای تاج، که برای آشکارکردن حقیقت.']
     ] : [
-      ['BEFORE THE ASHES', 'Once this land breathed beneath a golden sun. Rivers ran clear, and bells rang for celebration.'],
-      ['THE KING\'S HALL', 'Then, in one night, Aren Valcrest was named a traitor.'],
-      ['THE TRIAL', 'You stood before the crown and council, denied the chance to speak the truth.'],
-      ['THE FALL', 'The sentence was passed. Your home burned, and the kingdom turned to ash.'],
-      ['THE OATH', 'But the truth still lives… and so do you.'],
+      ['BEFORE THE ASHES', 'The kingdom breathed in peace; rivers shone and bells promised a safer tomorrow.'],
+      ['THE OATH OF A GUARDIAN', 'Aren Valcrest raised his blade to protect the crown and its people.'],
+      ['BETRAYAL IN THE HALL', 'A whisper reached the king. The truth was condemned before it could be heard.'],
+      ['THE KING’S DECREE', 'The hall doors closed. The guards blocked his way, and Aren’s name was stained.'],
+      ['THE NIGHT OF FIRE', 'Flames consumed his home. Only ash and silence remained.'],
+      ['AN OATH IN ASHES', 'From ruin, he rises—not for a crown, but to uncover the truth.']
     ];
     setScene('green'); setCaption(captions[0][0], captions[0][1]);
-    schedule(5200, () => { setScene('trial'); setCaption(captions[1][0], captions[1][1]); });
-    schedule(9000, () => { setCaption(captions[2][0], captions[2][1]); });
-    schedule(13700, () => { setScene('ashes'); setCaption(captions[3][0], captions[3][1]); flash.classList.add('is-flashing'); });
-    schedule(18300, () => { setCaption(captions[4][0], captions[4][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
-    schedule(22000, () => {
+    schedule(10500, () => { setScene('trial'); setCaption(captions[1][0], captions[1][1]); });
+    schedule(19000, () => { setCaption(captions[2][0], captions[2][1]); shot.classList.add('scene-verdict'); flash.classList.add('is-flashing'); });
+    schedule(27500, () => { setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(36500, () => { setScene('ashes'); setCaption(captions[4][0], captions[4][1]); });
+    schedule(45500, () => { setCaption(captions[5][0], captions[5][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(52500, () => {
       copy.classList.remove('is-active');
       schedule(450, () => {
         kicker.textContent = '';
@@ -1204,7 +1255,7 @@ export class GameScene extends Phaser.Scene {
         copy.classList.add('is-active');
       });
     });
-    schedule(25800, finish);
+    schedule(60000, finish);
   }
 
   private playUiTone(name: string): void {
