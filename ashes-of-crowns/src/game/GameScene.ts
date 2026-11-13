@@ -867,6 +867,22 @@ export class GameScene extends Phaser.Scene {
       const labelBg = this.add.rectangle(item.label.length * 3.3, -75, Math.min(210, item.label.length * 7.5 + 24), 22, 0x100d0b, 0.76).setStrokeStyle(1, 0x806343, 0.8);
       const label = this.add.text(item.label.length * 3.3, -75, item.label, { fontFamily: 'Georgia', fontSize: '11px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
       g.add([labelBg, label]);
+      // Small looping prop animation adds life to the world without spawning particles.
+      if (id.includes('forge') || id.includes('anvil')) {
+        const flame = g.list[2] as Phaser.GameObjects.Ellipse;
+        const core = g.list[3] as Phaser.GameObjects.Arc;
+        if (flame) this.tweens.add({ targets: flame, alpha: 0.28, scaleX: 0.82, scaleY: 1.22, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+        if (core) this.tweens.add({ targets: core, alpha: 0.55, scale: 0.82, duration: 340, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      } else if (id.includes('shrine') || id.includes('memory') || id.includes('altar')) {
+        const glow = g.list[2] as Phaser.GameObjects.Arc;
+        const halo = g.list[3] as Phaser.GameObjects.Arc;
+        if (glow) this.tweens.add({ targets: glow, alpha: 0.98, scale: 1.16, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+        if (halo) this.tweens.add({ targets: halo, alpha: 0.22, scale: 1.12, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      } else if (id.includes('chest') || id.includes('cache')) {
+        const glint = this.add.star(0, -40, 4, 2, 5, 0xf3d28b, 0.8).setDepth(8);
+        g.add(glint);
+        this.tweens.add({ targets: glint, alpha: 0.12, angle: 90, scale: 0.65, duration: 1150, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      }
       this.interactables.push({ id: item.id, x: item.x, y: item.y, label: item.label });
     }
   }
