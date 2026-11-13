@@ -23,6 +23,10 @@ async function main(): Promise<void> {
   assert.ok(overworld.segments.some((s,i)=>i>0&&s.offsetY!==overworld.segments[i-1].offsetY),'regions occupy multiple vertical bands');
   assert.ok(Object.values(overworld.exitSources).some((s:any)=>s.route),'region graph links become playable passages');
   assert.ok(Object.values(overworld.exitSources).filter((s:any)=>s.teleport).length>=8,'each expansion pocket has entrance and return exits');
+  for (const segment of overworld.segments.slice(0, 6)) {
+    const spawn = overworld.level.spawns[`${segment.region}_start`];
+    for (const exit of overworld.level.exits.filter((e: any) => e.id.startsWith(`route_${segment.region}_`))) assert.ok(Math.abs(exit.rect.x + exit.rect.w / 2 - spawn.x) > 100, `route ${exit.id} does not overlap its region entry spawn`);
+  }
   assert.ok(overworld.level.platforms.length > 90, 'all six regions contribute their platforms');
   assert.ok(overworld.level.enemies.length > 25, 'all six regions contribute their enemies');
 

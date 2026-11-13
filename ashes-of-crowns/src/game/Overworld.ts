@@ -59,7 +59,7 @@ export function buildOverworld(world: any): OverworldRuntime {
     for(const [from,to] of [[a,b],[b,a]] as const){
       const seg=segByRegion.get(from.region)!;
       const dx=to.def.mapPos.x-from.def.mapPos.x,dy=to.def.mapPos.y-from.def.mapPos.y;
-      const x=Math.abs(dx)>=Math.abs(dy)?(dx>=0?seg.width-150:42):Math.round(seg.width*.52);
+      const x=Math.abs(dx)>=Math.abs(dy)?(dx>=0?seg.width-150:260):Math.round(seg.width*.52);
       const id=`route_${from.region}_${to.region}`;
       const own=from.def.connections.find((v:any)=>v.to===to.region),reverse=to.def.connections.find((v:any)=>v.to===from.region);
       level.exits.push({id,rect:{x:x+seg.offsetX,y:from.floorY-160+seg.offsetY,w:108,h:160},to:{level:to.def.entryLevel,spawn:'start'},requires:own?.requires??reverse?.requires,lockedText:'The passage is sealed. Follow another path and return when the realm is ready.'} as any);
