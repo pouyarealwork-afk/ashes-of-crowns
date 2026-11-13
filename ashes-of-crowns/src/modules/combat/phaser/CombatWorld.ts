@@ -536,14 +536,16 @@ export class CombatWorld {
       const type = hazard.type.toLowerCase();
       const r = hazard.rect;
       const intersects = Phaser.Geom.Intersects.RectangleToRectangle(bounds, new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height));
-      const isFallTrap = type.includes('pit') || type.includes('void') || type.includes('crevasse');
+      // Quicksand is a soft-lock risk too: allow a short jump escape window, then recover safely.
+      const isFallTrap = type.includes('pit') || type.includes('void') || type.includes('crevasse') || type.includes('quicksand');
       if (isFallTrap) {
         if (!intersects) { this.hazardEnteredAt.delete(index); continue; }
         if (now < (this.hazardCooldowns.get(index) ?? 0)) continue;
         const enteredAt = this.hazardEnteredAt.get(index) ?? now;
         this.hazardEnteredAt.set(index, enteredAt);
         // Give the player a brief chance to jump/escape before preventing a soft lock.
-        if (now - enteredAt < 1250) continue;
+        const escapeWindowMs = type.includes('quicksand') ? 1800 : 1250;
+        if (now - enteredAt < escapeWindowMs) continue;
         this.hazardEnteredAt.delete(index);
         this.hazardCooldowns.set(index, now + 2200);
         this.showTrapRecovery();
