@@ -358,6 +358,43 @@ export function drawAren(ctx: CanvasRenderingContext2D, name: AnimName, i: numbe
   ctx.fillRect(-1, -15, 2, 13);
   ctx.restore();
 
+  // Hand-finished armor: layered leather, worn steel and fine brass seams.
+  // These details are baked into the sprite sheet once, so they add no per-frame game objects.
+  ctx.save();
+  const steel = ctx.createLinearGradient(shX - 12, shY - 5, shX + 12, shY + 13);
+  steel.addColorStop(0, '#d8d0bd');
+  steel.addColorStop(0.28, '#7d8589');
+  steel.addColorStop(0.62, '#3e454b');
+  steel.addColorStop(1, '#1d2429');
+  ctx.fillStyle = steel;
+  ctx.strokeStyle = C.outline;
+  ctx.lineWidth = 1.7;
+  ctx.beginPath();
+  ctx.moveTo(shX - 8, shY - 3);
+  ctx.quadraticCurveTo(shX - 2, shY - 8, shX + 7, shY - 3);
+  ctx.lineTo(shX + 11, shY + 5);
+  ctx.quadraticCurveTo(shX + 4, shY + 10, shX - 5, shY + 5);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = '#d8b77b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(shX - 5, shY - 2); ctx.quadraticCurveTo(shX + 1, shY - 5, shX + 6, shY - 1); ctx.stroke();
+
+  // Chest harness and a small engraved crest.
+  ctx.strokeStyle = '#211813'; ctx.lineWidth = 4.2; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(shX - 3, shY + 5); ctx.lineTo(hipX + 4, hipY - 5); ctx.stroke();
+  ctx.strokeStyle = '#b18a52'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(shX - 3, shY + 5); ctx.lineTo(hipX + 4, hipY - 5); ctx.stroke();
+  ctx.fillStyle = '#d5b36e'; ctx.strokeStyle = '#33251b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(hipX + 1, hipY - 10); ctx.lineTo(hipX + 5, hipY - 6); ctx.lineTo(hipX + 1, hipY - 2); ctx.lineTo(hipX - 3, hipY - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#6f2928'; ctx.fillRect(hipX - 0.5, hipY - 8, 3, 3);
+
+  // Brass rivets and stitched cloak edge.
+  ctx.fillStyle = '#e0bd7a';
+  ctx.beginPath(); ctx.arc(shX - 5, shY + 3, 1.1, 0, Math.PI * 2); ctx.arc(shX + 6, shY + 3, 1.1, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(224,185,119,.72)'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(shX - 6, shY + 7); ctx.quadraticCurveTo(shX - 10, shY + 15, shX - 13, shY + 20); ctx.stroke();
+  ctx.restore();
+
   // head
   ctx.fillStyle = C.skin;
   ctx.strokeStyle = C.outline;

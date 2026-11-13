@@ -12,25 +12,16 @@ export const DEFAULT_TEXTURE_KEY = 'aren';
 export function ensureAnimations(scene: Phaser.Scene, textureKey = DEFAULT_TEXTURE_KEY): void {
   if (!scene.textures.exists(textureKey)) {
     const { rects, width, height } = sheetLayout();
-    // Render at half resolution and upscale with nearest-neighbour sampling.
-    const lowRes = document.createElement('canvas');
-    lowRes.width = width / 2;
-    lowRes.height = height / 2;
-    const lowContext = lowRes.getContext('2d');
-    if (!lowContext) throw new Error('[player] could not create low-resolution canvas');
-    lowContext.imageSmoothingEnabled = false;
-    lowContext.scale(0.5, 0.5);
-    renderSheet(lowContext);
+    // Render at the full 64x64 frame resolution. The previous half-resolution
+    // pass erased fine armor, cloth and face details before the texture was enlarged.
     const tex = scene.textures.createCanvas(textureKey, width, height);
     if (!tex) throw new Error('[player] could not create canvas texture');
     const context = tex.getContext();
     context.imageSmoothingEnabled = false;
     context.clearRect(0, 0, width, height);
-    context.drawImage(lowRes, 0, 0, width, height);
+    renderSheet(context);
     for (const r of rects) tex.add(r.name, 0, r.x, r.y, FRAME_W, FRAME_H);
     tex.refresh();
-    lowRes.width = 1;
-    lowRes.height = 1;
   }
   for (const def of ANIM_DEFS) {
     const key = animKey(textureKey, def.name);
