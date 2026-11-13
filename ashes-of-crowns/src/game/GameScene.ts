@@ -394,7 +394,7 @@ export class GameScene extends Phaser.Scene {
     this.aren = new Player(this, {
       x, y,
       stats: { maxHealth: Math.round(stats.health * classStats.health), attack: Math.round(stats.attack * classStats.attack), defense: Math.round(stats.defense * classStats.defense), speed: Math.round(stats.speed * classStats.speed), maxMana: Math.round(stats.mana * classStats.mana), maxStamina: Math.round(stats.stamina * classStats.stamina), manaRegen: Math.max(2, regen.mana * classStats.manaRegen), staminaRegen: Math.max(22, regen.stamina * classStats.staminaRegen) },
-      touch: false, autoRespawn: true, respawnDelay: 0.35, respawnHealth: 0.65, fallKillY: level.size.h + 24,
+      touch: false, autoRespawn: false, fallKillY: level.size.h + 260,
       camera: { bounds: { x: 0, y: 0, width: level.size.w, height: level.size.h }, lerpX: 0.12, lerpY: 0.1 },
       inputProvider: () => this.inputBridge.frame(),
     });
@@ -821,7 +821,7 @@ export class GameScene extends Phaser.Scene {
       const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
       // NPCs were rendered at over twice Aren's visual height and looked detached
       // from the playable world. Keep their feet anchored and bring them to a shared scale.
-      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 1).setDepth(8).setScale(0.44);
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8).setScale(0.46);
       // Keep NPC feet on the same plane as Aren; the subtle cloth sway does not lift them.
       this.tweens.add({ targets: actor, scaleY: 0.447, angle: 0.35, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       this.tweens.add({ targets: shadow, scaleX: 1.035, alpha: 0.39, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
@@ -1136,7 +1136,14 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic.is-visible{opacity:1}
         .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-3%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.045);transition:transform 12s cubic-bezier(.16,.55,.25,1);contain:paint}
         .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1)}
-        .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}\n        .aoc-opening-cinematic .aoc-scene-world{opacity:0;transition:opacity 1.8s ease}\n        .aoc-opening-cinematic .aoc-ashes-world{opacity:1;transition:opacity 1.8s ease}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-green-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-trial-world{opacity:1}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-ashes-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-ashes-world{opacity:0}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-haze{background:linear-gradient(180deg,transparent,rgba(113,175,91,.10),rgba(20,48,33,.34))}\n        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-haze{background:linear-gradient(180deg,transparent,rgba(195,153,104,.12),rgba(18,13,17,.65))}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-embers{display:none}
+        .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}
+        .aoc-opening-cinematic .aoc-scene-world{opacity:0;transition:opacity 1.8s ease}
+        .aoc-opening-cinematic .aoc-ashes-world{opacity:1;transition:opacity 1.8s ease}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-green-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-trial-world{opacity:1}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-ashes-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-ashes-world{opacity:0}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-haze{background:linear-gradient(180deg,transparent,rgba(113,175,91,.10),rgba(20,48,33,.34))}
+        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-haze{background:linear-gradient(180deg,transparent,rgba(195,153,104,.12),rgba(18,13,17,.65))}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-embers{display:none}
         .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 25s cubic-bezier(.2,.55,.25,1) both}
         .aoc-opening-cinematic .aoc-shot:after{content:'';position:absolute;inset:-20%;pointer-events:none;background:linear-gradient(112deg,transparent 35%,rgba(255,194,137,.075) 48%,transparent 60%);transform:translateX(-65%);animation:aoc-light-sweep 8s ease-in-out 1.2s infinite}
         .aoc-opening-cinematic .aoc-haze{opacity:.82}

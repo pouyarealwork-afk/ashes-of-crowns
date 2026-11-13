@@ -80,6 +80,8 @@ export class CombatWorld {
   private hazards: NonNullable<CombatWorldOptions['hazards']> = [];
   private hazardCooldowns = new Map<number, number>();
   private hazardEnteredAt = new Map<number, number>();
+  private voidEnteredAt: number | null = null;
+  private voidRecoveryCooldownUntil = 0;
   private colliders: Phaser.Physics.Arcade.Collider[] = [];
   private comboLabel?: Phaser.GameObjects.Text;
   private comboHideTween?: Phaser.Tweens.Tween;
@@ -545,10 +547,26 @@ export class CombatWorld {
     this.scene.time.delayedCall(2600, () => { if (projectile.active) projectile.destroy(); });
   }
 
-  setHazards(hazards: NonNullable<CombatWorldOptions['hazards']>): void { this.hazards = hazards; this.hazardCooldowns.clear(); this.hazardEnteredAt.clear(); }
+  setHazards(hazards: NonNullable<CombatWorldOptions['hazards']>): void { this.hazards = hazards; this.hazardCooldowns.clear(); this.hazardEnteredAt.clear(); this.voidEnteredAt = null; }
 
   private checkHazards(): void {
     const now = this.scene.time.now; const bounds = this.player.getBounds();
+    const worldBottom = this.scene.physics.world.bounds.bottom;
+    // Independent safety net: recover from any fall below the playable world, even if
+    // the level author used an unrecognised hazard type or omitted a pit rectangle.
+    if (bounds.top > worldBottom - 72) {
+      this.voidEnteredAt ??= now;
+      if (now - this.voidEnteredAt >= 260 && now >= this.voidRecoveryCooldownUntil) {
+        this.voidEnteredAt = null;
+        this.voidRecoveryCooldownUntil = now + 1400;
+        this.showTrapRecovery();
+        this.player.respawn(0.65);
+        this.bus.emit('combat:hazard-recovered', { hazardType: 'world-void', checkpoint: true });
+        return;
+      }
+    } else {
+      this.voidEnteredAt = null;
+    }
     for (let index = 0; index < this.hazards.length; index++) {
       const hazard = this.hazards[index];
       const type = hazard.type.toLowerCase();
