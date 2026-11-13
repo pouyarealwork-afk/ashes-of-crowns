@@ -580,12 +580,19 @@ export class GameScene extends Phaser.Scene {
     return key;
   }
 
-  private drawNpcs(npcs: any[], _level: LevelDef): void {
+  private supportY(x: number, y: number, level: LevelDef): number {
+    const supports = level.platforms
+      .filter(([px, py, width]) => x >= px - 18 && x <= px + width + 18 && py >= y - 12 && py - y <= 220)
+      .sort((a, b) => a[1] - b[1]);
+    return supports[0]?.[1] ?? y;
+  }
+
+  private drawNpcs(npcs: any[], level: LevelDef): void {
     const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250 };
     for (const spawn of npcs) {
       const def = this.services.world.content.npcs.get(spawn.npc);
       if (!def) continue;
-      const x = spawn.x, y = spawn.y;
+      const x = spawn.x, y = this.supportY(spawn.x, spawn.y, level);
       const cloth = palette[spawn.npc] ?? 0x655044;
       const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
       // NPCs were rendered at over twice Aren's visual height and looked detached
@@ -605,7 +612,8 @@ export class GameScene extends Phaser.Scene {
 
   private drawInteractables(level: LevelDef): void {
     for (const item of level.interactables) {
-      const g = this.add.container(item.x, item.y).setDepth(7);
+      const footY = this.supportY(item.x, item.y, level);
+      const g = this.add.container(item.x, footY).setDepth(7);
       const id = String(item.id).toLowerCase();
       const propKind: PropKind = id.includes('well') ? 'well' : (id.includes('forge') || id.includes('anvil')) ? 'forge' : (id.includes('chest') || id.includes('cache') || id.includes('crate')) ? 'chest' : (id.includes('shrine') || id.includes('memory') || id.includes('altar')) ? 'shrine' : 'generic';
       const propKey = `aoc-prop-${propKind}`;
@@ -630,7 +638,7 @@ export class GameScene extends Phaser.Scene {
         g.add(glint);
         this.tweens.add({ targets: glint, alpha: 0.12, angle: 90, scale: 0.65, duration: 1150, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       }
-      this.interactables.push({ id: item.id, x: item.x, y: item.y, label: item.label });
+      this.interactables.push({ id: item.id, x: item.x, y: footY, label: item.label });
     }
   }
 
