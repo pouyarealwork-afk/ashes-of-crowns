@@ -1,0 +1,62 @@
+name: Build and deploy ASHES OF CROWNS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ashes-of-crowns/**"
+      - ".github/workflows/deploy-pages.yml"
+      - ".github/workflows/rebuild-v2.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ashes-of-crowns/**"
+      - ".github/workflows/deploy-pages.yml"
+      - ".github/workflows/rebuild-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ashes-of-crowns
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Production build
+        run: npm run build
+      - name: Core and module tests
+        run: npm run test:core
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ashes-of-crowns/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
