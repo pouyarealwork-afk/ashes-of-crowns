@@ -11,6 +11,7 @@ const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: host,
   backgroundColor: '#171315',
+  fps: { target: 60, min: 30, smoothStep: true, forceSetTimeOut: false },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

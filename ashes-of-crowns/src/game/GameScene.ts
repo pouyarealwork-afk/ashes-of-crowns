@@ -394,7 +394,7 @@ export class GameScene extends Phaser.Scene {
     this.aren = new Player(this, {
       x, y,
       stats: { maxHealth: Math.round(stats.health * classStats.health), attack: Math.round(stats.attack * classStats.attack), defense: Math.round(stats.defense * classStats.defense), speed: Math.round(stats.speed * classStats.speed), maxMana: Math.round(stats.mana * classStats.mana), maxStamina: Math.round(stats.stamina * classStats.stamina), manaRegen: Math.max(2, regen.mana * classStats.manaRegen), staminaRegen: Math.max(22, regen.stamina * classStats.staminaRegen) },
-      touch: false, autoRespawn: false, fallKillY: level.size.h + 160,
+      touch: false, autoRespawn: true, respawnDelay: 0.35, respawnHealth: 0.65, fallKillY: level.size.h + 24,
       camera: { bounds: { x: 0, y: 0, width: level.size.w, height: level.size.h }, lerpX: 0.12, lerpY: 0.1 },
       inputProvider: () => this.inputBridge.frame(),
     });
@@ -821,11 +821,11 @@ export class GameScene extends Phaser.Scene {
       const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
       // NPCs were rendered at over twice Aren's visual height and looked detached
       // from the playable world. Keep their feet anchored and bring them to a shared scale.
-      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 1).setDepth(8).setScale(0.66);
-      // Restrained breathing and cloak sway pivot around the feet, never lifting the actor.
-      this.tweens.add({ targets: actor, scaleY: 0.674, angle: 0.65, duration: 2450 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      this.tweens.add({ targets: shadow, scaleX: 1.06, alpha: 0.36, duration: 2450 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      const plaque = this.add.container(x, y - 88, [
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 1).setDepth(8).setScale(0.44);
+      // Keep NPC feet on the same plane as Aren; the subtle cloth sway does not lift them.
+      this.tweens.add({ targets: actor, scaleY: 0.447, angle: 0.35, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: shadow, scaleX: 1.035, alpha: 0.39, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      const plaque = this.add.container(x, y - 66, [
         this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.82).setStrokeStyle(1, 0x9a774b, 0.82),
         this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
         this.add.circle(-42, 0, 2, 0xe5bd79, 0.9),
@@ -970,12 +970,12 @@ export class GameScene extends Phaser.Scene {
       if (near && !this.activePois.has(poi.id)) {
         this.activePois.add(poi.id); if (!this.services.world.hasFlag(`zone_${poi.id}`)) this.services.world.reportZone(poi.id);
         if (poi.kind === 'camp' || poi.kind === 'shrine') {
-          this.services.persistence.checkpoints.activate(`memory_${poi.id}`);
+          const newlyDiscovered = this.services.persistence.checkpoints.activate(`memory_${poi.id}`);
           this.aren.setCheckpoint(poi.x, poi.y);
           this.aren.stats.heal(this.aren.stats.config.maxHealth);
           this.aren.stats.restoreMana(this.aren.stats.config.maxMana);
           this.aren.stats.stamina = this.aren.stats.config.maxStamina;
-          this.ui?.toast({ text: 'Memory Stone: checkpoint set and vitality restored.', kind: 'success', icon: 'save' });
+          if (newlyDiscovered) this.showCheckpointFeedback(poi.x, poi.y);
         }
       } else if (!near) this.activePois.delete(poi.id);
     }
@@ -987,6 +987,19 @@ export class GameScene extends Phaser.Scene {
         else return;
       }
     }
+  }
+
+  /** Small one-shot checkpoint feedback, anchored near the stone instead of covering the HUD. */
+  private showCheckpointFeedback(x: number, y: number): void {
+    const label = this.add.text(x, y - 76, this.ui?.language === 'fa' ? 'نقطه ذخیره شد' : 'CHECKPOINT SAVED', {
+      fontFamily: 'Georgia', fontSize: '11px', fontStyle: 'bold',
+      color: '#b9e7a7', stroke: '#171315', strokeThickness: 3,
+      backgroundColor: '#171315cc', padding: { x: 7, y: 4 },
+    }).setOrigin(0.5).setDepth(30).setAlpha(0);
+    this.tweens.add({
+      targets: label, alpha: 1, y: label.y - 8, duration: 220, ease: 'Cubic.Out',
+      hold: 950, yoyo: true, onComplete: () => label.destroy(),
+    });
   }
 
   private interactNearby(): void {

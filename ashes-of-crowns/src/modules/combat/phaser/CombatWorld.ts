@@ -557,11 +557,15 @@ export class CombatWorld {
       // Some pit colliders are drawn below the walkable lip; once Aren has dropped
       // below that lip, rectangle intersection alone can miss him and leave a soft-lock.
       const isFallTrap = type.includes('pit') || type.includes('void') || type.includes('crevasse') ||
-        type.includes('quicksand') || type.includes('sinkhole') || type.includes('chasm') || type.includes('flooded');
+        type.includes('quicksand') || type.includes('sinkhole') || type.includes('chasm') ||
+        type.includes('flooded') || type.includes('trapdoor') || type.includes('falling_floor');
       const horizontalOverlap = bounds.right > r.x + 5 && bounds.left < r.x + r.width - 5;
-      const hasFallenPastLip = horizontalOverlap && bounds.top > r.y + Math.min(12, r.height * 0.2) && bounds.top < r.y + r.height + 180;
+      // A player can become wedged below the visible lip without intersecting the
+      // authored hazard rectangle; track the full drop corridor, not only its top edge.
+      const hasFallenPastLip = horizontalOverlap && bounds.top > r.y + Math.min(8, r.height * 0.12) && bounds.top < r.y + r.height + 260;
+      const belowWorldFloor = bounds.top > this.scene.physics.world.bounds.bottom - 24;
       if (isFallTrap) {
-        const trapped = intersects || hasFallenPastLip;
+        const trapped = intersects || hasFallenPastLip || belowWorldFloor;
         if (!trapped) { this.hazardEnteredAt.delete(index); continue; }
         if (now < (this.hazardCooldowns.get(index) ?? 0)) continue;
         const enteredAt = this.hazardEnteredAt.get(index) ?? now;

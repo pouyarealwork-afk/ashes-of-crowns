@@ -32,7 +32,7 @@ export const ashenVillage: RegionContent = {
         { type: 'fire', rect: rect(4650, 740, 200, 20), damage: 8 },
       ],
       enemies: [
-        { type: 'ash_wolf', x: 900, y: 700, patrol: [700, 1200] }, { type: 'crown_soldier', x: 2300, y: 700, patrol: [2100, 2700] },
+        { type: 'ash_wolf', x: 1480, y: 700, patrol: [1380, 1720] }, { type: 'crown_soldier', x: 2300, y: 700, patrol: [2100, 2700] },
         { type: 'ash_wolf', x: 3500, y: 700, patrol: [3300, 3900] }, { type: 'crown_soldier', x: 4200, y: 700, patrol: [4000, 4500] },
         { type: 'sergeant_hobb', x: 5600, y: 700, boss: 'hobb' },
       ],
