@@ -114,8 +114,10 @@ export class CombatWorld {
   spawn(type: string, x: number, y: number, opts: { level?: number; elite?: boolean; bossId?: string; patrol?: [number, number] } = {}): EnemyState {
     const enemy = this.engine.spawn(type, { x, y, level: opts.level, elite: opts.elite, bossId: opts.bossId, patrol: opts.patrol });
     const archetype = getEnemyArchetype(type)!;
-    const sprite = this.scene.physics.add.sprite(x, y, this.textureKey(type));
+    const motionKey = this.motionTextureKey(type);
+    const sprite = this.scene.physics.add.sprite(x, y, motionKey, 'idle_0');
     sprite.setDepth(9).setOrigin(0.5, 1).setScale(archetype.scale ?? (enemy.elite ? 1.16 : 1));
+    sprite.anims.play(`${motionKey}:idle`);
     const body = sprite.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(enemy.ai !== 'flying'); body.setImmovable(false); body.setCollideWorldBounds(true); body.setSize(archetype.hitbox.width, archetype.hitbox.height);
     body.setOffset((sprite.width - archetype.hitbox.width) / 2, sprite.height - archetype.hitbox.height);
@@ -171,6 +173,9 @@ export class CombatWorld {
       const flip = enemy.facing < 0;
       if (sprite.flipX !== flip) sprite.setFlipX(flip);
       const moving = Math.abs(enemy.vx) > 12;
+      const motionKey = this.motionTextureKey(enemy.archetypeId);
+      const motionState = enemy.stunRemainingMs > 0 ? 'stagger' : enemy.windupRemainingMs > 0 ? 'attack' : moving ? 'walk' : 'idle';
+      sprite.anims.play(`${motionKey}:${motionState}`, true);
       const phase = _time / (enemy.ai === 'charger' ? 66 : 92) + enemy.x * 0.018;
       const gait = moving ? Math.sin(phase) : Math.sin(_time / 610 + enemy.x * 0.012) * 0.12;
       const windup = enemy.windupRemainingMs > 0;
@@ -593,6 +598,7 @@ export class CombatWorld {
   }
 
   private textureKey(type: string): string { return `${this.texturePrefix}-${type}`; }
+  private motionTextureKey(type: string): string { return `${this.textureKey(type)}-motion`; }
   private createTextures(): void {
     const types = ['ash_wolf','crown_soldier','thornling','rook_bandit','sand_scorpion','dune_raider','glass_serpent','sand_wraith','frost_wolf','ice_wraith','crown_scout','ironwatch_guard','crossbow_sentry','hushed_guard','hollow_shade','royal_champion','cellar_rat_swarm','sickened_stag','sergeant_hobb','thornwarden','sandglass_colossus','captain_voss','hush_mother_vesk','chancellor_morrow'];
     const colors = [0x9b7561,0x9dabb8,0x65945d,0x8e7657,0xb78b49,0xa97943,0x6eabb0,0xc6b98e,0x8ab5c8,0x9bd8e5,0x8e9c9e,0x737b83,0x9c8a73,0x777b91,0x77718f,0xb99b65,0x82766b,0x786e60,0x965d4d,0x6c8b4d,0xb39b62,0x7898b4,0x8070a8,0x9b6574];
@@ -729,6 +735,37 @@ export class CombatWorld {
       }
       g.generateTexture(key, w, h);
       g.destroy();
+
+      // Bake compact motion atlases from each hand-drawn archetype.
+      const motionKey = this.motionTextureKey(type);
+      if (!this.scene.textures.exists(motionKey)) {
+        const source = this.scene.textures.get(key).getSourceImage() as CanvasImageSource;
+        const rows = [
+          { name: 'idle', poses: [[1,1,0,0],[1.012,.988,-1.2,0],[1,1,0,0],[.988,1.012,1.2,0]] },
+          { name: 'walk', poses: [[.96,1.045,-4,-1],[1.035,.965,-1,0],[1.045,.955,3,1],[.96,1.045,4,0],[1.035,.965,1,-1],[1.045,.955,-3,0]] },
+          { name: 'attack', poses: [[.91,1.08,-7,-2],[1.08,.94,-12,2],[1.12,.9,8,3],[1,1,2,0]] },
+          { name: 'stagger', poses: [[1.08,.94,9,2],[.94,1.06,-5,-1]] },
+        ];
+        const motion = this.scene.textures.createCanvas(motionKey, w * 6, h * rows.length);
+        if (!motion) throw new Error(`Unable to create enemy motion atlas: ${type}`);
+        const ctx = motion.getContext(); ctx.imageSmoothingEnabled = false;
+        rows.forEach((row, rowIndex) => row.poses.forEach((pose, frameIndex) => {
+          const [sx, sy, angle, shiftX] = pose;
+          ctx.save(); ctx.translate(frameIndex * w + w / 2 + shiftX, (rowIndex + 1) * h);
+          ctx.rotate(angle * Math.PI / 180); ctx.scale(sx, sy);
+          ctx.drawImage(source, -w / 2, -h, w, h); ctx.restore();
+          motion.add(`${row.name}_${frameIndex}`, 0, frameIndex * w, rowIndex * h, w, h);
+        }));
+        motion.refresh();
+        const rates: Record<string, number> = { idle: 5, walk: 11, attack: 15, stagger: 18 };
+        rows.forEach(row => {
+          const animKey = `${motionKey}:${row.name}`;
+          if (!this.scene.anims.exists(animKey)) this.scene.anims.create({
+            key: animKey, frames: row.poses.map((_, index) => ({ key: motionKey, frame: `${row.name}_${index}` })),
+            frameRate: rates[row.name], repeat: row.name === 'idle' || row.name === 'walk' ? -1 : 0,
+          });
+        });
+      }
     });
 
     const projectileKey = `${this.texturePrefix}-projectile`;
