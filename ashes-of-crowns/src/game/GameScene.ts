@@ -470,6 +470,9 @@ export class GameScene extends Phaser.Scene {
     this.npcActors.forEach(n => n.label.destroy()); this.npcActors = [];
     this.companionActors = [];
     this.interactables = [];
+    // Infinite tweens (weather motes, prop glows) would otherwise outlive their destroyed targets and pile up
+    // with every quit-to-menu / restart. Kill only the tweens of objects being removed (not UI/timer tweens).
+    for (const child of [...this.children.list]) this.tweens.killTweensOf(child);
     this.children.removeAll(true);
     this.parallax = [];
     this.aren = undefined as any; this.combat = undefined as any;

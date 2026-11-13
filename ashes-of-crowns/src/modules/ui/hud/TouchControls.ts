@@ -165,11 +165,10 @@ export class TouchControls {
     const up = (e: PointerEvent) => {
       if (this.held.get(e.pointerId) !== action) return;
       this.held.delete(e.pointerId);
-      // Keep the action held until the final finger on this button is released.
-      if (![...this.held.values()].includes(action)) {
-        el.classList.remove('is-down');
-        this.ctx.events.emit('input:action', { action, pressed: false });
-      }
+      // The input bridge ref-counts presses per action, so every finger's release must be reported.
+      // (Reporting only the last release left the count stuck above zero: jump/block stayed held forever.)
+      if (![...this.held.values()].includes(action)) el.classList.remove('is-down');
+      this.ctx.events.emit('input:action', { action, pressed: false });
     };
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
