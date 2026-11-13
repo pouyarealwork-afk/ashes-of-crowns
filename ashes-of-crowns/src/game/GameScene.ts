@@ -13,6 +13,7 @@ import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, p
 import { buildOverworld } from './Overworld';
 import { createUIBackend } from './backend';
 import { paintAren } from '../art/aren';
+import { paintCourtActor } from '../art/cinematic';
 import { poseFor } from '../modules/player/phaser/ArenSprite';
 import { ANIM_DEFS, type AnimName } from '../modules/player/phaser/animations';
 
@@ -918,6 +919,8 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic{position:fixed;inset:0;z-index:100000;overflow:hidden;background:#050507;color:#ead9c1;display:grid;place-items:center;opacity:0;transition:opacity 1.1s ease;font-family:Georgia,'Times New Roman',serif;isolation:isolate}
         .aoc-opening-cinematic *{box-sizing:border-box}
         .aoc-opening-cinematic canvas.aoc-cine-figure{display:block;width:clamp(112px,15vw,190px);height:auto;aspect-ratio:1;image-rendering:pixelated;object-fit:contain;filter:none!important;}
+        .aoc-opening-cinematic canvas.aoc-court-actor{width:clamp(42px,5vw,76px);height:auto;aspect-ratio:3/4;image-rendering:pixelated;object-fit:contain}
+        .aoc-opening-cinematic .aoc-court-actor:before,.aoc-opening-cinematic .aoc-court-actor:after{display:none}
         .aoc-opening-cinematic.is-visible{opacity:1}
         .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-3%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.045);transition:transform 60s cubic-bezier(.16,.55,.25,1);contain:paint}
         .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1)}
@@ -1126,7 +1129,7 @@ export class GameScene extends Phaser.Scene {
           </g>
         </svg>
         <canvas class="aoc-cine-figure" width="64" height="64" aria-hidden="true"></canvas>
-        <div class="aoc-court-actor aoc-king" aria-hidden="true"></div><div class="aoc-court-actor aoc-guard guard-left" aria-hidden="true"></div><div class="aoc-court-actor aoc-guard guard-right" aria-hidden="true"></div>
+        <canvas class="aoc-court-actor aoc-king" width="96" height="128" aria-hidden="true"></canvas><canvas class="aoc-court-actor aoc-guard guard-left" width="96" height="128" aria-hidden="true"></canvas><canvas class="aoc-court-actor aoc-guard guard-right" width="96" height="128" aria-hidden="true"></canvas>
         <div class="aoc-ground-mist" aria-hidden="true"></div><div class="aoc-bird-flock" aria-hidden="true"></div><div class="aoc-smoke" aria-hidden="true"></div><div class="aoc-firelight" aria-hidden="true"></div>
         <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
       </div>
@@ -1146,6 +1149,19 @@ export class GameScene extends Phaser.Scene {
     const line = overlay.querySelector<HTMLElement>('.aoc-line')!;
     const rule = overlay.querySelector<HTMLElement>('.aoc-rule')!;
     const skip = overlay.querySelector<HTMLButtonElement>('.aoc-skip')!;
+    const paintCourtCanvas = (selector: string, role: 'king' | 'guard') => {
+      const canvas = overlay.querySelector<HTMLCanvasElement>(selector);
+      const context = canvas?.getContext('2d');
+      if (!canvas || !context) return;
+      const art = paintCourtActor(role);
+      canvas.width = art.width; canvas.height = art.height;
+      context.imageSmoothingEnabled = false;
+      context.drawImage(art, 0, 0);
+    };
+    paintCourtCanvas('.aoc-king', 'king');
+    paintCourtCanvas('.guard-left', 'guard');
+    paintCourtCanvas('.guard-right', 'guard');
+
     // Render Aren with the exact same 64x64 pixel-art pose painter used by gameplay.
     // Frames are cached once per action; the cinematic only blits pre-rendered pixels.
     const cineCanvas = overlay.querySelector<HTMLCanvasElement>('.aoc-cine-figure')!;
