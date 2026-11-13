@@ -42,6 +42,7 @@ export class GameScene extends Phaser.Scene {
   private levelDef!: LevelDef;
   private levelRuntime: any;
   private started = false;
+  private openingFinished = false;
   private dialogueRunning = false;
   private uiUtilityControls?: HTMLElement;
   private currentBoss: { id: string; name: string; phase: number } | null = null;
@@ -254,15 +255,21 @@ export class GameScene extends Phaser.Scene {
     this.services.rpg.skills.grantStartingAbility(signatureAbility);
     this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
-    this.started = true;
-    this.startLevel(this.currentLevelId, 'start');
-    this.cameras.main.fadeIn(1250, 7, 5, 7);
-    this.ui.enterGame();
-    this.aren.lockInput(true);
+    // Paint the first cinematic frame before building the level behind it.
+    // Level construction is synchronous and used to stall the very first intro frame on phones.
     this.started = false;
+    this.openingFinished = false;
+    this.ui.enterGame();
     this.playOpeningCinematic();
-    this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
-    void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!this.scene.isActive()) return;
+      this.startLevel(this.currentLevelId, 'start');
+      this.cameras.main.fadeIn(1250, 7, 5, 7);
+      this.aren.lockInput(!this.openingFinished);
+      this.started = this.openingFinished;
+      this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
+      void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
+    }));
   }
 
   private startNewGamePlus(ending: string): void {
@@ -1193,6 +1200,11 @@ export class GameScene extends Phaser.Scene {
       <div class="aoc-copy" data-shot="0"><div class="aoc-kicker"></div><p class="aoc-line"></p><div class="aoc-rule"></div></div>
       <button class="aoc-skip" type="button"></button>
     `;
+    // On compact/mobile viewports, remove SVG SMIL loops; retain the camera drift and ember layer.
+    if (window.matchMedia('(max-width: 900px)').matches || (navigator.hardwareConcurrency || 8) <= 4) {
+      overlay.classList.add('aoc-low-power');
+      overlay.querySelectorAll('animate, animateTransform').forEach(node => node.remove());
+    }
     overlay.dir = fa ? 'rtl' : 'ltr';
     const shot = overlay.querySelector<HTMLElement>('.aoc-shot')!;
     const copy = overlay.querySelector<HTMLElement>('.aoc-copy')!;
@@ -1244,6 +1256,7 @@ export class GameScene extends Phaser.Scene {
       }
       window.setTimeout(() => {
         overlay.remove();
+        this.openingFinished = true;
         if (this.aren) this.aren.lockInput(false);
         this.started = true;
       }, 950);
