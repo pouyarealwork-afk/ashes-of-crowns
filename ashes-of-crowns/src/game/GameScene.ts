@@ -959,6 +959,44 @@ export class GameScene extends Phaser.Scene {
         @keyframes aoc-cape-fall{0%{transform:skewX(9deg)}100%{transform:skewX(-8deg) scaleY(1.08)}}
         @keyframes aoc-kneel-left{to{transform:rotate(34deg) translateY(5px)}}
         @keyframes aoc-kneel-right{to{transform:rotate(-23deg) translateY(3px)}}
+ 
+        /* Story actors: distinct silhouettes move through the scene instead of relying on a single zooming hero. */
+        .aoc-opening-cinematic .aoc-court-actor{position:absolute;z-index:3;bottom:12%;width:clamp(34px,5vw,68px);height:clamp(105px,22vh,190px);transform-origin:50% 100%;will-change:transform,opacity}
+        .aoc-opening-cinematic .aoc-court-actor:before{content:'';position:absolute;left:30%;top:0;width:40%;height:19%;border-radius:48% 48% 35% 35%;background:#17131a}
+        .aoc-opening-cinematic .aoc-court-actor:after{content:'';position:absolute;left:12%;top:19%;width:76%;height:55%;background:linear-gradient(90deg,#17131b,#554333 48%,#17131b);clip-path:polygon(24% 0,76% 0,100% 100%,0 100%)}
+        .aoc-opening-cinematic .aoc-king{left:50%;bottom:31%;transform:translateX(-50%) scale(.78);opacity:0;filter:none}
+        .aoc-opening-cinematic .aoc-king:before{background:#d0b078;box-shadow:-8px -8px 0 -4px #d0b078,8px -8px 0 -4px #d0b078}
+        .aoc-opening-cinematic .aoc-king:after{background:linear-gradient(90deg,#39202b,#8b6546,#39202b)}
+        .aoc-opening-cinematic .aoc-guard{opacity:0;left:12%;transform:translate3d(-80px,0,0) scale(.9)}
+        .aoc-opening-cinematic .aoc-guard.guard-right{left:auto;right:12%;transform:translate3d(80px,0,0) scale(.9)}
+        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-king{animation:aoc-king-reveal 1.4s .35s cubic-bezier(.2,.7,.2,1) both}
+        .aoc-opening-cinematic .aoc-shot.scene-accuse .aoc-king{animation:aoc-king-accuse 1.1s ease-in-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-arrest .aoc-guard{animation:aoc-guard-enter 1.2s cubic-bezier(.2,.7,.2,1) both}
+        .aoc-opening-cinematic .aoc-shot.scene-arrest .aoc-guard.guard-right{animation-name:aoc-guard-enter-right}
+        .aoc-opening-cinematic .aoc-shot.scene-arrest .aoc-cine-figure{animation:aoc-aren-resist .9s ease-in-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-collapse .aoc-cine-figure{animation:aoc-aren-stagger .9s ease-in-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-oath .aoc-cine-figure{animation:aoc-aren-rise 1.7s cubic-bezier(.2,.7,.2,1) both}
+        .aoc-opening-cinematic .aoc-shot.scene-collapse .aoc-firelight{animation:aoc-fire-burst .9s ease-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-oath .aoc-blade{animation:aoc-oath-blade 1.4s ease-out both}
+        @keyframes aoc-king-reveal{from{opacity:0;transform:translate(-50%,18px) scale(.62)}to{opacity:1;transform:translate(-50%,0) scale(.78)}}
+        @keyframes aoc-king-accuse{0%,100%{transform:translate(-50%,0) scale(.78)}45%{transform:translate(-50%,-12px) scale(.82)}}
+        @keyframes aoc-guard-enter{to{opacity:1;transform:translate3d(0,0,0) scale(.9)}}
+        @keyframes aoc-guard-enter-right{to{opacity:1;transform:translate3d(0,0,0) scale(.9)}}
+        @keyframes aoc-aren-resist{0%{transform:translateX(-50%) rotate(0)}35%{transform:translateX(-50%) rotate(-9deg)}70%{transform:translateX(-50%) rotate(5deg)}100%{transform:translateX(-50%) rotate(0)}}
+        @keyframes aoc-aren-stagger{0%{transform:translateX(-50%) translateY(0)}45%{transform:translateX(-50%) translateY(-10px) rotate(7deg)}100%{transform:translateX(-50%) translateY(4px) rotate(-5deg)}}
+        @keyframes aoc-aren-rise{0%{transform:translateX(-50%) translateY(14px) rotate(-8deg)}65%{transform:translateX(-50%) translateY(-5px) rotate(2deg)}100%{transform:translateX(-50%) translateY(0) rotate(0)}}
+        @keyframes aoc-fire-burst{0%{opacity:.1;transform:scale(.5)}45%{opacity:1;transform:scale(1.8)}100%{opacity:.75;transform:scale(1)}}
+        @keyframes aoc-oath-blade{0%{transform:rotate(-28deg)}55%{transform:rotate(35deg)}100%{transform:rotate(8deg)}}
+        /* Avoid costly full-screen filters and backdrop blur on mobile GPUs. */
+        .aoc-opening-cinematic .aoc-cine-figure{filter:none!important}
+        .aoc-opening-cinematic .aoc-smoke{filter:none!important;opacity:.42}
+        .aoc-opening-cinematic .aoc-skip{backdrop-filter:none!important}
+        .aoc-opening-cinematic .aoc-embers{mix-blend-mode:normal}
+        .aoc-opening-cinematic .aoc-grain{display:none}
+        .aoc-opening-cinematic .aoc-shot:after{animation:none}
+        .aoc-opening-cinematic .aoc-haze{animation:none}
+        .aoc-opening-cinematic .aoc-ground-mist{animation:none}
+
         .aoc-opening-cinematic .aoc-ground-mist{position:absolute;z-index:2;inset:auto -15% 7%;height:26%;pointer-events:none;background:radial-gradient(ellipse at 20% 80%,rgba(183,154,128,.2),transparent 55%),radial-gradient(ellipse at 76% 70%,rgba(174,111,81,.16),transparent 58%);animation:aoc-mist-travel 12s ease-in-out infinite alternate}
         @keyframes aoc-mist-travel{from{transform:translateX(-3%) scaleY(.92);opacity:.5}to{transform:translateX(4%) scaleY(1.12);opacity:.9}}
         .aoc-opening-cinematic.is-visible .aoc-cine-figure{animation:aoc-figure-breathe 3.8s ease-in-out infinite}
@@ -1084,6 +1122,7 @@ export class GameScene extends Phaser.Scene {
           </g>
         </svg>
         <div class="aoc-cine-figure" aria-hidden="true"><i class="cape"></i><i class="head"></i><i class="torso"></i><i class="arm"></i><i class="leg left"></i><i class="leg right"></i><i class="blade"></i></div>
+        <div class="aoc-court-actor aoc-king" aria-hidden="true"></div><div class="aoc-court-actor aoc-guard guard-left" aria-hidden="true"></div><div class="aoc-court-actor aoc-guard guard-right" aria-hidden="true"></div>
         <div class="aoc-ground-mist" aria-hidden="true"></div><div class="aoc-bird-flock" aria-hidden="true"></div><div class="aoc-smoke" aria-hidden="true"></div><div class="aoc-firelight" aria-hidden="true"></div>
         <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
       </div>
@@ -1126,6 +1165,7 @@ export class GameScene extends Phaser.Scene {
     const later = (delay: number, fn: () => void) => browserTimers.push(window.setTimeout(fn, delay));
     const schedule = (delay: number, fn: () => void) => timers.push(this.time.delayedCall(delay, fn));
     const setScene = (scene: 'green' | 'trial' | 'ashes') => { shot.classList.remove('scene-green', 'scene-trial', 'scene-ashes'); shot.classList.add(`scene-${scene}`); };
+    const setBeat = (beat: 'accuse' | 'arrest' | 'collapse' | 'oath') => { shot.classList.remove('scene-accuse', 'scene-arrest', 'scene-collapse', 'scene-oath'); shot.classList.add(`scene-${beat}`); };
     const setCaption = (eyebrow: string, text: string, title = false) => {
       copy.classList.remove('is-active');
       schedule(80, () => {
@@ -1241,10 +1281,10 @@ export class GameScene extends Phaser.Scene {
     ];
     setScene('green'); setCaption(captions[0][0], captions[0][1]);
     schedule(10500, () => { setScene('trial'); setCaption(captions[1][0], captions[1][1]); });
-    schedule(19000, () => { setCaption(captions[2][0], captions[2][1]); shot.classList.add('scene-verdict'); flash.classList.add('is-flashing'); });
-    schedule(27500, () => { setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
-    schedule(36500, () => { setScene('ashes'); setCaption(captions[4][0], captions[4][1]); });
-    schedule(45500, () => { setCaption(captions[5][0], captions[5][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(19000, () => { setBeat('accuse'); setCaption(captions[2][0], captions[2][1]); shot.classList.add('scene-verdict'); flash.classList.add('is-flashing'); });
+    schedule(27500, () => { setBeat('arrest'); setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(36500, () => { setScene('ashes'); setBeat('collapse'); setCaption(captions[4][0], captions[4][1]); });
+    schedule(45500, () => { setBeat('oath'); setCaption(captions[5][0], captions[5][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
     schedule(52500, () => {
       copy.classList.remove('is-active');
       schedule(450, () => {
