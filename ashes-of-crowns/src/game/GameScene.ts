@@ -9,6 +9,7 @@ import { createUI, type GameUI } from '../modules/ui';
 import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
+import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, type PropKind } from '../art/world';
 import { createUIBackend } from './backend';
 
 export interface GameServices {
@@ -58,6 +59,7 @@ export class GameScene extends Phaser.Scene {
   private audioUnlockAttached = false;
   private keyboard: Record<string, any> = {};
   private gameEventOffs: Array<() => void> = [];
+  private parallax: Array<{ ts: Phaser.GameObjects.TileSprite; f: number }> = [];
 
   constructor() { super('GameScene'); }
 
@@ -110,6 +112,7 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (!this.started || !this.aren || !this.levelDef) return;
     this.playtimeMs += delta;
+    this.updateParallax();
     this.services.rpg.update(delta);
     this.triggerAccumulator += delta;
     if (this.triggerAccumulator >= 80) { this.triggerAccumulator %= 80; this.updateWorldTriggers(); }
@@ -126,6 +129,12 @@ export class GameScene extends Phaser.Scene {
     if (!this.services || !this.started || !this.aren) return;
     void this.services.persistence.saves.save(this.activeSaveSlot, { kind: 'manual', label: 'Latest Progress', skipIfUnchanged: true }).catch(() => undefined);
     void this.services.persistence.flush();
+  }
+
+  /** Small shared textures (collectible shard, soft glow) created on first use. */
+  private ensureSharedArt(): void {
+    if (!this.textures.exists('aoc-shard')) this.textures.addCanvas('aoc-shard', paintShard());
+    if (!this.textures.exists('aoc-glow')) this.textures.addCanvas('aoc-glow', paintGlow());
   }
 
   private createPixelTexture(): void {
@@ -361,7 +370,7 @@ export class GameScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     for (const [x, y, w, h, kind] of level.platforms) {
       const material = String(kind ?? 'ground');
-      const texture = this.platformTexture(material);
+      const texture = this.platformTexture(material, Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
       const block = this.platforms.create(x + w / 2, y + h / 2, texture) as Phaser.Physics.Arcade.Image;
       block.setData('material', material);
       block.setDisplaySize(w, h).setTint(0xffffff).setDepth(4).refreshBody();
@@ -440,279 +449,37 @@ export class GameScene extends Phaser.Scene {
     this.companionActors = [];
     this.interactables = [];
     this.children.removeAll(true);
+    this.parallax = [];
     this.aren = undefined as any; this.combat = undefined as any;
     this.platforms = undefined as any; this.collectGroup = undefined as any; this.levelDef = undefined as any;
     this.createPixelTexture();
   }
 
-  /** Layered, region-aware dark-fantasy environment art built from lightweight Phaser primitives. */
+  /** Pixel-art backdrop: a dithered sky plus three seamless parallax layers per region (see src/art/world.ts). */
   private drawAtmosphere(level: LevelDef): void {
-    const palette = level.atmosphere.palette;
-    const sky = Phaser.Display.Color.HexStringToColor(palette.sky).color;
-    const mid = Phaser.Display.Color.HexStringToColor(palette.mid).color;
-    const fore = Phaser.Display.Color.HexStringToColor(palette.fore).color;
-    const w = level.size.w, h = level.size.h, horizon = h - 154;
+    const a = level.atmosphere.palette;
     const region = String(level.region);
-    const forest = region.includes('forest');
-    const desert = region.includes('desert');
-    const frost = region.includes('highland');
-    const hollow = region.includes('hollow');
-    const crown = region.includes('crownfall');
-    const warm = desert || region.includes('ashen') || crown;
-    const accent = frost ? 0x9bd9ef : forest ? 0x9fbd77 : hollow ? 0xb58be0 : 0xe6a66d;
-
-    const skyLayer = this.add.graphics().setDepth(-40).setScrollFactor(0.035);
-    skyLayer.fillGradientStyle(sky, sky, mid, mid, 1);
-    skyLayer.fillRect(0, 0, w, h);
-    skyLayer.fillStyle(accent, 0.055); skyLayer.fillCircle(w * 0.72, h * 0.27, Math.min(330, h * 0.42));
-    skyLayer.fillStyle(0xf1d9b7, 0.075); skyLayer.fillCircle(w * 0.72, h * 0.27, Math.min(190, h * 0.25));
-    // A moon with a soft halo and a subtle crescent shadow.
-    const moonX = w * (desert ? 0.78 : 0.73), moonY = h * 0.2, moonR = frost ? 31 : 25;
-    skyLayer.fillStyle(accent, 0.12); skyLayer.fillCircle(moonX, moonY, moonR * 2.8);
-    skyLayer.fillStyle(0xf2e7d3, 0.82); skyLayer.fillCircle(moonX, moonY, moonR);
-    skyLayer.fillStyle(sky, 0.72); skyLayer.fillCircle(moonX + moonR * 0.55, moonY - moonR * 0.24, moonR * 0.88);
-
-    const stars = this.add.graphics().setDepth(-36).setScrollFactor(0.12);
-    for (let i = 0; i < 126; i++) {
-      const x = (i * 197 + (i % 7) * 31) % w;
-      const y = 20 + ((i * 113) % Math.max(90, Math.floor(h * 0.58)));
-      const bright = i % 13 === 0;
-      stars.fillStyle(bright ? 0xffe1ad : 0xe0d8ce, bright ? 0.72 : 0.27);
-      stars.fillCircle(x, y, bright ? 1.65 : 0.85);
-      if (bright) {
-        stars.lineStyle(1, 0xffe1ad, 0.28); stars.lineBetween(x - 5, y, x + 5, y); stars.lineBetween(x, y - 5, x, y + 5);
-      }
-    }
-
-    // Three mountain and ridge layers create depth without image assets.
-    const ridge = (depth: number, color: number, alpha: number, step: number, base: number, height: number, seed: number) => {
-      const g = this.add.graphics().setDepth(depth).setScrollFactor(depth <= -30 ? 0.16 : depth <= -27 ? 0.28 : 0.42);
-      g.fillStyle(color, alpha); g.beginPath(); g.moveTo(0, horizon + base);
-      for (let x = 0; x <= w + step; x += step) {
-        const variation = ((Math.floor(x / step) * 73 + seed * 41) % 100) / 100;
-        g.lineTo(x, horizon - height * (0.34 + variation * 0.66) + base);
-        g.lineTo(x + step * 0.48, horizon + base + 8);
-      }
-      g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fillPath();
-    };
-    ridge(-31, Phaser.Display.Color.IntegerToColor(mid).darken(12).color, 0.48, 210, 5, frost ? 240 : 155, 2);
-    ridge(-27, Phaser.Display.Color.IntegerToColor(fore).darken(18).color, 0.7, 285, 35, frost ? 185 : 112, 5);
-    ridge(-23, Phaser.Display.Color.IntegerToColor(fore).darken(28).color, 0.82, 370, 52, 82, 8);
-
-    // Architectural silhouettes vary by region: ruined hamlet, forest canopy, dunes, ice peaks or gothic city.
-    const distant = this.add.graphics().setDepth(-18).setScrollFactor(0.58);
-    const stone = Phaser.Display.Color.IntegerToColor(fore).darken(28).color;
-    const stoneHi = Phaser.Display.Color.IntegerToColor(fore).darken(8).color;
-    if (forest) {
-      for (let i = 0; i < Math.ceil(w / 175); i++) {
-        const x = i * 175 + 30, base = horizon + 55, th = 135 + (i * 47 % 105);
-        distant.fillStyle(0x171e18, 0.9); distant.fillRoundedRect(x + 23, base - th * 0.46, 13, th * 0.54, 6);
-        const canopy = i % 2 ? 0x263c2b : 0x30442f;
-        distant.fillStyle(0x17251b, 0.9);
-        distant.fillEllipse(x + 29, base - th * 0.56, 112, th * 0.58);
-        distant.fillEllipse(x - 1, base - th * 0.38, 66, th * 0.4);
-        distant.fillEllipse(x + 58, base - th * 0.4, 72, th * 0.43);
-        distant.fillStyle(canopy, 0.94);
-        distant.fillEllipse(x + 28, base - th * 0.59, 88, th * 0.48);
-        distant.fillEllipse(x + 2, base - th * 0.4, 54, th * 0.32);
-        distant.fillEllipse(x + 57, base - th * 0.42, 59, th * 0.34);
-        distant.fillStyle(0x9fb87c, 0.16);
-        distant.fillEllipse(x + 17, base - th * 0.72, 35, th * 0.16);
-        distant.fillEllipse(x + 53, base - th * 0.51, 24, th * 0.13);
-      }
-    } else if (desert) {
-      distant.fillStyle(0x9d7046, 0.2);
-      for (let i = 0; i < Math.ceil(w / 520); i++) {
-        const x = i * 520 - 100;
-        distant.fillEllipse(x + 240, horizon + 52, 540, 118);
-        distant.fillStyle(0x251c1a, 0.5); distant.fillRect(x + 230, horizon - 120, 18, 170);
-        distant.fillTriangle(x + 239, horizon - 160, x + 202, horizon - 112, x + 276, horizon - 112);
-        distant.fillStyle(0x9d7046, 0.2);
-      }
-    } else if (frost) {
-      for (let i = 0; i < Math.ceil(w / 310); i++) {
-        const x = i * 310 + 35, base = horizon + 55;
-        distant.fillStyle(0x526b79, 0.72); distant.fillTriangle(x, base, x + 116, base - 230 - (i % 3) * 28, x + 242, base);
-        distant.fillStyle(0xd5e8e9, 0.5); distant.fillTriangle(x + 116, base - 230 - (i % 3) * 28, x + 91, base - 112, x + 143, base - 112);
-        distant.fillStyle(0x273c48, 0.72); distant.fillTriangle(x + 175, base, x + 218, base - 128, x + 267, base);
-      }
-    } else {
-      for (let i = 0; i < Math.ceil(w / 430); i++) {
-        const x = i * 430 + 48, base = horizon + 48;
-        const towerH = 112 + ((i * 71) % 118), towerW = hollow ? 88 : 68;
-        distant.fillStyle(stone, 0.93);
-        distant.fillRect(x, base - towerH, towerW, towerH);
-        distant.fillRect(x - 12, base - towerH - 10, towerW + 24, 13);
-        // Broken crenellations and a narrow pointed roof.
-        distant.fillRect(x + 9, base - towerH - 23, 12, 18); distant.fillRect(x + towerW - 21, base - towerH - 23, 12, 18);
-        distant.fillTriangle(x + towerW / 2, base - towerH - (hollow ? 82 : 54), x + 8, base - towerH + 2, x + towerW - 8, base - towerH + 2);
-        distant.fillStyle(0x151216, 0.86);
-        distant.fillRoundedRect(x + towerW * 0.34, base - towerH + 38, towerW * 0.32, 48, 10);
-        distant.fillStyle(stoneHi, 0.85);
-        distant.fillRect(x + 105, base - 82, 142, 82);
-        distant.fillRect(x + 124, base - 105, 18, 24); distant.fillRect(x + 202, base - 126, 18, 45);
-        if (hollow || crown) {
-          distant.lineStyle(5, stoneHi, 0.75);
-          distant.beginPath(); distant.arc(x + 176, base - 2, 44, Math.PI, 0, false); distant.strokePath();
-          distant.fillStyle(0x17131a, 0.88); distant.fillRect(x + 132, base - 3, 88, 50);
-        }
-        distant.fillStyle(accent, 0.42);
-        distant.fillRect(x + towerW * 0.42, base - towerH + 58, 5, 13);
-      }
-    }
-
-    // Foreground ridge and a broken stone/soil lip frame the playable plane.
-    const ground = this.add.graphics().setDepth(2);
-    ground.fillStyle(0x100d0d, 0.48); ground.fillRect(0, horizon + 36, w, h - horizon);
-    ground.fillStyle(fore, 0.94); ground.beginPath(); ground.moveTo(0, horizon + 67);
-    for (let x = 0; x <= w + 160; x += 160) ground.lineTo(x, horizon + 46 + ((x * 7) % 36));
-    ground.lineTo(w, h); ground.lineTo(0, h); ground.closePath(); ground.fillPath();
-    ground.fillStyle(0x171313, 0.58);
-    for (let i = 0; i < Math.ceil(w / 235); i++) {
-      const x = i * 235 + 26, y = horizon + 60 + (i % 3) * 7;
-      ground.fillEllipse(x + 25, y + 2, 46, 17);
-      ground.fillEllipse(x + 61, y + 4, 38, 13);
-      ground.fillRoundedRect(x + 54, y - 8, 13, 12, 4);
-      if (forest) {
-        ground.lineStyle(2, 0x71844c, 0.8);
-        ground.lineBetween(x + 92, y + 8, x + 84, y - 5); ground.lineBetween(x + 84, y - 5, x + 86, y - 18);
-        ground.lineBetween(x + 92, y + 8, x + 105, y - 2); ground.lineBetween(x + 105, y - 2, x + 105, y - 12);
-      }
-    }
-
-    // Small biome-specific ground dressing adds a readable foreground silhouette
-    // while keeping all details baked into one graphics object.
-    const dressingCount = Math.ceil(w / 210);
-    for (let i = 0; i < dressingCount; i++) {
-      const x = i * 210 + 36 + (i % 3) * 19;
-      const y = horizon + 52 + (i % 4) * 8;
-      if (forest) {
-        ground.lineStyle(3, 0x334c2d, 0.9);
-        ground.lineBetween(x, y + 12, x - 5, y - 3);
-        ground.lineBetween(x - 5, y - 3, x - 13, y - 11);
-        ground.lineBetween(x, y + 12, x + 8, y - 5);
-        ground.lineBetween(x + 8, y - 5, x + 16, y - 12);
-        ground.fillStyle(0x9bbd69, 0.82);
-        ground.fillEllipse(x - 11, y - 11, 10, 5);
-        ground.fillEllipse(x + 16, y - 12, 11, 5);
-      } else if (desert) {
-        ground.lineStyle(2, 0xd6ad73, 0.34);
-        ground.lineBetween(x - 18, y + 4, x - 4, y - 1);
-        ground.lineBetween(x - 4, y - 1, x + 5, y + 3);
-        ground.lineBetween(x + 5, y + 3, x + 19, y - 2);
-        ground.fillStyle(0x5b4934, 0.68);
-        ground.fillTriangle(x, y + 5, x - 7, y - 13, x + 2, y - 7);
-        ground.fillTriangle(x + 3, y + 5, x + 11, y - 10, x + 7, y + 5);
-      } else if (frost) {
-        ground.fillStyle(0x9bd9e8, 0.3);
-        ground.fillTriangle(x, y + 5, x - 7, y - 16, x + 3, y - 7);
-        ground.fillTriangle(x + 9, y + 5, x + 15, y - 12, x + 17, y + 5);
-        ground.lineStyle(1, 0xe4f8ff, 0.38);
-        ground.lineBetween(x - 3, y - 7, x + 1, y + 3);
-      } else if (hollow) {
-        ground.lineStyle(3, 0x665078, 0.72);
-        ground.lineBetween(x - 8, y + 8, x - 3, y - 10);
-        ground.lineBetween(x - 3, y - 10, x + 5, y - 17);
-        ground.lineBetween(x - 3, y - 10, x + 8, y - 5);
-        ground.fillStyle(0xb58be0, 0.48);
-        ground.fillCircle(x + 8, y - 5, 3);
-      } else {
-        ground.fillStyle(0x2a1d1a, 0.78);
-        ground.fillEllipse(x, y + 4, 22, 7);
-        ground.fillStyle(0xc18a5d, 0.38);
-        ground.fillTriangle(x - 5, y + 2, x + 1, y - 8, x + 6, y + 2);
-        ground.lineStyle(1, 0x6b4639, 0.5);
-        ground.lineBetween(x + 12, y + 4, x + 22, y - 2);
-      }
-    }
-    ground.fillStyle(accent, warm ? 0.13 : 0.1); ground.fillEllipse(w * 0.48, horizon + 92, Math.min(640, w * 0.48), 54);
-
-    // Low drifting mist gives the level a layered, cinematic silhouette.
-    for (let i = 0; i < 2; i++) {
-      const mist = this.add.ellipse(w * (0.28 + i * 0.42), horizon + 22 + i * 18, 360, 28, frost ? 0xc6e4ee : 0xb8a9a0, 0.035).setDepth(-5 + i);
-      this.tweens.add({ targets: mist, x: mist.x + (i ? -55 : 55), alpha: 0.018, duration: 14000 + i * 2000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-    }
-
-    // Weather particles are deterministic and deliberately sparse for mobile performance.
-    const weather = String(level.atmosphere.weather);
-    const particleColor = weather.includes('snow') || frost ? 0xd8eff7 : weather.includes('sand') || desert ? 0xe0b878 : accent;
-    if (weather === 'ash' || weather === 'embers' || weather.includes('snow') || weather.includes('fog') || weather.includes('sand') || warm) {
-      const count = frost || weather.includes('snow') ? 8 : 10;
-      for (let i = 0; i < count; i++) {
-        const x = (i * 191) % w, y = 42 + (i * 61) % Math.max(100, h - 100);
-        const size = frost ? 1 + (i % 3) * 0.55 : 1 + i % 2;
-        const particle = this.add.circle(x, y, size, particleColor, 0.22 + (i % 4) * 0.09).setDepth(1);
-        this.tweens.add({ targets: particle, x: x + (frost ? 24 : -14) + (i % 3) * 5, y: y - (frost ? -24 : 16 + (i % 3) * 6), alpha: 0.05, duration: 5200 + (i % 4) * 900, delay: i * 120, repeat: -1, yoyo: true, ease: 'Sine.InOut' });
-      }
+    const sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
+    const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
+    this.parallax = [];
+    this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
+    const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
+    for (const [d, f, depth] of layers) {
+      const ts = this.add.tileSprite(0, 0, 1280, 720, ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d))).setOrigin(0, 0).setScrollFactor(0).setDepth(depth);
+      this.parallax.push({ ts, f });
     }
   }
 
-  /** Material-specific hand-painted platform atlas, generated once and reused to avoid flat coloured rectangles. */
-  private platformTexture(kind: string): string {
-    const key = `aoc-platform-${kind}`;
-    if (this.textures.exists(key)) return key;
-    const g = this.add.graphics();
-    const base: Record<string, number> = { ground: 0x51423d, stone: 0x71645c, wood: 0x76523d, ice: 0x9db5c2, sand: 0x92724d, crumble: 0x6d5146, oneway: 0x8a6a50, vine: 0x4e6947, metal: 0x59616a };
-    const color = base[kind] ?? base.ground;
-    const dark = Phaser.Display.Color.IntegerToColor(color).darken(28).color;
-    const light = Phaser.Display.Color.IntegerToColor(color).brighten(24).color;
-    g.fillStyle(dark, 1); g.fillRect(0, 0, 320, 96);
-    g.fillStyle(color, 1); g.fillRoundedRect(1, 1, 318, 91, 8);
-    g.fillStyle(light, 0.72); g.fillRoundedRect(0, 0, 320, 8, 4);
-    g.fillStyle(0x090808, 0.28); g.fillRect(0, 86, 320, 10);
-    g.fillStyle(light, 0.2); g.fillRect(2, 9, 316, 2);
-    if (kind === 'wood' || kind === 'oneway') {
-      for (let y = 16; y < 92; y += 25) {
-        g.fillStyle(dark, 0.52); g.fillRoundedRect(3, y, 314, 19, 5);
-        g.lineStyle(2, light, 0.48); g.lineBetween(8, y + 3, 310, y + 3);
-        for (let x = 28; x < 310; x += 78) { g.lineStyle(1, dark, 0.8); g.lineBetween(x, y + 5, x + 4, y + 16); g.fillStyle(0x2b1c16, 0.7); g.fillCircle(x + 13, y + 10, 2); }
-      }
-    } else if (kind === 'ice') {
-      for (let x = 14; x < 320; x += 48) { g.fillStyle(0xe7fbff, 0.32); g.beginPath(); g.moveTo(x, 7); g.lineTo(x + 17, 18); g.lineTo(x + 8, 61); g.lineTo(x - 5, 40); g.closePath(); g.fillPath(); g.lineStyle(1, 0xf4ffff, 0.42); g.lineBetween(x + 4, 12, x + 7, 54); }
-      g.fillStyle(0x284957, 0.24); g.fillRect(0, 72, 320, 20);
-    } else if (kind === 'sand') {
-      for (let y = 13; y < 96; y += 13) { g.lineStyle(2, y % 2 ? 0xd8b77e : dark, 0.3); g.beginPath(); g.moveTo(0, y); g.lineTo(72, y - 4); g.lineTo(156, y + 2); g.lineTo(238, y - 3); g.lineTo(320, y + 1); g.strokePath(); }
-      for (let i = 0; i < 38; i++) { const x = (i * 83) % 320, y = 12 + (i * 29) % 75; g.fillStyle(light, 0.32); g.fillCircle(x, y, 1 + i % 2); }
-    } else if (kind === 'vine') {
-      for (let x = 10; x < 320; x += 36) { g.lineStyle(3, 0x263e28, 0.75); g.beginPath(); g.moveTo(x, 8); g.lineTo(x + 8, 32); g.lineTo(x - 2, 57); g.lineTo(x + 10, 86); g.strokePath(); g.fillStyle(0x9bbd69, 0.9); g.fillEllipse(x + 7, 30, 14, 7); g.fillEllipse(x - 1, 58, 13, 6); }
-    } else {
-      // Uneven masonry: overlapping irregular stone faces, chipped highlights and hairline cracks.
-      for (let row = 0; row < 2; row++) for (let col = 0; col < 5; col++) {
-        const x = col * 66 + (row ? -22 : 0), y = 12 + row * 40;
-        const wobble = (col * 7 + row * 11) % 9;
-        g.fillStyle(dark, 0.72); g.beginPath(); g.moveTo(x + 4, y + 2); g.lineTo(x + 52, y - wobble); g.lineTo(x + 63, y + 12); g.lineTo(x + 55, y + 31); g.lineTo(x + 8, y + 34); g.lineTo(x - 3, y + 17); g.closePath(); g.fillPath();
-        g.fillStyle(color, 1); g.beginPath(); g.moveTo(x + 5, y + 3); g.lineTo(x + 49, y + 1 - wobble); g.lineTo(x + 59, y + 12); g.lineTo(x + 52, y + 27); g.lineTo(x + 9, y + 30); g.lineTo(x, y + 15); g.closePath(); g.fillPath();
-        g.lineStyle(2, light, 0.38); g.lineBetween(x + 7, y + 5, x + 44, y + 3 - wobble);
-        g.lineStyle(1, 0x211a18, 0.62); g.lineBetween(x + 28, y + 14, x + 34, y + 20); g.lineBetween(x + 34, y + 20, x + 31, y + 25);
-      }
-      if (kind === 'crumble') { g.fillStyle(0x2a211d, 0.7); for (let i = 0; i < 22; i++) g.fillCircle((i * 47) % 320, 12 + (i * 19) % 78, 2 + i % 3); }
-      if (kind === 'metal') { g.lineStyle(2, 0xb5c0c8, 0.45); for (let x = 20; x < 320; x += 58) g.lineBetween(x, 8, x + 8, 88); g.fillStyle(0x171d22, 0.6); for (let x = 16; x < 320; x += 64) { g.fillCircle(x, 16, 2.5); g.fillCircle(x, 80, 2.5); } }
-    }
-    if (kind === 'ground') {
-      // Mossy top seam, root threads and embedded pebbles distinguish natural earth from masonry.
-      g.fillStyle(0x81915a, 0.9); g.fillRect(2, 1, 316, 5);
-      g.fillStyle(0x263626, 0.8); g.fillRect(0, 7, 320, 4);
-      for (let x = 12; x < 320; x += 37) {
-        g.fillStyle(0xb0bf76, 0.72); g.fillTriangle(x, 5, x + 5, 15 + (x % 3), x + 9, 5);
-        g.fillStyle(0x241c19, 0.55); g.fillEllipse(x + 17, 70 + (x % 13), 9, 4);
-      }
-    } else if (kind === 'stone') {
-      // Chisel marks and chipped corners catch the light without extra scene objects.
-      for (let x = 18; x < 320; x += 54) {
-        g.lineStyle(2, light, 0.3); g.lineBetween(x, 18, x + 9, 14);
-        g.lineStyle(1, 0x211a18, 0.62); g.lineBetween(x + 18, 48, x + 27, 55);
-        g.fillStyle(0x171313, 0.42); g.fillTriangle(x + 38, 10, x + 47, 13, x + 42, 20);
-      }
-    } else if (kind === 'crumble') {
-      g.lineStyle(2, 0x241a18, 0.78);
-      for (let x = 22; x < 310; x += 61) {
-        g.lineBetween(x, 18, x + 8, 33); g.lineBetween(x + 8, 33, x + 2, 47);
-        g.lineBetween(x + 2, 47, x + 14, 63);
-      }
-      g.fillStyle(0xc18a5d, 0.42);
-      for (let i = 0; i < 12; i++) g.fillTriangle((i * 53) % 310, 5, (i * 53) % 310 + 5, 14, (i * 53) % 310 + 10, 5);
-    }
-    g.generateTexture(key, 320, 96); g.destroy(); return key;
+  private updateParallax(): void {
+    const cam = this.cameras.main;
+    for (const p of this.parallax) p.ts.tilePositionX = Math.round(cam.scrollX * p.f);
+  }
+
+  /** One pixel-art texture per (material, size): painted to the exact collider size so pixels never stretch. */
+  private platformTexture(kind: string, w: number, h: number): string {
+    const key = `aoc-plat-${kind}-${w}x${h}`;
+    if (!this.textures.exists(key)) this.textures.addCanvas(key, paintPlatform(kind, w, h));
+    return key;
   }
 
   private platformColor(kind: string): number {
@@ -748,69 +515,10 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Pre-render each named villager once; one textured sprite replaces a stack of live vector objects. */
+  /** Pixel-art villager portrait, painted once per NPC id (src/art/world.ts). */
   private npcTexture(id: string, cloth: number): string {
     const key = `aoc-npc-${id}`;
-    if (this.textures.exists(key)) return key;
-    const texture = this.textures.createCanvas(key, 96, 128);
-    if (!texture) throw new Error('Unable to create NPC canvas texture');
-    const ctx = texture.getContext();
-    const color = (value: number): string => `#${value.toString(16).padStart(6, '0')}`;
-    const base = color(cloth);
-    const dark = color(Phaser.Display.Color.IntegerToColor(cloth).darken(34).color);
-    const light = color(Phaser.Display.Color.IntegerToColor(cloth).brighten(22).color);
-    const trim = '#c9a66f';
-    ctx.clearRect(0, 0, 96, 128);
-
-    // Layered cloak and robe, shaped with curves rather than primitive silhouettes.
-    const cloak = ctx.createLinearGradient(17, 38, 78, 116);
-    cloak.addColorStop(0, '#17151a'); cloak.addColorStop(.48, dark); cloak.addColorStop(1, '#100e13');
-    ctx.beginPath(); ctx.moveTo(31, 38); ctx.quadraticCurveTo(18, 42, 16, 63);
-    ctx.lineTo(9, 112); ctx.quadraticCurveTo(48, 126, 87, 112);
-    ctx.lineTo(79, 62); ctx.quadraticCurveTo(77, 42, 64, 38);
-    ctx.quadraticCurveTo(48, 31, 31, 38); ctx.closePath();
-    ctx.fillStyle = cloak; ctx.fill();
-    ctx.strokeStyle = '#100d11'; ctx.lineWidth = 3; ctx.stroke();
-
-    const robe = ctx.createLinearGradient(24, 42, 72, 112);
-    robe.addColorStop(0, dark); robe.addColorStop(.42, base); robe.addColorStop(.72, light); robe.addColorStop(1, dark);
-    ctx.beginPath(); ctx.moveTo(31, 42); ctx.quadraticCurveTo(48, 34, 65, 42);
-    ctx.quadraticCurveTo(73, 60, 70, 83); ctx.lineTo(78, 112);
-    ctx.quadraticCurveTo(48, 120, 18, 112); ctx.lineTo(26, 82);
-    ctx.quadraticCurveTo(22, 59, 31, 42); ctx.closePath();
-    ctx.fillStyle = robe; ctx.fill(); ctx.strokeStyle = trim; ctx.lineWidth = 1.8; ctx.stroke();
-
-    // Sleeves and hands.
-    ctx.fillStyle = dark; ctx.beginPath(); ctx.moveTo(29, 47); ctx.quadraticCurveTo(16, 49, 19, 69); ctx.lineTo(28, 84); ctx.lineTo(36, 78); ctx.lineTo(33, 58); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(66, 47); ctx.quadraticCurveTo(80, 49, 77, 69); ctx.lineTo(68, 84); ctx.lineTo(60, 78); ctx.lineTo(63, 58); ctx.closePath(); ctx.fill();
-    const skin = ctx.createLinearGradient(35, 0, 62, 0); skin.addColorStop(0, '#795746'); skin.addColorStop(.5, '#c99b79'); skin.addColorStop(1, '#8b604b');
-    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(30, 83, 5, 7, -.18, 0, Math.PI * 2); ctx.ellipse(66, 83, 5, 7, .18, 0, Math.PI * 2); ctx.fill();
-
-    // Neck and face with a softly shaded profile.
-    ctx.fillStyle = '#8b604b'; ctx.fillRect(42, 31, 12, 14);
-    const face = ctx.createRadialGradient(42, 23, 2, 49, 25, 22);
-    face.addColorStop(0, '#e0b28d'); face.addColorStop(.72, '#bd8969'); face.addColorStop(1, '#754c3d');
-    ctx.fillStyle = face; ctx.beginPath(); ctx.ellipse(48, 24, 14, 19, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#32231f'; ctx.beginPath(); ctx.moveTo(34, 22); ctx.quadraticCurveTo(31, 3, 48, 4); ctx.quadraticCurveTo(66, 4, 62, 23);
-    ctx.quadraticCurveTo(56, 13, 48, 15); ctx.quadraticCurveTo(40, 14, 34, 22); ctx.fill();
-    ctx.fillStyle = '#231a19'; ctx.beginPath(); ctx.ellipse(43, 25, 1.7, 1.1, 0, 0, Math.PI * 2); ctx.ellipse(53, 25, 1.7, 1.1, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#704b3d'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(48, 27); ctx.lineTo(47, 31); ctx.stroke();
-    ctx.strokeStyle = '#70453c'; ctx.beginPath(); ctx.moveTo(44, 35); ctx.quadraticCurveTo(48, 37, 52, 35); ctx.stroke();
-
-    // Hood, mantle, stitching and worn metal details.
-    ctx.fillStyle = cloak; ctx.beginPath(); ctx.moveTo(29, 23); ctx.quadraticCurveTo(28, 2, 48, 1); ctx.quadraticCurveTo(70, 2, 67, 24);
-    ctx.quadraticCurveTo(61, 13, 56, 12); ctx.quadraticCurveTo(43, 9, 36, 18); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = trim; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(31, 42); ctx.quadraticCurveTo(48, 52, 65, 42); ctx.stroke();
-    ctx.strokeStyle = 'rgba(242,218,175,.32)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(28, 58); ctx.quadraticCurveTo(22, 83, 22, 105); ctx.moveTo(68, 58); ctx.quadraticCurveTo(75, 84, 73, 105); ctx.stroke();
-    ctx.strokeStyle = 'rgba(18,12,12,.55)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(38, 58); ctx.quadraticCurveTo(34, 83, 38, 106); ctx.moveTo(57, 58); ctx.quadraticCurveTo(63, 83, 58, 106); ctx.stroke();
-    ctx.fillStyle = '#3b2b25'; ctx.fillRect(27, 72, 42, 5);
-    ctx.fillStyle = trim; ctx.fillRect(44, 70, 9, 9);
-    ctx.fillStyle = '#ead3a2'; ctx.fillRect(47, 72, 3, 4);
-    ctx.fillStyle = 'rgba(225,190,130,.72)'; ctx.beginPath(); ctx.arc(48, 47, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(9,7,9,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(17, 113); ctx.quadraticCurveTo(48, 121, 79, 113); ctx.stroke();
-    texture.refresh();
+    if (!this.textures.exists(key)) this.textures.addCanvas(key, paintNpc(id, cloth));
     return key;
   }
 
@@ -824,9 +532,9 @@ export class GameScene extends Phaser.Scene {
       const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
       // NPCs were rendered at over twice Aren's visual height and looked detached
       // from the playable world. Keep their feet anchored and bring them to a shared scale.
-      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8).setScale(0.34);
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8).setScale(0.75);
       // Keep NPC feet on the same plane as Aren; the subtle cloth sway does not lift them.
-      this.tweens.add({ targets: actor, scaleY: 0.345, angle: 0.28, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: actor, scaleY: 0.755, angle: 0.28, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       this.tweens.add({ targets: shadow, scaleX: 1.035, alpha: 0.39, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       const plaque = this.add.container(x, y - 52, [
         this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.82).setStrokeStyle(1, 0x9a774b, 0.82),
@@ -841,50 +549,26 @@ export class GameScene extends Phaser.Scene {
     for (const item of level.interactables) {
       const g = this.add.container(item.x, item.y).setDepth(7);
       const id = String(item.id).toLowerCase();
-      if (id.includes('well')) {
-        g.add(this.add.ellipse(0, -4, 52, 18, 0x171313).setStrokeStyle(4, 0x8c7968));
-        g.add(this.add.rectangle(0, -20, 42, 31, 0x51463e).setStrokeStyle(2, 0x9e896e));
-        g.add(this.add.ellipse(0, -36, 48, 14, 0x302721).setStrokeStyle(4, 0xb49a75));
-        g.add(this.add.ellipse(0, -36, 31, 8, 0x101923, 0.96));
-        g.add(this.add.line(0, -49, -17, 0, -17, 16, 0x8b6a45).setLineWidth(4));
-        g.add(this.add.line(0, -49, 17, 0, 17, 16, 0x8b6a45).setLineWidth(4));
-        g.add(this.add.line(0, -56, -19, 0, 19, 0, 0xc49b65).setLineWidth(3));
-        g.add(this.add.line(0, -55, 0, 0, 0, 17, 0x9d8059).setLineWidth(2));
-      } else if (id.includes('forge') || id.includes('anvil')) {
-        g.add(this.add.rectangle(0, -17, 42, 25, 0x3b302b).setStrokeStyle(2, 0x9b7652));
-        g.add(this.add.triangle(0, -38, -17, 0, 0, -12, 18, 0, 0x68717a).setStrokeStyle(2, 0xb7a38a));
-        g.add(this.add.ellipse(0, -48, 26, 10, 0xff8c3b, 0.55));
-        g.add(this.add.circle(0, -48, 6, 0xffd18a, 0.9));
-      } else if (id.includes('chest') || id.includes('cache') || id.includes('crate')) {
-        g.add(this.add.rectangle(0, -15, 38, 25, 0x68452e).setStrokeStyle(3, 0xc49a5c));
-        g.add(this.add.rectangle(0, -29, 38, 10, 0x8b6039).setStrokeStyle(2, 0xd4ae6e));
-        g.add(this.add.rectangle(0, -16, 6, 10, 0xd9b76d).setStrokeStyle(1, 0x47301e));
-      } else if (id.includes('shrine') || id.includes('memory') || id.includes('altar')) {
-        g.add(this.add.rectangle(0, -14, 32, 28, 0x51484a).setStrokeStyle(2, 0xa99a8c));
-        g.add(this.add.triangle(0, -37, -17, 0, 0, -26, 17, 0, 0x77717d).setStrokeStyle(2, 0xc1b1a0));
-        g.add(this.add.circle(0, -33, 7, 0x9bd5ed, 0.75));
-        g.add(this.add.circle(0, -33, 15, 0x8acbe8, 0.1).setStrokeStyle(1, 0xb8eaff, 0.55));
-      } else {
-        g.add(this.add.rectangle(0, -19, 30, 36, 0x4a3830).setStrokeStyle(2, 0xc49b6b));
-        g.add(this.add.rectangle(0, -37, 22, 5, 0x9c805d));
-        g.add(this.add.circle(0, -20, 4, 0xe4c17c));
-      }
+      const propKind: PropKind = id.includes('well') ? 'well' : (id.includes('forge') || id.includes('anvil')) ? 'forge' : (id.includes('chest') || id.includes('cache') || id.includes('crate')) ? 'chest' : (id.includes('shrine') || id.includes('memory') || id.includes('altar')) ? 'shrine' : 'generic';
+      const propKey = `aoc-prop-${propKind}`;
+      if (!this.textures.exists(propKey)) this.textures.addCanvas(propKey, paintProp(propKind));
+      this.ensureSharedArt();
+      g.add(this.add.ellipse(0, -2, 44, 9, 0x000000, 0.4));
+      g.add(this.add.image(0, 0, propKey).setOrigin(0.5, 0.95).setScale(0.75));
       const labelBg = this.add.rectangle(item.label.length * 3.3, -75, Math.min(210, item.label.length * 7.5 + 24), 22, 0x100d0b, 0.76).setStrokeStyle(1, 0x806343, 0.8);
       const label = this.add.text(item.label.length * 3.3, -75, item.label, { fontFamily: 'Georgia', fontSize: '11px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
       g.add([labelBg, label]);
-      // Small looping prop animation adds life to the world without spawning particles.
-      if (id.includes('forge') || id.includes('anvil')) {
-        const flame = g.list[2] as Phaser.GameObjects.Ellipse;
-        const core = g.list[3] as Phaser.GameObjects.Arc;
-        if (flame) this.tweens.add({ targets: flame, alpha: 0.28, scaleX: 0.82, scaleY: 1.22, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-        if (core) this.tweens.add({ targets: core, alpha: 0.55, scale: 0.82, duration: 340, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      } else if (id.includes('shrine') || id.includes('memory') || id.includes('altar')) {
-        const glow = g.list[2] as Phaser.GameObjects.Arc;
-        const halo = g.list[3] as Phaser.GameObjects.Arc;
-        if (glow) this.tweens.add({ targets: glow, alpha: 0.98, scale: 1.16, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-        if (halo) this.tweens.add({ targets: halo, alpha: 0.22, scale: 1.12, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      } else if (id.includes('chest') || id.includes('cache')) {
-        const glint = this.add.star(0, -40, 4, 2, 5, 0xf3d28b, 0.8).setDepth(8);
+      // Light-emitting props pulse: forge embers, shrine halo, chest glint.
+      if (propKind === 'forge') {
+        const glow = this.add.image(0, -10, 'aoc-glow').setTint(0xff8a3a).setAlpha(0.7).setBlendMode(Phaser.BlendModes.ADD);
+        g.add(glow);
+        this.tweens.add({ targets: glow, alpha: 0.32, scale: 0.8, duration: 300, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      } else if (propKind === 'shrine') {
+        const glow = this.add.image(0, -30, 'aoc-glow').setTint(0x8fd4ee).setAlpha(0.8).setBlendMode(Phaser.BlendModes.ADD);
+        g.add(glow);
+        this.tweens.add({ targets: glow, alpha: 0.3, scale: 1.25, duration: 1450, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      } else if (propKind === 'chest') {
+        const glint = this.add.star(0, -34, 4, 2, 5, 0xf3d28b, 0.8).setDepth(8);
         g.add(glint);
         this.tweens.add({ targets: glint, alpha: 0.12, angle: 90, scale: 0.65, duration: 1150, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       }
@@ -908,10 +592,12 @@ export class GameScene extends Phaser.Scene {
   private drawCollectibles(items: any[]): void {
     this.collectGroup = this.physics.add.staticGroup();
     for (const item of items) {
-      const orb = this.collectGroup.create(item.x, item.y, 'aoc-pixel') as Phaser.Physics.Arcade.Image;
-      orb.setDisplaySize(20, 20).setTint(0xf4c36b).setCircle(10).refreshBody();
+      this.ensureSharedArt();
+      const orb = this.collectGroup.create(item.x, item.y, 'aoc-shard') as Phaser.Physics.Arcade.Image;
+      orb.setCircle(10, 2, 2).setDepth(6).refreshBody();
+      this.tweens.add({ targets: orb, y: item.y - 5, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
       orb.setData('collectibleId', item.id);
-      const glow = this.add.circle(item.x, item.y, 18, 0xeeb85e, 0.12).setDepth(5);
+      const glow = this.add.image(item.x, item.y, 'aoc-glow').setScale(0.7).setAlpha(0.55).setDepth(5).setBlendMode(Phaser.BlendModes.ADD);
       orb.setData('glow', glow);
     }
   }
