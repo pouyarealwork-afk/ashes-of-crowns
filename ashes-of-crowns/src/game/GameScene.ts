@@ -12,6 +12,9 @@ import { InputBridge } from './InputBridge';
 import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, type PropKind } from '../art/world';
 import { buildOverworld } from './Overworld';
 import { createUIBackend } from './backend';
+import { paintAren } from '../art/aren';
+import { poseFor } from '../modules/player/phaser/ArenSprite';
+import { ANIM_DEFS, type AnimName } from '../modules/player/phaser/animations';
 
 export interface GameServices {
   rpg: RpgModule;
@@ -914,6 +917,7 @@ export class GameScene extends Phaser.Scene {
       <style>
         .aoc-opening-cinematic{position:fixed;inset:0;z-index:100000;overflow:hidden;background:#050507;color:#ead9c1;display:grid;place-items:center;opacity:0;transition:opacity 1.1s ease;font-family:Georgia,'Times New Roman',serif;isolation:isolate}
         .aoc-opening-cinematic *{box-sizing:border-box}
+        .aoc-opening-cinematic canvas.aoc-cine-figure{display:block;width:clamp(112px,15vw,190px);height:auto;aspect-ratio:1;image-rendering:pixelated;object-fit:contain;filter:none!important;}
         .aoc-opening-cinematic.is-visible{opacity:1}
         .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-3%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.045);transition:transform 60s cubic-bezier(.16,.55,.25,1);contain:paint}
         .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1)}
@@ -1121,7 +1125,7 @@ export class GameScene extends Phaser.Scene {
           <path d="M0 870Q260 820 520 870T1050 865T1600 850" fill="none" stroke="#6b4639" stroke-opacity=".35" stroke-width="3"/>
           </g>
         </svg>
-        <div class="aoc-cine-figure" aria-hidden="true"><i class="cape"></i><i class="head"></i><i class="torso"></i><i class="arm"></i><i class="leg left"></i><i class="leg right"></i><i class="blade"></i></div>
+        <canvas class="aoc-cine-figure" width="64" height="64" aria-hidden="true"></canvas>
         <div class="aoc-court-actor aoc-king" aria-hidden="true"></div><div class="aoc-court-actor aoc-guard guard-left" aria-hidden="true"></div><div class="aoc-court-actor aoc-guard guard-right" aria-hidden="true"></div>
         <div class="aoc-ground-mist" aria-hidden="true"></div><div class="aoc-bird-flock" aria-hidden="true"></div><div class="aoc-smoke" aria-hidden="true"></div><div class="aoc-firelight" aria-hidden="true"></div>
         <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
@@ -1142,6 +1146,58 @@ export class GameScene extends Phaser.Scene {
     const line = overlay.querySelector<HTMLElement>('.aoc-line')!;
     const rule = overlay.querySelector<HTMLElement>('.aoc-rule')!;
     const skip = overlay.querySelector<HTMLButtonElement>('.aoc-skip')!;
+    // Render Aren with the exact same 64x64 pixel-art pose painter used by gameplay.
+    // Frames are cached once per action; the cinematic only blits pre-rendered pixels.
+    const cineCanvas = overlay.querySelector<HTMLCanvasElement>('.aoc-cine-figure')!;
+    const cineContext = cineCanvas.getContext('2d', { alpha: true })!;
+    cineContext.imageSmoothingEnabled = false;
+    const cineCache = new Map<AnimName, HTMLCanvasElement[]>();
+    const cineFrames = (name: AnimName): HTMLCanvasElement[] => {
+      const cached = cineCache.get(name);
+      if (cached) return cached;
+      const def = ANIM_DEFS.find(item => item.name === name);
+      if (!def) return [];
+      const frames: HTMLCanvasElement[] = [];
+      for (let i = 0; i < def.frames; i++) {
+        frames.push(paintAren(poseFor(name, i, def.frames), name === 'dead').toCanvas());
+      }
+      cineCache.set(name, frames);
+      return frames;
+    };
+    let cineAction: AnimName = 'idle';
+    let cineFrame = 0;
+    let cineElapsed = 0;
+    let cineLastTime = 0;
+    let cineRaf = 0;
+    const setCineAction = (name: AnimName) => {
+      if (cineAction === name) return;
+      cineAction = name;
+      cineFrame = 0;
+      cineElapsed = 0;
+      cineLastTime = 0;
+      cineContext.clearRect(0, 0, 64, 64);
+    };
+    const drawCineFrame = (time: number) => {
+      if (finished) return;
+      const def = ANIM_DEFS.find(item => item.name === cineAction);
+      const frames = cineFrames(cineAction);
+      if (def && frames.length) {
+        const step = 1000 / def.frameRate;
+        if (cineLastTime) cineElapsed += Math.min(80, time - cineLastTime);
+        cineLastTime = time;
+        while (cineElapsed >= step) {
+          cineElapsed -= step;
+          if (cineFrame < frames.length - 1) cineFrame++;
+          else if (def.loop) cineFrame = 0;
+        }
+        cineContext.clearRect(0, 0, 64, 64);
+        cineContext.drawImage(frames[cineFrame], 0, 0);
+      }
+      cineRaf = window.requestAnimationFrame(drawCineFrame);
+    };
+    setCineAction('idle');
+    cineRaf = window.requestAnimationFrame(drawCineFrame);
+
     const embers = overlay.querySelector<HTMLElement>('.aoc-embers')!;
     const flash = overlay.querySelector<HTMLElement>('.aoc-flash')!;
     skip.textContent = fa ? 'رد کردن  ⏭' : 'SKIP  ⏭';
@@ -1179,6 +1235,7 @@ export class GameScene extends Phaser.Scene {
     const finish = () => {
       if (finished) return;
       finished = true;
+      if (cineRaf) window.cancelAnimationFrame(cineRaf);
       timers.forEach(timer => timer.remove(false));
       browserTimers.forEach(id => window.clearTimeout(id));
       window.removeEventListener('pointerdown', unlockScore);
@@ -1280,12 +1337,13 @@ export class GameScene extends Phaser.Scene {
       ['AN OATH IN ASHES', 'From ruin, he rises—not for a crown, but to uncover the truth.']
     ];
     setScene('green'); setCaption(captions[0][0], captions[0][1]);
-    schedule(10500, () => { setScene('trial'); setCaption(captions[1][0], captions[1][1]); });
-    schedule(19000, () => { setBeat('accuse'); setCaption(captions[2][0], captions[2][1]); shot.classList.add('scene-verdict'); flash.classList.add('is-flashing'); });
-    schedule(27500, () => { setBeat('arrest'); setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
-    schedule(36500, () => { setScene('ashes'); setBeat('collapse'); setCaption(captions[4][0], captions[4][1]); });
-    schedule(45500, () => { setBeat('oath'); setCaption(captions[5][0], captions[5][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(10500, () => { setCineAction('block'); setScene('trial'); setCaption(captions[1][0], captions[1][1]); });
+    schedule(19000, () => { setCineAction('hit'); setBeat('accuse'); setCaption(captions[2][0], captions[2][1]); shot.classList.add('scene-verdict'); flash.classList.add('is-flashing'); });
+    schedule(27500, () => { setCineAction('block'); setBeat('arrest'); setCaption(captions[3][0], captions[3][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
+    schedule(36500, () => { setCineAction('dead'); setScene('ashes'); setBeat('collapse'); setCaption(captions[4][0], captions[4][1]); });
+    schedule(45500, () => { setCineAction('idle'); setBeat('oath'); setCaption(captions[5][0], captions[5][1]); flash.classList.remove('is-flashing'); void flash.offsetWidth; flash.classList.add('is-flashing'); });
     schedule(52500, () => {
+      setCineAction('attack0');
       copy.classList.remove('is-active');
       schedule(450, () => {
         kicker.textContent = '';
