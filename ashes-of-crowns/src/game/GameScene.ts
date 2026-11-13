@@ -818,12 +818,14 @@ export class GameScene extends Phaser.Scene {
       if (!def) continue;
       const x = spawn.x, y = spawn.y;
       const cloth = palette[spawn.npc] ?? 0x655044;
-      const shadow = this.add.ellipse(x, y - 2, 39, 10, 0x000000, 0.42).setDepth(7);
-      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 1).setDepth(8).setScale(1.08);
-      // Tiny breathing motion around the feet anchor; no vertical floating.
-      this.tweens.add({ targets: actor, scaleY: 1.095, duration: 2200 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      this.tweens.add({ targets: shadow, scaleX: 1.08, alpha: 0.32, duration: 2200 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      const plaque = this.add.container(x, y - 124, [
+      const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
+      // NPCs were rendered at over twice Aren's visual height and looked detached
+      // from the playable world. Keep their feet anchored and bring them to a shared scale.
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 1).setDepth(8).setScale(0.66);
+      // Restrained breathing and cloak sway pivot around the feet, never lifting the actor.
+      this.tweens.add({ targets: actor, scaleY: 0.674, angle: 0.65, duration: 2450 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: shadow, scaleX: 1.06, alpha: 0.36, duration: 2450 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      const plaque = this.add.container(x, y - 88, [
         this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.82).setStrokeStyle(1, 0x9a774b, 0.82),
         this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
         this.add.circle(-42, 0, 2, 0xe5bd79, 0.9),
@@ -1126,6 +1128,36 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-shot:after{content:'';position:absolute;inset:-20%;pointer-events:none;background:linear-gradient(112deg,transparent 35%,rgba(255,194,137,.075) 48%,transparent 60%);transform:translateX(-65%);animation:aoc-light-sweep 8s ease-in-out 1.2s infinite}
         .aoc-opening-cinematic .aoc-haze{opacity:.82}
         @keyframes aoc-camera-drift{0%{transform:scale(1.02) translate3d(1.2%,.8%,0)}45%{transform:scale(1.11) translate3d(-1.4%,-.5%,0)}100%{transform:scale(1.12) translate3d(-1.5%,-.8%,0)}}
+        /* Each story beat gets its own camera move, not one repeated zoom on a still. */
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-art{animation:aoc-green-pan 5.2s cubic-bezier(.2,.55,.25,1) both}
+        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-art{animation:aoc-trial-dolly 8.5s cubic-bezier(.2,.55,.25,1) both}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-art{animation:aoc-ashes-reveal 12s cubic-bezier(.2,.55,.25,1) both}
+        @keyframes aoc-green-pan{0%{transform:scale(1.12) translate3d(3.5%,1.2%,0)}100%{transform:scale(1.03) translate3d(-2.5%,-.6%,0)}}
+        @keyframes aoc-trial-dolly{0%{transform:scale(1.04) translate3d(-1.8%,.4%,0)}55%{transform:scale(1.12) translate3d(1.2%,-.5%,0)}100%{transform:scale(1.08) translate3d(0,-.2%,0)}}
+        @keyframes aoc-ashes-reveal{0%{transform:scale(1.18) translate3d(0,2.4%,0);filter:brightness(1.45)}12%{filter:brightness(.72)}42%{transform:scale(1.09) translate3d(-1.2%,-.3%,0);filter:brightness(.88)}100%{transform:scale(1.04) translate3d(1.4%,-.8%,0);filter:brightness(.78)}}
+        .aoc-opening-cinematic .aoc-cine-figure{position:absolute;z-index:3;left:50%;bottom:12%;width:54px;height:150px;transform:translateX(-50%);transform-origin:50% 100%;filter:drop-shadow(0 12px 16px rgba(0,0,0,.55));transition:transform 1.2s ease,opacity 1s ease}
+        .aoc-opening-cinematic .aoc-cine-figure .head{position:absolute;left:20px;top:2px;width:17px;height:22px;border-radius:48% 48% 42% 42%;background:linear-gradient(90deg,#171218,#393039 55%,#100e13)}
+        .aoc-opening-cinematic .aoc-cine-figure .torso{position:absolute;left:12px;top:22px;width:34px;height:67px;background:linear-gradient(90deg,#100e13,#3a3030 48%,#151116);clip-path:polygon(22% 0,78% 0,100% 100%,0 100%);border-top:2px solid #94724e}
+        .aoc-opening-cinematic .aoc-cine-figure .cape{position:absolute;left:7px;top:27px;width:42px;height:78px;background:linear-gradient(90deg,#0b0b10,#29212a 55%,#0c0b10);clip-path:polygon(25% 0,75% 0,100% 100%,0 86%)}
+        .aoc-opening-cinematic .aoc-cine-figure .leg{position:absolute;top:82px;width:12px;height:57px;background:#111016;transform-origin:50% 5%}
+        .aoc-opening-cinematic .aoc-cine-figure .leg.left{left:15px}.aoc-opening-cinematic .aoc-cine-figure .leg.right{right:14px}
+        .aoc-opening-cinematic .aoc-cine-figure .blade{position:absolute;right:-5px;top:44px;width:3px;height:72px;background:linear-gradient(#e3c99c,#70604f);transform:rotate(-28deg);transform-origin:50% 0;box-shadow:0 0 9px rgba(225,190,135,.35)}
+        .aoc-opening-cinematic.is-visible .aoc-cine-figure{animation:aoc-figure-breathe 3.8s ease-in-out infinite}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-cine-figure{transform:translateX(-50%) scale(.9) translateY(0)}
+        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-cine-figure{transform:translateX(-50%) scale(1.12) translateY(-3%);filter:drop-shadow(0 0 22px rgba(205,170,120,.24))}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-cine-figure{transform:translateX(-50%) scale(1.08) translateY(4%) rotate(-5deg)}
+        .aoc-opening-cinematic .aoc-bird-flock{position:absolute;z-index:3;top:25%;left:-12%;width:90px;height:30px;opacity:.65;animation:aoc-bird-cross 9s linear 1s infinite}
+        .aoc-opening-cinematic .aoc-bird-flock:before,.aoc-opening-cinematic .aoc-bird-flock:after{content:'';position:absolute;width:22px;height:9px;border-top:2px solid #e7dfca;border-radius:50%;transform:rotate(18deg)}
+        .aoc-opening-cinematic .aoc-bird-flock:after{left:30px;top:10px;transform:rotate(-12deg)}
+        .aoc-opening-cinematic .aoc-smoke{position:absolute;z-index:2;bottom:24%;left:62%;width:70px;height:170px;background:radial-gradient(ellipse at 50% 80%,rgba(34,28,31,.62),transparent 70%);filter:blur(7px);opacity:0;animation:aoc-smoke-rise 5s ease-out 13.2s infinite}
+        .aoc-opening-cinematic .aoc-firelight{position:absolute;z-index:2;bottom:17%;left:22%;width:18px;height:55px;background:linear-gradient(0deg,#7d291b,#e77b39 55%,#ffd28a 80%,transparent);clip-path:polygon(50% 0,72% 38%,100% 70%,70% 100%,25% 100%,0 70%,32% 38%);filter:drop-shadow(0 0 15px #e36e32);opacity:0;animation:aoc-fire-flicker .48s ease-in-out 13.7s infinite alternate}
+        .aoc-opening-cinematic .aoc-shot.scene-green~.aoc-cine-figure{opacity:1}
+        .aoc-opening-cinematic .aoc-shot.scene-green~.aoc-firelight,.aoc-opening-cinematic .aoc-shot.scene-trial~.aoc-firelight{opacity:0}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes~.aoc-firelight,.aoc-opening-cinematic .aoc-shot.scene-ashes~.aoc-smoke{opacity:1}
+        @keyframes aoc-figure-breathe{0%,100%{margin-bottom:0}50%{margin-bottom:2px}}
+        @keyframes aoc-bird-cross{0%{transform:translateX(0) translateY(0)}50%{transform:translateX(58vw) translateY(-22px)}100%{transform:translateX(120vw) translateY(8px)}}
+        @keyframes aoc-smoke-rise{0%{transform:translateY(25px) scale(.65);opacity:0}25%{opacity:.7}100%{transform:translateY(-110px) scale(1.8);opacity:0}}
+        @keyframes aoc-fire-flicker{from{transform:scale(.82) skewX(-5deg);opacity:.72}to{transform:scale(1.12) skewX(6deg);opacity:1}}
         @keyframes aoc-light-sweep{0%,22%{transform:translateX(-65%);opacity:0}38%{opacity:1}62%,100%{transform:translateX(65%);opacity:0}}
 
         .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:none;animation:aoc-haze-drift 9s ease-in-out infinite alternate}
@@ -1221,6 +1253,8 @@ export class GameScene extends Phaser.Scene {
           <path d="M0 870Q260 820 520 870T1050 865T1600 850" fill="none" stroke="#6b4639" stroke-opacity=".35" stroke-width="3"/>
           </g>
         </svg>
+        <div class="aoc-cine-figure" aria-hidden="true"><i class="cape"></i><i class="head"></i><i class="torso"></i><i class="leg left"></i><i class="leg right"></i><i class="blade"></i></div>
+        <div class="aoc-bird-flock" aria-hidden="true"></div><div class="aoc-smoke" aria-hidden="true"></div><div class="aoc-firelight" aria-hidden="true"></div>
         <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
       </div>
       <div class="aoc-embers"></div><div class="aoc-flash"></div><div class="aoc-bars"></div>
