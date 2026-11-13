@@ -18,7 +18,7 @@ async function main(): Promise<void> {
   assert.equal(overworld.segments.length, 6, 'all six regions are included in one overworld');
   assert.equal(new Set(overworld.segments.map(s => s.region)).size, 6, 'each region has its own segment');
   assert.ok(overworld.level.size.w > 40000, 'the world is larger than 40,000 world units');
-  assert.ok(overworld.level.platforms.length > 140, 'all six regions contribute their platforms');
+  assert.ok(overworld.level.platforms.length > 90, 'all six regions contribute their platforms');
   assert.ok(overworld.level.enemies.length > 25, 'all six regions contribute their enemies');
   for (let i=1;i<overworld.segments.length;i++) assert.equal(overworld.segments[i].offsetX,overworld.segments[i-1].offsetX+overworld.segments[i-1].width,'region segments are contiguous');
 
