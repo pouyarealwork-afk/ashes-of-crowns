@@ -1171,6 +1171,10 @@ export class GameScene extends Phaser.Scene {
     // ostinato, a rising lead and restrained cinematic impacts. Audio starts on the first
     // real user gesture because mobile browsers prohibit autoplay.
     let scoreStarted = false;
+    try {
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextCtor) audioContext = new AudioContextCtor();
+    } catch { /* Cinematic remains watchable when Web Audio is unavailable. */ }
     const unlockScore = () => {
       if (scoreStarted || !audioContext || finished) return;
       scoreStarted = true;
