@@ -9,7 +9,6 @@ import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
 import { createUIBackend } from './backend';
-import { downloadPixelPack, isPixelPackInstalled, type PixelPackDownload } from './PixelPackManager';
 
 export interface GameServices {
   rpg: RpgModule;
@@ -57,13 +56,6 @@ export class GameScene extends Phaser.Scene {
   private audioUnlockAttached = false;
   private keyboard: Record<string, any> = {};
   private gameEventOffs: Array<() => void> = [];
-  private pixelPackPanel?: HTMLElement;
-  private pixelPackButton?: HTMLButtonElement;
-  private pixelPackStatus?: HTMLElement;
-  private pixelPackLoading = false;
-  private pixelPackLoaded = false;
-  private pixelPackPanelHidden: boolean | null = null;
-  private pixelPackObjectUrls: string[] = [];
 
   constructor() { super('GameScene'); }
 
@@ -114,7 +106,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    this.updatePixelPackPanelVisibility();
     if (!this.started || !this.aren || !this.levelDef) return;
     this.playtimeMs += delta;
     this.services.rpg.update(delta);
@@ -171,102 +162,8 @@ export class GameScene extends Phaser.Scene {
     this.ui.on('ui:sfx', ({ name }) => this.playUiTone(name));
     this.ui.setBackend(createUIBackend(this));
     this.addExtraTouchControls();
-    this.addPixelPackPanel();
   }
 
-
-  /** Optional art pack: the core game remains playable without downloading it. */
-  private addPixelPackPanel(): void {
-    if (!this.ui || this.pixelPackPanel) return;
-    const panel = document.createElement('section');
-    panel.className = 'aoc-pixel-pack-panel';
-    panel.dir = this.ui.language === 'fa' ? 'rtl' : 'ltr';
-    const title = document.createElement('strong');
-    title.className = 'aoc-pixel-pack-title';
-    title.textContent = this.ui.language === 'fa' ? 'بستهٔ گرافیکی پیکسلی' : 'PIXEL ART PACK';
-    const status = document.createElement('span');
-    status.className = 'aoc-pixel-pack-status';
-    status.textContent = this.ui.language === 'fa' ? 'بستهٔ اختیاری؛ بافت دقیق‌تر محیط' : 'Optional pack · detailed pixel terrain';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'aoc-pixel-pack-button';
-    button.textContent = this.ui.language === 'fa' ? 'دانلود بسته' : 'DOWNLOAD PACK';
-    button.addEventListener('click', () => void this.installPixelPack(false));
-    panel.append(title, status, button);
-    this.ui.root.appendChild(panel);
-    this.pixelPackPanel = panel;
-    this.pixelPackButton = button;
-    this.pixelPackStatus = status;
-    void isPixelPackInstalled().then(installed => {
-      if (installed && !this.pixelPackLoaded) {
-        status.textContent = this.ui.language === 'fa' ? 'بسته پیدا شد؛ در حال بارگذاری…' : 'Pack found · loading…';
-        void this.installPixelPack(true);
-      }
-    }).catch(() => undefined);
-  }
-
-  private updatePixelPackPanelVisibility(): void {
-    if (!this.pixelPackPanel) return;
-    const hidden = this.started;
-    if (this.pixelPackPanelHidden === hidden) return;
-    this.pixelPackPanelHidden = hidden;
-    this.pixelPackPanel.style.display = hidden ? 'none' : 'flex';
-  }
-
-  private async installPixelPack(fromCache: boolean): Promise<void> {
-    if (this.pixelPackLoading || this.pixelPackLoaded) return;
-    this.pixelPackLoading = true;
-    if (this.pixelPackButton) this.pixelPackButton.disabled = true;
-    const fa = this.ui?.language === 'fa';
-    const setStatus = (value: string) => { if (this.pixelPackStatus) this.pixelPackStatus.textContent = value; };
-    try {
-      setStatus(fa ? (fromCache ? 'در حال آماده‌سازی فایل ذخیره‌شده…' : 'در حال دریافت فایل…') : 'Preparing pixel assets…');
-      const pack: PixelPackDownload = await downloadPixelPack((done, total) => {
-        setStatus(fa ? `دریافت فایل: ${done} از ${total}` : `Downloading file: ${done}/${total}`);
-      });
-      this.pixelPackObjectUrls.push(...pack.objectUrls);
-      const asset = pack.assets[0];
-      const key = 'aoc-pack-terrain';
-      if (!this.textures.exists(key)) {
-        await new Promise<void>((resolve, reject) => {
-          const onComplete = () => { cleanup(); resolve(); };
-          const onError = (file: Phaser.Loader.File) => {
-            if (file.key === key) { cleanup(); reject(new Error('Could not load pixel terrain texture')); }
-          };
-          const cleanup = () => {
-            this.load.off(Phaser.Loader.Events.COMPLETE, onComplete);
-            this.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR, onError);
-          };
-          this.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
-          this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, onError);
-          this.load.svg(key, asset.objectUrl, { width: asset.width, height: asset.height });
-          this.load.start();
-        });
-      }
-      this.pixelPackLoaded = true;
-      this.applyPixelPackToCurrentPlatforms();
-      setStatus(fa ? 'بسته نصب شد؛ بافت‌های پیکسلی فعال شدند.' : 'Pack installed · pixel terrain enabled.');
-      if (this.pixelPackButton) this.pixelPackButton.textContent = fa ? 'بسته نصب شده' : 'PACK INSTALLED';
-    } catch (error) {
-      setStatus(fa ? `دانلود ناموفق بود: ${(error as Error).message}` : `Download failed: ${(error as Error).message}`);
-      if (this.pixelPackButton) this.pixelPackButton.disabled = false;
-    } finally {
-      this.pixelPackLoading = false;
-      for (const url of this.pixelPackObjectUrls.splice(0)) URL.revokeObjectURL(url);
-    }
-  }
-
-  private pixelPackTextureKey(_material: string): string { return 'aoc-pack-terrain'; }
-
-  private applyPixelPackToCurrentPlatforms(): void {
-    if (!this.platforms) return;
-    for (const child of this.platforms.getChildren()) {
-      const block = child as Phaser.Physics.Arcade.Image;
-      const material = String(block.getData('material') ?? 'ground');
-      const key = this.pixelPackTextureKey(material);
-      if (this.textures.exists(key)) block.setTexture(key).setTint(this.platformColor(material));
-    }
-  }
 
   private addExtraTouchControls(): void {
     if (!this.ui || this.uiUtilityControls) return;
@@ -449,7 +346,7 @@ export class GameScene extends Phaser.Scene {
       const texture = this.platformTexture(material);
       const block = this.platforms.create(x + w / 2, y + h / 2, texture) as Phaser.Physics.Arcade.Image;
       block.setData('material', material);
-      block.setDisplaySize(w, h).setTint(texture.startsWith('aoc-pack-') ? this.platformColor(material) : 0xffffff).setDepth(4).refreshBody();
+      block.setDisplaySize(w, h).setTint(0xffffff).setDepth(4).refreshBody();
       if (kind === 'oneway' && block.body) { block.body.checkCollision.down = false; block.body.checkCollision.left = false; block.body.checkCollision.right = false; }
       // Surface details are baked into the shared material texture to keep the object count low.
 
@@ -686,8 +583,6 @@ export class GameScene extends Phaser.Scene {
   /** Material-specific hand-painted platform atlas, generated once and reused to avoid flat coloured rectangles. */
   private platformTexture(kind: string): string {
     const key = `aoc-platform-${kind}`;
-    const packed = this.pixelPackTextureKey(kind);
-    if (this.textures.exists(packed)) return packed;
     if (this.textures.exists(key)) return key;
     const g = this.add.graphics();
     const base: Record<string, number> = { ground: 0x51423d, stone: 0x71645c, wood: 0x76523d, ice: 0x9db5c2, sand: 0x92724d, crumble: 0x6d5146, oneway: 0x8a6a50, vine: 0x4e6947, metal: 0x59616a };
@@ -1120,18 +1015,18 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic{position:fixed;inset:0;z-index:100000;overflow:hidden;background:#050507;color:#ead9c1;display:grid;place-items:center;opacity:0;transition:opacity 1.1s ease;font-family:Georgia,'Times New Roman',serif;isolation:isolate}
         .aoc-opening-cinematic *{box-sizing:border-box}
         .aoc-opening-cinematic.is-visible{opacity:1}
-        .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-5%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.08);transition:transform 12s cubic-bezier(.16,.55,.25,1),filter 1.2s ease;filter:brightness(.72) saturate(.78)}
-        .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1);filter:brightness(1) saturate(.95)}
+        .aoc-opening-cinematic .aoc-shot{position:absolute;inset:-3%;overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#34201d 0%,#100e12 54%,#050507 100%);transform:scale(1.045);transition:transform 12s cubic-bezier(.16,.55,.25,1);contain:paint}
+        .aoc-opening-cinematic.is-visible .aoc-shot{transform:scale(1)}
         .aoc-opening-cinematic .aoc-art{position:absolute;width:100%;height:100%;inset:0}\n        .aoc-opening-cinematic .aoc-scene-world{opacity:0;transition:opacity 1.8s ease}\n        .aoc-opening-cinematic .aoc-ashes-world{opacity:1;transition:opacity 1.8s ease}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-green-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-trial-world{opacity:1}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-ashes-world,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-ashes-world{opacity:0}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-haze{background:linear-gradient(180deg,transparent,rgba(113,175,91,.10),rgba(20,48,33,.34))}\n        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-haze{background:linear-gradient(180deg,transparent,rgba(195,153,104,.12),rgba(18,13,17,.65))}\n        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-embers{display:none}
         .aoc-opening-cinematic.is-visible .aoc-art{animation:aoc-camera-drift 25s cubic-bezier(.2,.55,.25,1) both}
         .aoc-opening-cinematic .aoc-shot:after{content:'';position:absolute;inset:-20%;pointer-events:none;background:linear-gradient(112deg,transparent 35%,rgba(255,194,137,.075) 48%,transparent 60%);transform:translateX(-65%);animation:aoc-light-sweep 8s ease-in-out 1.2s infinite}
-        .aoc-opening-cinematic .aoc-haze{mix-blend-mode:screen}
+        .aoc-opening-cinematic .aoc-haze{opacity:.82}
         @keyframes aoc-camera-drift{0%{transform:scale(1.02) translate3d(1.2%,.8%,0)}45%{transform:scale(1.11) translate3d(-1.4%,-.5%,0)}100%{transform:scale(1.12) translate3d(-1.5%,-.8%,0)}}
         @keyframes aoc-light-sweep{0%,22%{transform:translateX(-65%);opacity:0}38%{opacity:1}62%,100%{transform:translateX(65%);opacity:0}}
 
-        .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:blur(18px);animation:aoc-haze-drift 9s ease-in-out infinite alternate}
+        .aoc-opening-cinematic .aoc-haze{position:absolute;inset:35% -20% 0;background:linear-gradient(180deg,transparent,rgba(190,115,73,.12),rgba(5,5,8,.8));filter:none;animation:aoc-haze-drift 9s ease-in-out infinite alternate}
         .aoc-opening-cinematic .aoc-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 25%,rgba(0,0,0,.25) 68%,rgba(0,0,0,.9) 130%)}
-        .aoc-opening-cinematic .aoc-grain{position:absolute;inset:-50%;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");animation:none;pointer-events:none}
+        .aoc-opening-cinematic .aoc-grain{position:absolute;inset:0;opacity:.055;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.11) 3px 4px);pointer-events:none}
         .aoc-opening-cinematic .aoc-bars:before,.aoc-opening-cinematic .aoc-bars:after{content:'';position:absolute;left:0;right:0;height:8.5vh;background:#030305;z-index:5;transition:height 1.1s cubic-bezier(.7,0,.2,1)}
         .aoc-opening-cinematic .aoc-bars:before{top:0}.aoc-opening-cinematic .aoc-bars:after{bottom:0}
         .aoc-opening-cinematic .aoc-copy{position:absolute;z-index:7;left:8%;right:8%;top:50%;transform:translateY(-42%);text-align:center;opacity:0;transition:opacity 1s ease,transform 1.2s ease;pointer-events:none;text-shadow:0 3px 22px #000}
@@ -1161,7 +1056,7 @@ export class GameScene extends Phaser.Scene {
             <linearGradient id="aoc-sky" x2="0" y2="1"><stop stop-color="#080a12"/><stop offset=".55" stop-color="#382323"/><stop offset="1" stop-color="#120e13"/></linearGradient>
             <radialGradient id="aoc-moon"><stop stop-color="#f6d9ad" stop-opacity=".95"/><stop offset=".35" stop-color="#d7a77b" stop-opacity=".35"/><stop offset="1" stop-color="#d7a77b" stop-opacity="0"/></radialGradient>
             <linearGradient id="aoc-fire" x2="0" y2="1"><stop stop-color="#ffc17b"/><stop offset="1" stop-color="#8e3e27" stop-opacity="0"/></linearGradient>
-            <filter id="aoc-blur"><feGaussianBlur stdDeviation="22"/></filter>
+            
           </defs>
           <g class="aoc-scene-world aoc-green-world">
             <defs><linearGradient id="aoc-green-sky" x2="0" y2="1"><stop stop-color="#78b9c2"/><stop offset=".55" stop-color="#c7d9ad"/><stop offset="1" stop-color="#e7d9ad"/></linearGradient><linearGradient id="aoc-green-hill" x2="0" y2="1"><stop stop-color="#71965c"/><stop offset="1" stop-color="#284b38"/></linearGradient></defs>
@@ -1205,7 +1100,7 @@ export class GameScene extends Phaser.Scene {
           </g>
           <g fill="#e28d55" opacity=".9"><path d="M782 360h14v28h-14z"><animate attributeName="opacity" values=".35;1;.55;1;.35" dur="2.7s" repeatCount="indefinite"/></path><path d="M942 398h13v25h-13z"><animate attributeName="opacity" values=".5;1;.4;.9;.5" dur="3.4s" repeatCount="indefinite"/></path><path d="M1100 430h12v22h-12z"><animate attributeName="opacity" values=".3;1;.6;1;.3" dur="2.2s" repeatCount="indefinite"/></path></g>
           <g fill="#090a0e"><path d="M0 650Q180 560 360 650T730 640T1100 650T1600 620V900H0Z"/><path d="M80 710l40-130 35 130zm90 0l30-95 30 95zm1110-40l45-170 40 170zm100 20l35-120 42 120z"/></g>
-          <g opacity=".42" filter="url(#aoc-blur)" fill="#c16c45"><ellipse cx="350" cy="720" rx="250" ry="45"/><ellipse cx="1260" cy="680" rx="260" ry="55"/></g>
+          <g opacity=".12" fill="#c16c45"><ellipse cx="350" cy="720" rx="250" ry="45"/><ellipse cx="1260" cy="680" rx="260" ry="55"/></g>
           <g fill="#08090d">
             <path d="M0 790Q210 710 430 790T850 780T1250 790T1600 760V900H0Z"/>
             <path d="M570 900l60-185 45 185zm70 0l50-145 35 145zm-250 0l45-120 40 120z"/>
@@ -1239,7 +1134,7 @@ export class GameScene extends Phaser.Scene {
     const flash = overlay.querySelector<HTMLElement>('.aoc-flash')!;
     skip.textContent = fa ? 'رد کردن  ⏭' : 'SKIP  ⏭';
 
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 6; i++) {
       const ember = document.createElement('i');
       ember.className = 'aoc-ember';
       ember.style.left = ((i * 29) % 100) + '%';
