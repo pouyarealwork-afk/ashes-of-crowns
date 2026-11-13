@@ -6,11 +6,25 @@ import { getItemDef } from '../modules/rpg/data/items';
 import { createWorldModule } from '../modules/world';
 import { PersistenceModule } from '../modules/persistence';
 import { createUI, type GameUI } from '../modules/ui';
+import type { AudioManifest } from '../modules/persistence/types';
 import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
 import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, type PropKind } from '../art/world';
 import { createUIBackend } from './backend';
+
+const sfxUrl = (name: string): string => `${import.meta.env.BASE_URL}audio/${name}.wav`;
+/** Short generated sound effects (public/audio, produced by tools/audio/gen_sfx.py). Music uses the procedural ambient bed. */
+const SFX_MANIFEST: AudioManifest = {
+  hit: { url: sfxUrl('hit'), category: 'sfx', maxVoices: 4, cooldownMs: 40 },
+  'impact-critical': { url: sfxUrl('impact-critical'), category: 'sfx', maxVoices: 2, cooldownMs: 80 },
+  sword: { url: sfxUrl('sword'), category: 'sfx', maxVoices: 3, cooldownMs: 60 },
+  dash: { url: sfxUrl('dash'), category: 'sfx', maxVoices: 2, cooldownMs: 80 },
+  magic: { url: sfxUrl('magic'), category: 'sfx', maxVoices: 2, cooldownMs: 80 },
+  boss_phase: { url: sfxUrl('boss_phase'), category: 'sfx', maxVoices: 1 },
+  ui_click: { url: sfxUrl('ui_click'), category: 'ui', maxVoices: 3 },
+  coin: { url: sfxUrl('coin'), category: 'sfx', maxVoices: 3, cooldownMs: 50 },
+};
 
 export interface GameServices {
   rpg: RpgModule;
@@ -87,7 +101,7 @@ export class GameScene extends Phaser.Scene {
         persistence: new PersistenceModule({
           gameVersion: '1.0.0', bus,
           autosave: { intervalMs: 90000, minGapMs: 12000 },
-          audio: { manifest: {}, regionMusic: {}, combatMusicId: undefined },
+          audio: { manifest: SFX_MANIFEST, regionMusic: {}, combatMusicId: undefined },
         }),
       };
       this.wireSharedEvents();
