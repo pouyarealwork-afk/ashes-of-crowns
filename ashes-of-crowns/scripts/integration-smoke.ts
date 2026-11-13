@@ -18,6 +18,7 @@ async function main(): Promise<void> {
   input.attach(keys);
   input.axis(0.55); assert.equal(input.frame().moveX, 0.55, 'UI joystick axis reaches the Player input frame');
   input.action('attack', true); assert.equal(input.frame().attackPressed, true); assert.equal(input.frame().attackPressed, false, 'touch attack is consumed once');
+  input.action('attack', false);
   input.action('jump', true); input.action('jump', true);
   const jump = input.frame(); assert.equal(jump.jumpPressed, true); assert.equal(jump.jumpHeld, true);
   input.action('jump', false); assert.equal(input.frame().jumpHeld, true, 'releasing one of two fingers must not cancel a held jump');
