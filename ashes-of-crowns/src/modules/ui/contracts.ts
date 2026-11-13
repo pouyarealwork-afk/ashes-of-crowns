@@ -154,7 +154,7 @@ export interface MapRegion {
   description?: Text;
   /** Position on the parchment in percent (0-100). */
   x: number; y: number;
-  connections?: string[];
+  connections?: MapRegion['id'][];
   state: 'locked' | 'unlocked' | 'cleared';
   levelRange?: [number, number];
   fastTravelCost?: number;
