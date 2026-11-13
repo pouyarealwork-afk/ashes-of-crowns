@@ -558,6 +558,52 @@ export class GameScene extends Phaser.Scene {
         ground.lineBetween(x + 92, y + 8, x + 105, y - 2); ground.lineBetween(x + 105, y - 2, x + 105, y - 12);
       }
     }
+
+    // Small biome-specific ground dressing adds a readable foreground silhouette
+    // while keeping all details baked into one graphics object.
+    const dressingCount = Math.ceil(w / 210);
+    for (let i = 0; i < dressingCount; i++) {
+      const x = i * 210 + 36 + (i % 3) * 19;
+      const y = horizon + 52 + (i % 4) * 8;
+      if (forest) {
+        ground.lineStyle(3, 0x334c2d, 0.9);
+        ground.lineBetween(x, y + 12, x - 5, y - 3);
+        ground.lineBetween(x - 5, y - 3, x - 13, y - 11);
+        ground.lineBetween(x, y + 12, x + 8, y - 5);
+        ground.lineBetween(x + 8, y - 5, x + 16, y - 12);
+        ground.fillStyle(0x9bbd69, 0.82);
+        ground.fillEllipse(x - 11, y - 11, 10, 5);
+        ground.fillEllipse(x + 16, y - 12, 11, 5);
+      } else if (desert) {
+        ground.lineStyle(2, 0xd6ad73, 0.34);
+        ground.lineBetween(x - 18, y + 4, x - 4, y - 1);
+        ground.lineBetween(x - 4, y - 1, x + 5, y + 3);
+        ground.lineBetween(x + 5, y + 3, x + 19, y - 2);
+        ground.fillStyle(0x5b4934, 0.68);
+        ground.fillTriangle(x, y + 5, x - 7, y - 13, x + 2, y - 7);
+        ground.fillTriangle(x + 3, y + 5, x + 11, y - 10, x + 7, y + 5);
+      } else if (frost) {
+        ground.fillStyle(0x9bd9e8, 0.3);
+        ground.fillTriangle(x, y + 5, x - 7, y - 16, x + 3, y - 7);
+        ground.fillTriangle(x + 9, y + 5, x + 15, y - 12, x + 17, y + 5);
+        ground.lineStyle(1, 0xe4f8ff, 0.38);
+        ground.lineBetween(x - 3, y - 7, x + 1, y + 3);
+      } else if (hollow) {
+        ground.lineStyle(3, 0x665078, 0.72);
+        ground.lineBetween(x - 8, y + 8, x - 3, y - 10);
+        ground.lineBetween(x - 3, y - 10, x + 5, y - 17);
+        ground.lineBetween(x - 3, y - 10, x + 8, y - 5);
+        ground.fillStyle(0xb58be0, 0.48);
+        ground.fillCircle(x + 8, y - 5, 3);
+      } else {
+        ground.fillStyle(0x2a1d1a, 0.78);
+        ground.fillEllipse(x, y + 4, 22, 7);
+        ground.fillStyle(0xc18a5d, 0.38);
+        ground.fillTriangle(x - 5, y + 2, x + 1, y - 8, x + 6, y + 2);
+        ground.lineStyle(1, 0x6b4639, 0.5);
+        ground.lineBetween(x + 12, y + 4, x + 22, y - 2);
+      }
+    }
     ground.fillStyle(accent, warm ? 0.13 : 0.1); ground.fillEllipse(w * 0.48, horizon + 92, Math.min(640, w * 0.48), 54);
 
     // Low drifting mist gives the level a layered, cinematic silhouette.
@@ -594,7 +640,7 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(light, 0.72); g.fillRoundedRect(0, 0, 320, 8, 4);
     g.fillStyle(0x090808, 0.28); g.fillRect(0, 86, 320, 10);
     g.fillStyle(light, 0.2); g.fillRect(2, 9, 316, 2);
-    if (kind === 'wood') {
+    if (kind === 'wood' || kind === 'oneway') {
       for (let y = 16; y < 92; y += 25) {
         g.fillStyle(dark, 0.52); g.fillRoundedRect(3, y, 314, 19, 5);
         g.lineStyle(2, light, 0.48); g.lineBetween(8, y + 3, 310, y + 3);
@@ -620,6 +666,30 @@ export class GameScene extends Phaser.Scene {
       }
       if (kind === 'crumble') { g.fillStyle(0x2a211d, 0.7); for (let i = 0; i < 22; i++) g.fillCircle((i * 47) % 320, 12 + (i * 19) % 78, 2 + i % 3); }
       if (kind === 'metal') { g.lineStyle(2, 0xb5c0c8, 0.45); for (let x = 20; x < 320; x += 58) g.lineBetween(x, 8, x + 8, 88); g.fillStyle(0x171d22, 0.6); for (let x = 16; x < 320; x += 64) { g.fillCircle(x, 16, 2.5); g.fillCircle(x, 80, 2.5); } }
+    }
+    if (kind === 'ground') {
+      // Mossy top seam, root threads and embedded pebbles distinguish natural earth from masonry.
+      g.fillStyle(0x81915a, 0.9); g.fillRect(2, 1, 316, 5);
+      g.fillStyle(0x263626, 0.8); g.fillRect(0, 7, 320, 4);
+      for (let x = 12; x < 320; x += 37) {
+        g.fillStyle(0xb0bf76, 0.72); g.fillTriangle(x, 5, x + 5, 15 + (x % 3), x + 9, 5);
+        g.fillStyle(0x241c19, 0.55); g.fillEllipse(x + 17, 70 + (x % 13), 9, 4);
+      }
+    } else if (kind === 'stone') {
+      // Chisel marks and chipped corners catch the light without extra scene objects.
+      for (let x = 18; x < 320; x += 54) {
+        g.lineStyle(2, light, 0.3); g.lineBetween(x, 18, x + 9, 14);
+        g.lineStyle(1, 0x211a18, 0.62); g.lineBetween(x + 18, 48, x + 27, 55);
+        g.fillStyle(0x171313, 0.42); g.fillTriangle(x + 38, 10, x + 47, 13, x + 42, 20);
+      }
+    } else if (kind === 'crumble') {
+      g.lineStyle(2, 0x241a18, 0.78);
+      for (let x = 22; x < 310; x += 61) {
+        g.lineBetween(x, 18, x + 8, 33); g.lineBetween(x + 8, 33, x + 2, 47);
+        g.lineBetween(x + 2, 47, x + 14, 63);
+      }
+      g.fillStyle(0xc18a5d, 0.42);
+      for (let i = 0; i < 12; i++) g.fillTriangle((i * 53) % 310, 5, (i * 53) % 310 + 5, 14, (i * 53) % 310 + 10, 5);
     }
     g.generateTexture(key, 320, 96); g.destroy(); return key;
   }
