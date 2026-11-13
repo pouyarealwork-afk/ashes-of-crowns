@@ -1141,7 +1141,25 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-cine-figure .cape{position:absolute;left:7px;top:27px;width:42px;height:78px;background:linear-gradient(90deg,#0b0b10,#29212a 55%,#0c0b10);clip-path:polygon(25% 0,75% 0,100% 100%,0 86%)}
         .aoc-opening-cinematic .aoc-cine-figure .leg{position:absolute;top:82px;width:12px;height:57px;background:#111016;transform-origin:50% 5%}
         .aoc-opening-cinematic .aoc-cine-figure .leg.left{left:15px}.aoc-opening-cinematic .aoc-cine-figure .leg.right{right:14px}
+        .aoc-opening-cinematic .aoc-cine-figure .arm{position:absolute;z-index:4;left:37px;top:43px;width:10px;height:49px;border-radius:7px;background:linear-gradient(90deg,#171116,#65503e 55%,#171116);transform:rotate(-24deg);transform-origin:50% 8%}
+        .aoc-opening-cinematic .aoc-cine-figure .cape{transform-origin:50% 8%;animation:aoc-cape-wind 2.8s ease-in-out infinite alternate}
+        .aoc-opening-cinematic .aoc-cine-figure .leg.left{animation:aoc-leg-idle 1.1s ease-in-out infinite alternate}
+        .aoc-opening-cinematic .aoc-cine-figure .leg.right{animation:aoc-leg-idle 1.1s ease-in-out -0.55s infinite alternate}
+        .aoc-opening-cinematic .aoc-cine-figure .arm{animation:aoc-arm-ready 3.6s ease-in-out infinite}
         .aoc-opening-cinematic .aoc-cine-figure .blade{position:absolute;right:-5px;top:44px;width:3px;height:72px;background:linear-gradient(#e3c99c,#70604f);transform:rotate(-28deg);transform-origin:50% 0;box-shadow:0 0 9px rgba(225,190,135,.35)}
+        @keyframes aoc-cape-wind{0%{transform:skewX(-5deg) scaleX(.94)}100%{transform:skewX(7deg) scaleX(1.08)}}
+        @keyframes aoc-leg-idle{0%{transform:rotate(-1deg)}100%{transform:rotate(1.8deg)}}
+        @keyframes aoc-arm-ready{0%,72%,100%{transform:rotate(-24deg)}82%{transform:rotate(-58deg)}90%{transform:rotate(-18deg)}}
+        .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-cine-figure .blade{animation:aoc-blade-raise 2.1s ease-in-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-cine-figure .cape{animation:aoc-cape-fall 2.4s ease-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-cine-figure .leg.left{animation:aoc-kneel-left 1.3s ease-out both}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-cine-figure .leg.right{animation:aoc-kneel-right 1.3s ease-out both}
+        @keyframes aoc-blade-raise{0%{transform:rotate(-28deg)}45%{transform:rotate(18deg)}100%{transform:rotate(-42deg)}}
+        @keyframes aoc-cape-fall{0%{transform:skewX(9deg)}100%{transform:skewX(-8deg) scaleY(1.08)}}
+        @keyframes aoc-kneel-left{to{transform:rotate(34deg) translateY(5px)}}
+        @keyframes aoc-kneel-right{to{transform:rotate(-23deg) translateY(3px)}}
+        .aoc-opening-cinematic .aoc-ground-mist{position:absolute;z-index:2;inset:auto -15% 7%;height:26%;pointer-events:none;background:radial-gradient(ellipse at 20% 80%,rgba(183,154,128,.2),transparent 55%),radial-gradient(ellipse at 76% 70%,rgba(174,111,81,.16),transparent 58%);animation:aoc-mist-travel 12s ease-in-out infinite alternate}
+        @keyframes aoc-mist-travel{from{transform:translateX(-3%) scaleY(.92);opacity:.5}to{transform:translateX(4%) scaleY(1.12);opacity:.9}}
         .aoc-opening-cinematic.is-visible .aoc-cine-figure{animation:aoc-figure-breathe 3.8s ease-in-out infinite}
         .aoc-opening-cinematic .aoc-shot.scene-green .aoc-cine-figure{transform:translateX(-50%) scale(.9) translateY(0)}
         .aoc-opening-cinematic .aoc-shot.scene-trial .aoc-cine-figure{transform:translateX(-50%) scale(1.12) translateY(-3%);filter:drop-shadow(0 0 22px rgba(205,170,120,.24))}
@@ -1253,8 +1271,8 @@ export class GameScene extends Phaser.Scene {
           <path d="M0 870Q260 820 520 870T1050 865T1600 850" fill="none" stroke="#6b4639" stroke-opacity=".35" stroke-width="3"/>
           </g>
         </svg>
-        <div class="aoc-cine-figure" aria-hidden="true"><i class="cape"></i><i class="head"></i><i class="torso"></i><i class="leg left"></i><i class="leg right"></i><i class="blade"></i></div>
-        <div class="aoc-bird-flock" aria-hidden="true"></div><div class="aoc-smoke" aria-hidden="true"></div><div class="aoc-firelight" aria-hidden="true"></div>
+        <div class="aoc-cine-figure" aria-hidden="true"><i class="cape"></i><i class="head"></i><i class="torso"></i><i class="arm"></i><i class="leg left"></i><i class="leg right"></i><i class="blade"></i></div>
+        <div class="aoc-ground-mist" aria-hidden="true"></div><div class="aoc-bird-flock" aria-hidden="true"></div><div class="aoc-smoke" aria-hidden="true"></div><div class="aoc-firelight" aria-hidden="true"></div>
         <div class="aoc-haze"></div><div class="aoc-vignette"></div><div class="aoc-grain"></div>
       </div>
       <div class="aoc-embers"></div><div class="aoc-flash"></div><div class="aoc-bars"></div>

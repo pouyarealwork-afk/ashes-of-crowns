@@ -153,7 +153,14 @@ export class CombatWorld {
       if (chainLabel?.active) chainLabel.setPosition(sprite.x, sprite.y - sprite.displayHeight - 12);
       if (!enemy.alive) {
         if ((sprite.body as Phaser.Physics.Arcade.Body | null)?.enable) sprite.disableBody(true, false);
-        if (sprite.alpha !== 0.25) sprite.setAlpha(0.25);
+        if (!sprite.getData('deathMotionPlayed')) {
+          sprite.setData('deathMotionPlayed', true);
+          this.scene.tweens.add({
+            targets: sprite, scaleX: sprite.scaleX * 0.82, scaleY: 0.06,
+            alpha: 0, angle: sprite.angle + (enemy.facing > 0 ? 13 : -13),
+            duration: 310, ease: 'Cubic.In',
+          });
+        }
         continue;
       }
       const body = sprite.body as Phaser.Physics.Arcade.Body;
@@ -164,17 +171,23 @@ export class CombatWorld {
       const flip = enemy.facing < 0;
       if (sprite.flipX !== flip) sprite.setFlipX(flip);
       const moving = Math.abs(enemy.vx) > 12;
+      const phase = _time / (enemy.ai === 'charger' ? 66 : 92) + enemy.x * 0.018;
+      const gait = moving ? Math.sin(phase) : Math.sin(_time / 610 + enemy.x * 0.012) * 0.12;
+      const windup = enemy.windupRemainingMs > 0;
       const lean = enemy.ai === 'flying'
-        ? Math.max(-9, Math.min(9, enemy.vx * 0.035))
-        : moving ? Math.sin(_time / 82 + enemy.x * 0.03) * 3.2 : Math.sin(_time / 520 + enemy.x) * 1.1;
-      sprite.setAngle(enemy.windupRemainingMs > 0 ? enemy.facing * 4 : lean);
+        ? Math.max(-11, Math.min(11, enemy.vx * 0.045))
+        : moving ? Math.sin(phase) * (enemy.ai === 'charger' ? 5.5 : 3.4) : Math.sin(_time / 520 + enemy.x) * 0.8;
+      sprite.setAngle(windup ? enemy.facing * 7 : lean);
       if (enemy.hitFlashMs > 0) sprite.setTintFill(0xffffff);
       else if (enemy.stunRemainingMs > 0) sprite.setTint(0x8dd8ff);
-      else if (enemy.windupRemainingMs > 0) sprite.setTint(0xffb45c);
+      else if (windup) sprite.setTint(0xffb45c);
       else sprite.clearTint();
       const baseScale = (getEnemyArchetype(enemy.archetypeId)?.scale ?? 1) * (enemy.elite ? 1.16 : 1);
-      const pulse = enemy.windupRemainingMs > 0 ? 1 + Math.sin(_time / 48) * 0.035 : 1;
-      sprite.setScale(baseScale * pulse);
+      const anticipation = windup ? Math.sin(Math.PI * Math.min(1, enemy.windupRemainingMs / 420)) : 0;
+      // Procedural squash/stretch gives each enemy a readable gait and attack anticipation.
+      const xScale = baseScale * (1 + Math.abs(gait) * (enemy.ai === 'flying' ? 0.012 : 0.026) - anticipation * 0.045);
+      const yScale = baseScale * (1 - Math.abs(gait) * 0.035 + anticipation * 0.075);
+      sprite.setScale(xScale, yScale);
     }
     this.checkHazards();
     if (this.scene.time.now >= this.nextAssistAt && this.engine.getAlive().length) {
