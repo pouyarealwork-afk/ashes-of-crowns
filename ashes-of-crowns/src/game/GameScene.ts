@@ -396,7 +396,8 @@ export class GameScene extends Phaser.Scene {
       if (this.services.world.canTravel(from, to)) continue;
       const wall = this.platforms.create(this.overworldSegments[i].offsetX, level.size.h / 2, 'aoc-pixel') as Phaser.Physics.Arcade.Image;
       wall.setDisplaySize(22, level.size.h).setTint(0x76564d).setAlpha(0.82).setDepth(7).refreshBody();
-      const label = this.add.text(wall.x, 110, 'SEALED ROAD', { fontFamily: 'monospace', fontSize: '11px', color: '#f1c98b', stroke: '#1b1212', strokeThickness: 4 }).setOrigin(0.5).setDepth(8);
+      const gateText = this.ui?.language === 'fa' ? 'مسیر بسته' : 'SEALED ROAD';
+      const label = this.add.text(wall.x, 110, gateText, { fontFamily: 'monospace', fontSize: '11px', color: '#f1c98b', stroke: '#1b1212', strokeThickness: 4 }).setOrigin(0.5).setDepth(8);
       this.overworldGates.push({ from, to, wall, label });
     }
     this.drawHazards(level);
@@ -646,12 +647,12 @@ export class GameScene extends Phaser.Scene {
     for (const exit of level.exits) {
       const r = exit.rect;
       this.add.rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h, 0x3a2522, 0.25).setStrokeStyle(3, 0xc99b5b, 0.8).setDepth(6);
-      this.add.text(r.x + r.w / 2, r.y - 28, 'WAY FORWARD', { fontSize: '10px', color: '#f0c77f', stroke: '#171315', strokeThickness: 3, letterSpacing: 1 }).setOrigin(0.5).setDepth(8);
+      this.add.text(r.x + r.w / 2, r.y - 28, this.ui?.language === 'fa' ? 'مسیر پیش رو' : 'WAY FORWARD', { fontSize: '10px', color: '#f0c77f', stroke: '#171315', strokeThickness: 3, letterSpacing: 1 }).setOrigin(0.5).setDepth(8);
     }
     for (const path of runtime.hiddenPaths ?? []) if (path.revealed) {
       const r = path.rect;
       this.add.rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h, 0x75c6ad, 0.25).setStrokeStyle(2, 0x8fe4c9, 0.9).setDepth(6);
-      this.add.text(r.x + r.w / 2, r.y - 22, 'HIDDEN PATH', { fontSize: '9px', color: '#a7f0d5', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
+      this.add.text(r.x + r.w / 2, r.y - 22, this.ui?.language === 'fa' ? 'مسیر پنهان' : 'HIDDEN PATH', { fontSize: '9px', color: '#a7f0d5', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
     }
   }
 
@@ -718,7 +719,9 @@ export class GameScene extends Phaser.Scene {
     if (seg.region === this.currentRegion) return;
     this.currentRegion = seg.region; this.combat?.engine.setRegion(seg.region);
     this.game.events.emit('world:region-changed', { regionId: seg.region }); this.game.events.emit('region:entered', { region: seg.region });
-    this.ui?.toast({ text: this.services.world.content.regions.get(seg.region)?.name ?? seg.region, kind: 'info' });
+    const regionNamesFa: Record<string, string> = { ashen_village: 'روستای خاکستر', whispering_forest: 'جنگل نجواگر', forgotten_desert: 'بیابان فراموش‌شده', frozen_highlands: 'بلندای یخ‌زده', hollow_city: 'شهر توخالی', crownfall: 'سقوط تاج' };
+    const region = this.services.world.content.regions.get(seg.region);
+    this.ui?.toast({ text: this.ui?.language === 'fa' ? regionNamesFa[seg.region] ?? region?.name ?? seg.region : region?.name ?? seg.region, kind: 'info' });
   }
 
   private updateWorldTriggers(): void {
