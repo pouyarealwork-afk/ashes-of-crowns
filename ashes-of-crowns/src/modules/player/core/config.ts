@@ -14,8 +14,8 @@ export const DEFAULT_STATS: Readonly<PlayerStatsConfig> = Object.freeze({
 
 /** Tunable movement / action constants. Units: pixels, seconds. */
 export const MOVE = Object.freeze({
-  walkSpeed: 150,
-  runSpeed: 260,
+  walkSpeed: 170,
+  runSpeed: 295,
   groundAccel: 2200,
   groundDecel: 2800,
   airAccel: 1500,
