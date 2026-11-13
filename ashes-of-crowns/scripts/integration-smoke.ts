@@ -15,7 +15,7 @@ async function main(): Promise<void> {
   assert.ok(opening.platforms.some(([x, y, w]) => openingSpawn.x >= x && openingSpawn.x <= x + w && y >= openingSpawn.y && y - openingSpawn.y <= 100), 'opening spawn is positioned directly above a safe ground platform');
 
   const worldForMap = createWorldModule(); const overworld = buildOverworld(worldForMap);
-  assert.equal(overworld.segments.length, 6, 'all six regions are included in one overworld');
+  assert.equal(overworld.segments.length, 10, 'six campaign regions and four expansion pockets share one atlas');
   assert.equal(new Set(overworld.segments.map(s => s.region)).size, 6, 'each region has its own segment');
   assert.ok(overworld.level.size.w > 40000, 'the atlas extends beyond the original campaign corridor');
   assert.ok(overworld.level.size.h > 9000, 'the atlas has substantial vertical exploration space');

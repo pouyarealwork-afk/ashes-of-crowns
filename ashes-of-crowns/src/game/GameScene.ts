@@ -368,7 +368,7 @@ export class GameScene extends Phaser.Scene {
   private startLevel(levelId: string, spawnName = 'start'): void {
     const previousRegion = this.currentRegion;
     const previousLevelId = this.currentLevelId;
-    this.currentBoss = null; this.pendingBossIntros.clear(); this.destroyLevel();
+    this.currentBoss = null; this.pendingBossIntros.clear(); this.destroyLevel(); this.regionIntroActive = false;
     this.overworldSegments = []; this.overworldExitSources = {}; this.overworldGates = [];
     const requestedLevelId = levelId;
     const entryRegion = [...this.services.world.content.regions.values()].find(r => r.entryLevel === requestedLevelId);
