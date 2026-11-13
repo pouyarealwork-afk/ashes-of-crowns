@@ -6,12 +6,21 @@ import { createWorldModule } from '../src/modules/world';
 import { MemoryBackend, PersistenceModule, SimpleEmitter } from '../src/modules/persistence';
 import { InputBridge } from '../src/game/InputBridge';
 import { ashenVillage } from '../src/modules/world/data/regions/ashenVillage';
+import { buildOverworld } from '../src/game/Overworld';
 
 async function main(): Promise<void> {
   const opening = ashenVillage.levels.find(level => level.id === 'ashen_village_main')!;
   const openingSpawn = opening.spawns.start;
   assert.ok(openingSpawn.x >= 300, 'opening spawn stays clear of the mobile joystick overlay');
   assert.ok(opening.platforms.some(([x, y, w]) => openingSpawn.x >= x && openingSpawn.x <= x + w && y >= openingSpawn.y && y - openingSpawn.y <= 100), 'opening spawn is positioned directly above a safe ground platform');
+
+  const worldForMap = createWorldModule(); const overworld = buildOverworld(worldForMap);
+  assert.equal(overworld.segments.length, 6, 'all six regions are included in one overworld');
+  assert.equal(new Set(overworld.segments.map(s => s.region)).size, 6, 'each region has its own segment');
+  assert.ok(overworld.level.size.w > 40000, 'the world is larger than 40,000 world units');
+  assert.ok(overworld.level.platforms.length > 140, 'all six regions contribute their platforms');
+  assert.ok(overworld.level.enemies.length > 25, 'all six regions contribute their enemies');
+  for (let i=1;i<overworld.segments.length;i++) assert.equal(overworld.segments[i].offsetX,overworld.segments[i-1].offsetX+overworld.segments[i-1].width,'region segments are contiguous');
 
   const input = new InputBridge();
   const keys: Record<string, { isDown: boolean }> = Object.fromEntries(['left','right','a','d','shift','space','up','w','z','j','x','c','e','v','one','two','three'].map(k => [k, { isDown: false }]));

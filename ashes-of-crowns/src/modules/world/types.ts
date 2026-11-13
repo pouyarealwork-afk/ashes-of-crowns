@@ -125,7 +125,7 @@ export interface PoiDef {
 export type PlatformKind = 'ground' | 'stone' | 'wood' | 'ice' | 'sand' | 'crumble' | 'oneway' | 'vine' | 'metal';
 export type Platform = [x: number, y: number, w: number, h: number, kind?: PlatformKind];
 export interface HazardDef { type: string; rect: Rect; damage: number; note?: string }
-export interface EnemySpawn { type: string; x: number; y: number; patrol?: [number, number]; boss?: string; elite?: boolean }
+export interface EnemySpawn { type: string; x: number; y: number; patrol?: [number, number]; boss?: string; elite?: boolean; region?: RegionId }
 export interface LevelExit { id: string; rect: Rect; to: { level: string; spawn: string }; requires?: Condition; lockedText?: string }
 export interface HiddenPathDef {
   id: string; level: string; rect: Rect; hint: string;

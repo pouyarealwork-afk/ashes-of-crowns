@@ -1,14 +1,15 @@
 import { ANIM_DEFS, FRAME_H, FRAME_W, SHEET_COLUMNS } from './animations';
 import type { AnimName } from './animations';
+import { paintAren } from '../../../art/aren';
 
 /**
- * Procedural dark-fantasy sprite for Aren, drawn with plain Canvas 2D (no Phaser dependency, so it
- * can be rendered/tested in any browser). Angle convention: 0 = pointing straight down,
+ * Aren's animation poses. The pixel-art painter lives in src/art/aren.ts (plain Canvas 2D / typed
+ * arrays, no Phaser dependency, so it can be rendered and tested in any browser). Angle convention: 0 = pointing straight down,
  * +x = forward (facing right), PI/2 = horizontal forward, PI = straight up.
  * This is the module's built-in art; replace by supplying an atlas with the same frame names.
  */
 
-interface Pose {
+export interface Pose {
   bob: number;
   lean: number;
   legF: [number, number];
@@ -25,21 +26,6 @@ interface Pose {
   burst?: number;
   hideSword?: boolean;
 }
-
-const C = {
-  outline: '#140e0b',
-  skin: '#d9b08c',
-  hair: '#2b1d17',
-  tunic: '#5a4632',
-  trim: '#c9a45c',
-  cloak: '#7a2e2e',
-  cloakDark: '#541d1f',
-  pants: '#3b3a40',
-  boots: '#2a2019',
-  steel: '#d3dae0',
-  steelDark: '#8a949c',
-  grip: '#6b4a2b',
-};
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
@@ -216,7 +202,7 @@ export function poseFor(name: AnimName, i: number, n: number): Pose {
       break;
     }
     case 'hit': {
-      p.lean = -[0.45, 0.35, 0.2][i]!;
+      p.lean = -([0.45, 0.35, 0.2, 0.12, 0.05][i] ?? 0.05);
       p.flash = [0.55, 0.3, 0.0][i] ?? 0;
       p.legF = [0.5, -0.2];
       p.legB = [-0.5, -0.3];
@@ -260,229 +246,10 @@ function applySlash(p: Pose, a: number, u: number, strikeFrom: number, strikeTo:
 
 // ------------------------------------------------------------------------------ drawing
 
-function seg(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, w: number, color: string): void {
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = C.outline;
-  ctx.lineWidth = w + 2;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = w;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-}
-
-function limb(ctx: CanvasRenderingContext2D, x: number, y: number, a: [number, number], l1: number, l2: number, w: number, color: string, endColor: string): [number, number] {
-  const kx = x + Math.sin(a[0]) * l1;
-  const ky = y + Math.cos(a[0]) * l1;
-  const ex = kx + Math.sin(a[0] + a[1]) * l2;
-  const ey = ky + Math.cos(a[0] + a[1]) * l2;
-  seg(ctx, x, y, kx, ky, w, color);
-  seg(ctx, kx, ky, ex, ey, w - 0.5, endColor);
-  return [ex, ey];
-}
-
 /** Draw one frame with its cell's top-left at (ox, oy). */
 export function drawAren(ctx: CanvasRenderingContext2D, name: AnimName, i: number, n: number, ox: number, oy: number): void {
-  const p = poseFor(name, i, n);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(ox, oy, FRAME_W, FRAME_H);
-  ctx.clip();
-  ctx.translate(ox, oy);
-
-  // whole-body rotation around the hip; collapse/rolls
-  const hipX = 32;
-  const hipY = 41 + p.bob;
-  ctx.translate(hipX, hipY);
-  ctx.rotate(p.rot);
-  ctx.translate(-hipX, -hipY);
-
-  const shX = hipX + Math.sin(p.lean) * 14;
-  const shY = hipY - Math.cos(p.lean) * 14;
-  const hdX = shX + Math.sin(p.lean) * 8;
-  const hdY = shY - Math.cos(p.lean) * 8 - 1;
-
-  // aura behind everything (skill)
-  if (p.aura && p.aura > 0) {
-    const g = ctx.createRadialGradient(32, 36, 4, 32, 36, 30);
-    g.addColorStop(0, `rgba(255,224,130,${0.55 * p.aura})`);
-    g.addColorStop(1, 'rgba(255,200,90,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(32, 36, 30, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // cape
-  const sway = p.cape;
-  ctx.fillStyle = C.cloak;
-  ctx.strokeStyle = C.outline;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(shX - 1, shY - 1);
-  ctx.quadraticCurveTo(shX - 6 - sway * 8, shY + 10, shX - 10 - sway * 13, shY + 20 - sway * 7);
-  ctx.lineTo(shX - 3 - sway * 7, shY + 22 - sway * 4);
-  ctx.quadraticCurveTo(shX + 1, shY + 12, shX + 3, shY + 2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = C.cloakDark;
-  ctx.beginPath();
-  ctx.moveTo(shX - 3, shY + 6);
-  ctx.quadraticCurveTo(shX - 7 - sway * 8, shY + 14, shX - 10 - sway * 13, shY + 20 - sway * 7);
-  ctx.lineTo(shX - 6 - sway * 9, shY + 21 - sway * 5);
-  ctx.closePath();
-  ctx.fill();
-
-  // back arm + back leg
-  limb(ctx, shX, shY + 2, p.armB, 8, 8, 4.5, C.tunic, C.skin);
-  limb(ctx, hipX - 1, hipY, p.legB, 11, 11, 5.5, C.pants, C.boots);
-
-  // torso
-  ctx.save();
-  ctx.translate(hipX, hipY);
-  ctx.rotate(p.lean);
-  ctx.fillStyle = C.tunic;
-  ctx.strokeStyle = C.outline;
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, -6, -15, 12, 17, 3);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = C.trim; // belt
-  ctx.fillRect(-6, -2, 12, 3);
-  ctx.fillRect(-1, -15, 2, 13);
-  ctx.restore();
-
-  // Hand-finished armor: layered leather, worn steel and fine brass seams.
-  // These details are baked into the sprite sheet once, so they add no per-frame game objects.
-  ctx.save();
-  const steel = ctx.createLinearGradient(shX - 12, shY - 5, shX + 12, shY + 13);
-  steel.addColorStop(0, '#d8d0bd');
-  steel.addColorStop(0.28, '#7d8589');
-  steel.addColorStop(0.62, '#3e454b');
-  steel.addColorStop(1, '#1d2429');
-  ctx.fillStyle = steel;
-  ctx.strokeStyle = C.outline;
-  ctx.lineWidth = 1.7;
-  ctx.beginPath();
-  ctx.moveTo(shX - 8, shY - 3);
-  ctx.quadraticCurveTo(shX - 2, shY - 8, shX + 7, shY - 3);
-  ctx.lineTo(shX + 11, shY + 5);
-  ctx.quadraticCurveTo(shX + 4, shY + 10, shX - 5, shY + 5);
-  ctx.closePath();
-  ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = '#d8b77b'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(shX - 5, shY - 2); ctx.quadraticCurveTo(shX + 1, shY - 5, shX + 6, shY - 1); ctx.stroke();
-
-  // Chest harness and a small engraved crest.
-  ctx.strokeStyle = '#211813'; ctx.lineWidth = 4.2; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(shX - 3, shY + 5); ctx.lineTo(hipX + 4, hipY - 5); ctx.stroke();
-  ctx.strokeStyle = '#b18a52'; ctx.lineWidth = 1.1;
-  ctx.beginPath(); ctx.moveTo(shX - 3, shY + 5); ctx.lineTo(hipX + 4, hipY - 5); ctx.stroke();
-  ctx.fillStyle = '#d5b36e'; ctx.strokeStyle = '#33251b'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(hipX + 1, hipY - 10); ctx.lineTo(hipX + 5, hipY - 6); ctx.lineTo(hipX + 1, hipY - 2); ctx.lineTo(hipX - 3, hipY - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#6f2928'; ctx.fillRect(hipX - 0.5, hipY - 8, 3, 3);
-
-  // Brass rivets and stitched cloak edge.
-  ctx.fillStyle = '#e0bd7a';
-  ctx.beginPath(); ctx.arc(shX - 5, shY + 3, 1.1, 0, Math.PI * 2); ctx.arc(shX + 6, shY + 3, 1.1, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = 'rgba(224,185,119,.72)'; ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.moveTo(shX - 6, shY + 7); ctx.quadraticCurveTo(shX - 10, shY + 15, shX - 13, shY + 20); ctx.stroke();
-  ctx.restore();
-
-  // head
-  ctx.fillStyle = C.skin;
-  ctx.strokeStyle = C.outline;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(hdX, hdY, 6.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = C.hair;
-  ctx.beginPath();
-  ctx.arc(hdX - 0.5, hdY - 1.5, 6.4, Math.PI * 0.95, Math.PI * 2.05);
-  ctx.fill();
-  ctx.fillRect(hdX - 7, hdY - 2, 4, 6); // hair back
-  ctx.fillStyle = name === 'dead' ? C.outline : '#1a110c';
-  ctx.fillRect(hdX + 2, hdY - 0.5, 2, 2); // eye
-  // scarf
-  ctx.fillStyle = C.cloak;
-  ctx.fillRect(shX - 4, shY - 3, 8, 3);
-
-  // front leg
-  limb(ctx, hipX + 1, hipY, p.legF, 11, 11, 5.5, C.pants, C.boots);
-
-  // front arm + sword
-  const hand = limb(ctx, shX, shY + 2, p.armF, 8, 8, 4.5, C.tunic, C.skin);
-  if (!p.hideSword) drawSword(ctx, hand[0], hand[1], p.sword);
-  else drawSwordSheathed(ctx, hipX, hipY);
-
-  // slash trail
-  if (p.trail) {
-    const t = p.trail;
-    const col = t.color ?? 'rgba(235,242,250,';
-    ctx.save();
-    ctx.translate(hand[0] - Math.sin(p.sword) * 2, hand[1] - Math.cos(p.sword) * 2);
-    ctx.lineCap = 'round';
-    for (let k = 0; k < 3; k++) {
-      ctx.strokeStyle = `${col}${(t.alpha * (1 - k * 0.3)).toFixed(2)})`;
-      ctx.lineWidth = 5 - k * 1.6;
-      ctx.beginPath();
-      // Convert convention (0=down, +x forward) to canvas angles: canvasAngle = PI/2 - a
-      ctx.arc(0, 0, t.r - k * 3, Math.PI / 2 - t.from, Math.PI / 2 - t.to, t.from < t.to);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  // burst (skill / heavy impact)
-  if (p.burst && p.burst > 0) {
-    ctx.strokeStyle = `rgba(255,220,120,${(1 - p.burst).toFixed(2)})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(32 + 12, 56, 10 + p.burst * 22, 3 + p.burst * 4, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // hit flash
-  if (p.flash > 0) {
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.fillStyle = `rgba(255,255,255,${p.flash})`;
-    ctx.fillRect(0, 0, FRAME_W, FRAME_H);
-    ctx.globalCompositeOperation = 'source-over';
-  }
-  ctx.restore();
-}
-
-function drawSword(ctx: CanvasRenderingContext2D, x: number, y: number, a: number): void {
-  const dx = Math.sin(a);
-  const dy = Math.cos(a);
-  // grip + guard
-  seg(ctx, x - dx * 3, y - dy * 3, x + dx * 1, y + dy * 1, 3, C.grip);
-  const gx = x + dx * 1;
-  const gy = y + dy * 1;
-  seg(ctx, gx - dy * 4, gy + dx * 4, gx + dy * 4, gy - dx * 4, 2.5, C.trim);
-  seg(ctx, gx, gy, gx + dx * 20, gy + dy * 20, 3, C.steel);
-  seg(ctx, gx + dx * 3, gy + dy * 3, gx + dx * 19, gy + dy * 19, 1, C.steelDark);
-}
-
-function drawSwordSheathed(ctx: CanvasRenderingContext2D, hx: number, hy: number): void {
-  seg(ctx, hx - 4, hy - 2, hx - 12, hy + 8, 3, C.steelDark);
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+  const px = paintAren(poseFor(name, i, n), name === 'dead');
+  ctx.putImageData(px.toImageData(), ox, oy);
 }
 
 /** Layout used both by the sheet renderer and by Phaser frame registration. */
