@@ -18,8 +18,14 @@ async function main(): Promise<void> {
   input.attach(keys);
   input.axis(0.55); assert.equal(input.frame().moveX, 0.55, 'UI joystick axis reaches the Player input frame');
   input.action('attack', true); assert.equal(input.frame().attackPressed, true); assert.equal(input.frame().attackPressed, false, 'touch attack is consumed once');
-  input.action('jump', true); const jump = input.frame(); assert.equal(jump.jumpPressed, true); assert.equal(jump.jumpHeld, true);
-  input.action('jump', false); assert.equal(input.frame().jumpHeld, false, 'touch jump hold ends on pointer release');
+  input.action('jump', true); input.action('jump', true);
+  const jump = input.frame(); assert.equal(jump.jumpPressed, true); assert.equal(jump.jumpHeld, true);
+  input.action('jump', false); assert.equal(input.frame().jumpHeld, true, 'releasing one of two fingers must not cancel a held jump');
+  input.action('jump', false); assert.equal(input.frame().jumpHeld, false, 'touch jump hold ends after the final pointer releases');
+  input.action('attack', true); input.action('attack', true);
+  assert.equal(input.frame().attackPressed, true, 'simultaneous fingers trigger one attack edge');
+  assert.equal(input.frame().attackPressed, false, 'a held multi-touch attack does not retrigger');
+  input.action('attack', false); input.action('attack', false);
   let interactions = 0; input.onInteract = () => interactions++; keys.e.isDown = true; input.frame(); input.frame(); assert.equal(interactions, 1, 'keyboard interact is edge-triggered');
 
   const bus = new SimpleEmitter();

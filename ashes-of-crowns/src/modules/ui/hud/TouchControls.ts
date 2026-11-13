@@ -165,9 +165,11 @@ export class TouchControls {
     const up = (e: PointerEvent) => {
       if (this.held.get(e.pointerId) !== action) return;
       this.held.delete(e.pointerId);
-      // another finger may still be on the same button
-      if (![...this.held.values()].includes(action)) el.classList.remove('is-down');
-      this.ctx.events.emit('input:action', { action, pressed: false });
+      // Keep the action held until the final finger on this button is released.
+      if (![...this.held.values()].includes(action)) {
+        el.classList.remove('is-down');
+        this.ctx.events.emit('input:action', { action, pressed: false });
+      }
     };
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
