@@ -1151,9 +1151,9 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-bird-flock:after{left:30px;top:10px;transform:rotate(-12deg)}
         .aoc-opening-cinematic .aoc-smoke{position:absolute;z-index:2;bottom:24%;left:62%;width:70px;height:170px;background:radial-gradient(ellipse at 50% 80%,rgba(34,28,31,.62),transparent 70%);filter:blur(7px);opacity:0;animation:aoc-smoke-rise 5s ease-out 13.2s infinite}
         .aoc-opening-cinematic .aoc-firelight{position:absolute;z-index:2;bottom:17%;left:22%;width:18px;height:55px;background:linear-gradient(0deg,#7d291b,#e77b39 55%,#ffd28a 80%,transparent);clip-path:polygon(50% 0,72% 38%,100% 70%,70% 100%,25% 100%,0 70%,32% 38%);filter:drop-shadow(0 0 15px #e36e32);opacity:0;animation:aoc-fire-flicker .48s ease-in-out 13.7s infinite alternate}
-        .aoc-opening-cinematic .aoc-shot.scene-green~.aoc-cine-figure{opacity:1}
-        .aoc-opening-cinematic .aoc-shot.scene-green~.aoc-firelight,.aoc-opening-cinematic .aoc-shot.scene-trial~.aoc-firelight{opacity:0}
-        .aoc-opening-cinematic .aoc-shot.scene-ashes~.aoc-firelight,.aoc-opening-cinematic .aoc-shot.scene-ashes~.aoc-smoke{opacity:1}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-cine-figure{opacity:1}
+        .aoc-opening-cinematic .aoc-shot.scene-green .aoc-firelight,.aoc-opening-cinematic .aoc-shot.scene-trial .aoc-firelight{opacity:0}
+        .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-firelight,.aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-smoke{opacity:1}
         @keyframes aoc-figure-breathe{0%,100%{margin-bottom:0}50%{margin-bottom:2px}}
         @keyframes aoc-bird-cross{0%{transform:translateX(0) translateY(0)}50%{transform:translateX(58vw) translateY(-22px)}100%{transform:translateX(120vw) translateY(8px)}}
         @keyframes aoc-smoke-rise{0%{transform:translateY(25px) scale(.65);opacity:0}25%{opacity:.7}100%{transform:translateY(-110px) scale(1.8);opacity:0}}
