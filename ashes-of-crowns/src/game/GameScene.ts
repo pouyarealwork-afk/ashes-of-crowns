@@ -494,6 +494,24 @@ export class GameScene extends Phaser.Scene {
           const layer = this.add.tileSprite(segment.offsetX, 0, segment.width, level.size.h, key).setOrigin(0, 0).setDepth(depth);
           this.parallax.push({ ts: layer, f: factor });
         }
+        // Small, biome-specific ambient motion makes each region feel alive without
+        // introducing a full-screen particle emitter or a large mobile GPU workload.
+        const weather = source.atmosphere.weather;
+        const weatherStyle: Record<string, { color: number; rise: number; width: number; height: number; alpha: number }> = {
+          ash: { color: 0xe58a4a, rise: -26, width: 3, height: 3, alpha: 0.62 },
+          embers: { color: 0xffa04c, rise: -34, width: 3, height: 3, alpha: 0.78 },
+          rain: { color: 0x9bbfd0, rise: 48, width: 2, height: 10, alpha: 0.42 },
+          sandstorm: { color: 0xd7ad72, rise: 10, width: 3, height: 2, alpha: 0.5 },
+          blizzard: { color: 0xd9eff5, rise: 32, width: 3, height: 3, alpha: 0.68 },
+          spores: { color: 0xa5c878, rise: -18, width: 3, height: 3, alpha: 0.52 },
+        };
+        const style = weatherStyle[weather];
+        if (style) for (let i = 0; i < 4; i++) {
+          const x = segment.offsetX + segment.width * (i + 1) / 5;
+          const y = segment.offsetY + 130 + (i * 83) % 340;
+          const mote = this.add.rectangle(x, y, style.width, style.height, style.color, style.alpha).setDepth(3);
+          this.tweens.add({ targets: mote, x: x + (weather === 'sandstorm' ? 34 : 12), y: y + style.rise, alpha: style.alpha * 0.28, duration: 2600 + i * 430, yoyo: true, repeat: -1, delay: i * 170, ease: 'Sine.InOut' });
+        }
       }
       return;
     }
