@@ -536,15 +536,20 @@ export class CombatWorld {
       const type = hazard.type.toLowerCase();
       const r = hazard.rect;
       const intersects = Phaser.Geom.Intersects.RectangleToRectangle(bounds, new Phaser.Geom.Rectangle(r.x, r.y, r.width, r.height));
-      // Quicksand is a soft-lock risk too: allow a short jump escape window, then recover safely.
-      const isFallTrap = type.includes('pit') || type.includes('void') || type.includes('crevasse') || type.includes('quicksand');
+      // Some pit colliders are drawn below the walkable lip; once Aren has dropped
+      // below that lip, rectangle intersection alone can miss him and leave a soft-lock.
+      const isFallTrap = type.includes('pit') || type.includes('void') || type.includes('crevasse') ||
+        type.includes('quicksand') || type.includes('sinkhole') || type.includes('chasm') || type.includes('flooded');
+      const horizontalOverlap = bounds.right > r.x + 5 && bounds.left < r.x + r.width - 5;
+      const hasFallenPastLip = horizontalOverlap && bounds.top > r.y + Math.min(12, r.height * 0.2) && bounds.top < r.y + r.height + 180;
       if (isFallTrap) {
-        if (!intersects) { this.hazardEnteredAt.delete(index); continue; }
+        const trapped = intersects || hasFallenPastLip;
+        if (!trapped) { this.hazardEnteredAt.delete(index); continue; }
         if (now < (this.hazardCooldowns.get(index) ?? 0)) continue;
         const enteredAt = this.hazardEnteredAt.get(index) ?? now;
         this.hazardEnteredAt.set(index, enteredAt);
-        // Give the player a brief chance to jump/escape before preventing a soft lock.
-        const escapeWindowMs = type.includes('quicksand') ? 1800 : 1250;
+        // Keep a short escape opportunity, but never wait indefinitely for a missed overlap.
+        const escapeWindowMs = type.includes('quicksand') ? 1100 : 700;
         if (now - enteredAt < escapeWindowMs) continue;
         this.hazardEnteredAt.delete(index);
         this.hazardCooldowns.set(index, now + 2200);

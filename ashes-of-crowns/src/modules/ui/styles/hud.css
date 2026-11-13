@@ -101,3 +101,13 @@
   .aoc-ui .touch__extras { flex-direction: column; }
   .aoc-ui .abtn--heavy, .aoc-ui .abtn--block { width: calc(48px * var(--cs)); height: calc(48px * var(--cs)); }
 }
+
+
+/* Compact landscape touch layout: preserve comfortable targets without obscuring the arena. */
+.aoc-ui .stick { width: calc(128px * var(--cs)); height: calc(128px * var(--cs)); }
+.aoc-ui .touch__cluster { width: calc(184px * var(--cs)); height: calc(164px * var(--cs)); }
+.aoc-ui .abtn--attack { width: calc(82px * var(--cs)); height: calc(82px * var(--cs)); }
+.aoc-ui .abtn--jump { width: calc(58px * var(--cs)); height: calc(58px * var(--cs)); inset-inline-end: calc(18px * var(--cs)); inset-block-end: calc(94px * var(--cs)); }
+.aoc-ui .abtn--dodge { width: calc(56px * var(--cs)); height: calc(56px * var(--cs)); inset-inline-end: calc(94px * var(--cs)); inset-block-end: calc(8px * var(--cs)); }
+.aoc-ui .abtn--interact { width: calc(48px * var(--cs)); height: calc(48px * var(--cs)); inset-inline-end: calc(102px * var(--cs)); inset-block-end: calc(80px * var(--cs)); }
+.aoc-ui .abtn--skill { width: calc(48px * var(--cs)); height: calc(48px * var(--cs)); }

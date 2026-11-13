@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Player } from '../modules/player/phaser/Player';
 import { CombatWorld } from '../modules/combat/phaser/CombatWorld';
 import { RpgModule } from '../modules/rpg';
+import { getItemDef } from '../modules/rpg/data/items';
 import { createWorldModule } from '../modules/world';
 import { PersistenceModule } from '../modules/persistence';
 import { createUI, type GameUI } from '../modules/ui';
@@ -204,7 +205,16 @@ export class GameScene extends Phaser.Scene {
     on('world:reward', (reward: any) => {
       if (reward?.xp) this.services.rpg.progression.addXp(reward.xp, reward.source ?? 'story');
       if (reward?.gold) this.services.rpg.economy.addGold(reward.gold);
-      for (const item of reward?.items ?? []) this.services.rpg.inventory.add(item.id, item.n ?? 1);
+      for (const item of reward?.items ?? []) {
+        this.services.rpg.inventory.add(item.id, item.n ?? 1);
+        try {
+          const def = getItemDef(item.id);
+          if (def.rarity !== 'common' || def.type === 'quest') {
+            const name = this.ui?.language === 'fa' ? def.name : def.name;
+            this.ui?.toast({ text: this.ui?.language === 'fa' ? `آیتم ویژه: ${name} ×${item.n ?? 1}` : `Special item: ${name} ×${item.n ?? 1}`, kind: 'success' });
+          }
+        } catch { /* Unknown content is still granted; never block a reward over its display name. */ }
+      }
     });
     on('world:quest-completed', (p: any) => { bus.emit('quest:completed', { questId: p.id }); bus.emit('rpg:quest-completed', { questId: p.id }); queueMicrotask(() => this.syncStoryFlags()); });
     for (const ev of ['world:dialogue-node','world:dialogue-ended','world:story-event','world:companion-recruited','world:quest-started','world:quest-updated','world:collectible-found','world:path-revealed','world:area-unlocked','world:poi-discovered','world:chapter-changed','world:party-changed','world:relationship-changed']) on(ev, () => queueMicrotask(() => { this.syncStoryFlags(); if (ev === 'world:party-changed' || ev === 'world:companion-recruited') this.syncCompanions(); }));
@@ -238,7 +248,7 @@ export class GameScene extends Phaser.Scene {
     });
     on('combat:boss-phase', (p: any) => { if (this.currentBoss) this.currentBoss.phase = p.phase; });
     on('combat:boss-defeated', () => { this.currentBoss = null; });
-    on('combat:enemy-defeated', (p: any) => this.ui?.toast({ text: p?.bossId ? 'Boss defeated' : 'Enemy defeated', kind: 'success' }));
+    on('combat:enemy-defeated', (p: any) => { if (p?.bossId) this.ui?.toast({ text: this.ui?.language === 'fa' ? 'غول شکست خورد' : 'Boss defeated', kind: 'success' }); });
     on('persistence:saved', (p: any) => {
       if (p?.slotId === 'auto' && this.started && this.aren && this.activeSaveSlot !== 'auto') {
         void this.services.persistence.saves.save(this.activeSaveSlot, { kind: 'manual', label: 'Latest Progress', skipIfUnchanged: true }).catch(err => this.ui?.toast({ text: `Save mirror failed: ${(err as Error).message}`, kind: 'warning' }));
@@ -336,6 +346,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startLevel(levelId: string, spawnName = 'start'): void {
+    this.currentBoss = null;
     this.destroyLevel();
     const runtime = this.services.world.getLevelRuntime(levelId);
     if (!runtime) { this.ui?.toast({ text: `Missing level: ${levelId}`, kind: 'error' }); return; }
