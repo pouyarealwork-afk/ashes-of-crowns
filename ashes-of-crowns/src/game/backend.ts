@@ -51,7 +51,7 @@ export function createUIBackend(scene: GameScene): UIBackend {
       drop: (itemId: string, qty: number) => ok(rpg.inventory.remove(itemId, qty) ? { ok: true } : { ok: false, reason: 'Not enough items' }),
     },
     skills: {
-      getSkillTrees: () => (['warrior', 'arcane', 'shadow'] as const).map(id => {
+      getSkillTrees: () => (['warrior', 'arcane', 'shadow', 'warden', 'oracle', 'bard'] as const).map(id => {
         const tree = rpg.skills.getTree(id);
         return { id, name: tree.name, icon: id, nodes: tree.nodes.map((v: any) => ({
           id: v.node.id, name: v.node.name, description: v.node.description, icon: v.node.icon,
