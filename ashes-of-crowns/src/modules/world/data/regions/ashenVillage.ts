@@ -11,14 +11,61 @@ export const ashenVillage: RegionContent = {
   region: {
     id: 'ashen_village', name: 'Ashen Village', chapter: 1, tagline: 'Home is what is left after the fire.',
     description: 'Aren\'s birthplace, burned by the Crown for sheltering the "Oathbreaker". Survivors cling to cellars and the cold forge.',
-    entryLevel: 'ashen_village_main', mapPos: { x: 0.14, y: 0.78 }, startsUnlocked: true,
+    entryLevel: 'ashen_prison', mapPos: { x: 0.14, y: 0.78 }, startsUnlocked: true,
     connections: [{ to: 'whispering_forest', requires: Q('m1_embers') }],
   },
 
   levels: [
     {
+      id: 'ashen_prison', region: 'ashen_village', name: 'The Blackwell Cells', size: { w: 2600, h: 900 },
+      atmosphere: ATM({ palette: { sky: '#11141b', mid: '#292d35', fore: '#090b10', accent: '#b58b63' }, weather: 'none', light: 'gloom', music: 'cellars_hush', ambience: ['drip', 'low_hum'], particles: 'dust_motes', notes: 'A grounded underground prison: heavy stone, iron bars, damp floors and sparse wall torches.' }),
+      spawns: { start: { x: 180, y: 740 } },
+      platforms: [
+        P(0, 780, 2600, 120, 'stone'), P(160, 620, 520, 28, 'stone'),
+        P(900, 570, 340, 28, 'stone'), P(1510, 640, 330, 28, 'stone'),
+        P(2020, 590, 420, 28, 'stone'),
+      ],
+      hazards: [],
+      enemies: [{ type: 'cellar_rat_swarm', x: 1110, y: 720, patrol: [940, 1280] }],
+      npcs: [], collectibles: [{ id: 'prison_mark', x: 480, y: 580 }],
+      hiddenPaths: [], zones: [
+        { id: 'prison_wake', rect: rect(60, 560, 420, 220) },
+        { id: 'prison_gate', rect: rect(2070, 560, 430, 220) },
+      ],
+      interactables: [{ id: 'prison_latch', x: 2350, y: 740, label: 'Broken gate' }],
+      exits: [{ id: 'escape_to_woods', rect: rect(2480, 640, 100, 140), to: { level: 'ashen_escape_woods', spawn: 'start' } }],
+      lore: [{ id: 'l_prison_wall', kind: 'mural', x: 540, y: 740, text: 'A name scratched into the stone: VALCREST. Beneath it, someone has written: THE KING DID NOT DIE BY YOUR HAND.' }],
+    },
+    {
+      id: 'ashen_escape_woods', region: 'ashen_village', name: 'The Green Verge', size: { w: 3800, h: 1000 },
+      atmosphere: ATM({ palette: { sky: '#7cae9c', mid: '#50785a', fore: '#193a2b', accent: '#b5d78a' }, weather: 'spores', light: 'dawn', music: 'whispering_forest_theme', ambience: ['leaf_rustle', 'owl', 'birds_morning'], particles: 'glow_spores', notes: 'A bright, breathing green woodland after the prison: layered trees, moss, soft morning haze and a stream.' }),
+      spawns: { start: { x: 120, y: 800 } },
+      platforms: [
+        P(0, 820, 3800, 180, 'ground'), P(420, 690, 200, 24, 'vine'),
+        P(1120, 610, 240, 24, 'wood'), P(1940, 700, 260, 24, 'vine'),
+        P(2800, 620, 220, 24, 'wood'),
+      ],
+      hazards: [{ type: 'thorns', rect: rect(1550, 800, 130, 20), damage: 5 }],
+      enemies: [
+        { type: 'thornling', x: 1050, y: 780, patrol: [900, 1360] },
+        { type: 'ash_wolf', x: 2240, y: 780, patrol: [2050, 2530] },
+      ],
+      npcs: [{ npc: 'mira', x: 650, y: 800 }],
+      collectibles: [{ id: 'green_seed', x: 1760, y: 660 }],
+      hiddenPaths: [], zones: [
+        { id: 'woods_first_breath', rect: rect(0, 620, 580, 200) },
+        { id: 'mira_grove', rect: rect(500, 600, 420, 220) },
+      ],
+      interactables: [{ id: 'mira_herbs', x: 760, y: 800, label: 'Herb basket' }],
+      exits: [{ id: 'to_village_after_escape', rect: rect(3680, 680, 100, 140), to: { level: 'ashen_village_main', spawn: 'from_escape' } }],
+      lore: [
+        { id: 'l_escape_stream', kind: 'ruin', x: 1580, y: 800, text: 'The stream runs clear here. The first clean water you have seen since the trial.' },
+        { id: 'l_escape_stone', kind: 'sign', x: 3100, y: 800, text: 'Hearthmere lies east. The road is watched, but not closed.' },
+      ],
+    },
+    {
       id: 'ashen_village_main', region: 'ashen_village', name: 'Cinderhollow Road', size: { w: 6400, h: 900 }, atmosphere: ATMOS_MAIN,
-      spawns: { start: { x: 360, y: 700 }, from_cellar: { x: 3240, y: 700 }, from_forest: { x: 6200, y: 700 } },
+      spawns: { start: { x: 360, y: 700 }, from_cellar: { x: 3240, y: 700 }, from_forest: { x: 6200, y: 700 }, from_escape: { x: 120, y: 700 } },
       platforms: [
         P(0, 760, 1500, 140), P(1700, 760, 1300, 140), P(3150, 760, 1500, 140), P(4850, 760, 1550, 140),
         P(420, 640, 220, 24, 'wood'), P(760, 560, 200, 24, 'wood'), P(1180, 620, 240, 24, 'oneway'),
@@ -79,6 +126,7 @@ export const ashenVillage: RegionContent = {
   ],
 
   npcs: [
+    { id: 'mira', name: 'Mira Vale', region: 'ashen_village', role: 'Forest Herbalist', description: 'A young herbalist who tends the green verge and shelters travellers escaping the Crown roads.', portrait: 'portrait_mira', sprite: 'npc_mira', dialogue: [{ tree: 'd_mira_intro' }] },
     { id: 'tamsin', name: 'Tamsin Reed', region: 'ashen_village', role: 'Forgekeeper / Companion', description: 'Blacksmith\'s daughter who tends a forge with no iron left.', portrait: 'portrait_tamsin', sprite: 'npc_tamsin', companion: 'tamsin',
       dialogue: [{ when: Q('c_tamsin', 'active'), tree: 'd_tamsin_forge' }, { when: COMP('tamsin', 'recruited'), tree: 'd_tamsin_camp' }, { tree: 'd_tamsin_meet' }] },
     { id: 'marta', name: 'Old Marta', region: 'ashen_village', role: 'Cellar Keeper', description: 'Hides eleven survivors under the well and counts every crumb.', portrait: 'portrait_marta', sprite: 'npc_marta', dialogue: [{ tree: 'd_marta' }] },
@@ -86,6 +134,22 @@ export const ashenVillage: RegionContent = {
   ],
 
   dialogues: [
+    CUT('d_prison_wake', 'a', {
+      a: N('narrator', 'بوی نم و آهن زنگ‌زده بیدارت می‌کند. سقف کوتاه است و صدای قطره‌ها از پشت دیوار می‌آید. از محاکمه فقط تکه‌هایی یادت مانده؛ حالا در سلولی بی‌نامی و نگهبانی در راهرو قدم می‌زند.', { next: 'b' }),
+      b: N('aren', 'اگر اینجا بمانم، حقیقت هم همراه من دفن می‌شود. باید از این زندان بیرون بروم.', { choices: [
+        C('«اول باید راه خروج را پیدا کنم.»', 'c', { tags: ['pragmatic'], effects: [fl('prison_awake')] }),
+        C('«هنوز نمی‌دانم چه کسی به من خیانت کرد.»', 'c', { tags: ['honest'], effects: [vr('trust', -1), fl('prison_awake')] }),
+      ] }),
+      c: N('narrator', 'قفل در سلول شکسته است. هوای سردی از شکاف راهرو می‌وزد؛ راهی باریک به بیرون وجود دارد.', { effects: [fl('prison_escape_started')] }),
+    }),
+    T('d_mira_intro', 'mira', 'a', {
+      a: N('mira', 'آروم‌تر. اینجا صدای قدم‌ها تا دوردست می‌ره. من میرا هستم؛ گیاه‌های این بیشه رو می‌شناسم. اگر از زندان اومدی، قبل از رسیدن به جاده کمی نفس بگیر.', { choices: [
+        C('«چرا اینجا موندی؟»', 'b', { tags: ['curious'] }),
+        C('«راه امن به هِرث‌میر کدومه؟', 'c', { tags: ['direct'] }),
+      ] }),
+      b: N('mira', 'چون همه از جاده فرار می‌کنن و کسی باید حواسش به زخمی‌ها و گم‌شده‌ها باشه. جنگل هنوز برای همه درش رو نبسته.'),
+      c: N('mira', 'از کنار جوی آب برو و از برج دیده‌بانی دوری کن. وقتی به خانه‌های سوخته رسیدی، دنبال دود کم‌رنگ آهنگری بگرد.'),
+    }),
     CUT('d_opening', 'a', {
       a: N('narrator', 'خاکستر بر زبانت نشسته و سنگ سرد اجاق زیر گونه‌ات است. روستایی که روزی برای بازسازی‌اش هزینه کردی، اکنون به ویرانه‌ای بدل شده است.', { next: 'b' }),
       b: N('aren', 'سه روز از محاکمه گذشته است. عمارت، نام و شمشیرت را گرفتند. دارکن آنجا ایستاد و کلمهٔ «مجرم» را چنان بر زبان آورد که انگار فهرست خرید می‌خواند.', { mood: 'grim', next: 'c' }),
@@ -188,6 +252,8 @@ export const ashenVillage: RegionContent = {
 
   collectibles: [
     ...[1, 2, 3, 4, 5].map(i => COLL(`hearth_${i}`, 'ashen_village', 'token', `Hearth Token ${i}`, ['A carved bell.', 'A child\'s wooden horse.', 'A blackened wedding ring.', 'A strip of apron cloth.', 'A baker\'s mark.'][i - 1])),
+    COLL('prison_mark', 'ashen_village', 'lore', 'Prison Wall Mark', 'A hidden message left by someone who knew the trial was false.'),
+    COLL('green_seed', 'ashen_village', 'resource', 'Green Verge Seed', 'A seed carried from the first living patch of forest after the prison.'),
     COLL('valcrest_blade', 'ashen_village', 'relic', 'Valcrest Blade', 'Your sword, scorched but sound. The pommel still bears the sun of your house.', [key('valcrest_blade')]),
     COLL('pantry_bread', 'ashen_village', 'key', 'Hidden Bread Sack', 'Twelve loaves, wrapped in cloth and honest hope.', [key('bread_sack')]),
     COLL('well_key', 'ashen_village', 'key', 'Rusted Well Key', 'Your mother\'s key, hung where the wind would not tarnish it.'),
@@ -203,7 +269,7 @@ export const ashenVillage: RegionContent = {
   ],
 
   storyEvents: [
-    { id: 'ev_opening', zone: 'start_wake', dialogue: 'd_opening' },
+    { id: 'ev_prison_wake', zone: 'prison_wake', dialogue: 'd_prison_wake' },
     { id: 'ev_hobb', zone: 'hobb_arena', dialogue: 'd_hobb_pre', when: Q('m1_embers', 'active') },
     { id: 'ev_burn_order', auto: INT('burn_order'), dialogue: 'd_burn_order' },
     { id: 'ev_tamsin_join', auto: AND(INT('burn_order'), COMP('tamsin', 'unmet')), dialogue: 'd_tamsin_join' },
