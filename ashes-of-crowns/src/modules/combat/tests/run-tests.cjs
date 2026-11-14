@@ -206,4 +206,10 @@ test('non-finite and non-positive damage cannot chip enemy health', () => {
   assert.equal(applyHitToEnemy(target, { amount: Number.NaN }, resolver).damage, 0);
   assert.equal(target.health, 100);
 });
+test('fallback abilities scale from the current player attack stat', () => {
+  const resolver = new DamageResolver(undefined, () => 0.5);
+  const target = { defense: 0, resistances: { physical: 0 } };
+  const result = resolver.ability({ multiplier: 2, school: 'physical' }, target, { baseDamage: 50 });
+  assert.equal(result.damage, 100);
+});
 process.stdout.write(`\n${passed} combat tests passed.\n`);
