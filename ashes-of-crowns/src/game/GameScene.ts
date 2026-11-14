@@ -33,7 +33,7 @@ export class GameScene extends Phaser.Scene {
   combat!: CombatWorld;
   currentRegion: RegionId = 'ashen_village';
   currentLevelId = 'ashen_village_main';
-  private currentClass: 'warrior' | 'assassin' | 'mage' = 'warrior';
+  private currentClass: 'warrior' | 'assassin' | 'mage' | 'warden' | 'oracle' | 'bard' = 'warrior';
   trackedQuest: string | null = null;
 
   private inputBridge = new InputBridge();
@@ -280,11 +280,14 @@ export class GameScene extends Phaser.Scene {
     on('persistence:degraded', () => this.ui?.toast({ text: 'Storage unavailable: saves will last only for this session.', kind: 'warning' }));
   }
 
-  private startNewGame(slot = 1, classId: 'warrior' | 'assassin' | 'mage' = 'warrior'): void {
+  private startNewGame(slot = 1, classId: 'warrior' | 'assassin' | 'mage' | 'warden' | 'oracle' | 'bard' = 'warrior'): void {
     this.currentClass = classId;
     this.activeSaveSlot = `slot${slot}`;
     this.services.rpg.newGame();
-    const signatureAbility = classId === 'warrior' ? 'w_power_strike' : classId === 'assassin' ? 's_backstab' : 'a_arc_bolt';
+    const signatureAbility = ({
+      warrior: 'w_power_strike', assassin: 's_backstab', mage: 'a_arc_bolt',
+      warden: 'd_bloom_guard', oracle: 'o_second_sight', bard: 'b_steady_beat',
+    } as const)[classId];
     this.services.rpg.skills.grantStartingAbility(signatureAbility);
     this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_prison'; this.trackedQuest = null;
