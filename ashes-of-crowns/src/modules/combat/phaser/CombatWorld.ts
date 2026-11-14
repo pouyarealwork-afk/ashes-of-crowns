@@ -118,6 +118,7 @@ export class CombatWorld {
   spawn(type: string, x: number, y: number, opts: { level?: number; elite?: boolean; bossId?: string; patrol?: [number, number]; region?: string } = {}): EnemyState {
     const enemy = this.engine.spawn(type, { x, y, level: opts.level, elite: opts.elite, bossId: opts.bossId, patrol: opts.patrol, region: opts.region });
     const archetype = getEnemyArchetype(type)!;
+    this.ensureEnemyTextures(type);
     const motionKey = this.motionTextureKey(type);
     const sprite = this.scene.physics.add.sprite(x, y, motionKey, 'idle_0');
     sprite.setDepth(9).setOrigin(0.5, 1).setScale(archetype.scale ?? (enemy.elite ? 1.16 : 1));
@@ -623,10 +624,15 @@ export class CombatWorld {
 
   private textureKey(type: string): string { return `${this.texturePrefix}-${type}`; }
   private motionTextureKey(type: string): string { return `${this.textureKey(type)}-motion`; }
-  private createTextures(): void {
+  /** Enemy art is generated the first time each type spawns (building all 24 up front stalled startup on phones). */
+  private ensureEnemyTextures(type: string): void {
+    const key = this.textureKey(type);
+    if (this.scene.textures.exists(key) && this.scene.textures.exists(this.motionTextureKey(type))) return;
     const types = ['ash_wolf','crown_soldier','thornling','rook_bandit','sand_scorpion','dune_raider','glass_serpent','sand_wraith','frost_wolf','ice_wraith','crown_scout','ironwatch_guard','crossbow_sentry','hushed_guard','hollow_shade','royal_champion','cellar_rat_swarm','sickened_stag','sergeant_hobb','thornwarden','sandglass_colossus','captain_voss','hush_mother_vesk','chancellor_morrow'];
     const colors = [0x9b7561,0x9dabb8,0x65945d,0x8e7657,0xb78b49,0xa97943,0x6eabb0,0xc6b98e,0x8ab5c8,0x9bd8e5,0x8e9c9e,0x737b83,0x9c8a73,0x777b91,0x77718f,0xb99b65,0x82766b,0x786e60,0x965d4d,0x6c8b4d,0xb39b62,0x7898b4,0x8070a8,0x9b6574];
-    types.forEach((type, i) => {
+    const i = types.indexOf(type);
+    if (i < 0) return;
+    {
       const key = this.textureKey(type);
       if (this.scene.textures.exists(key)) return;
       const boss = i >= 18;
@@ -670,8 +676,10 @@ export class CombatWorld {
           });
         });
       }
-    });
+    }
+  }
 
+  private createTextures(): void {
     const projectileKey = `${this.texturePrefix}-projectile`;
     if (!this.scene.textures.exists(projectileKey)) {
       addPixelCanvas(this.scene.textures, projectileKey, paintProjectile().toCanvas());

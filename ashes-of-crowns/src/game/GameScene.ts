@@ -72,7 +72,7 @@ export class GameScene extends Phaser.Scene {
   private gameEventOffs: Array<() => void> = [];
   private parallax: Array<{ ts: Phaser.GameObjects.TileSprite; f: number }> = [];
   /** Overworld backdrop: viewport-sized layers whose textures swap with the segment under the camera. */
-  private overworldBackdrop?: { sky: Phaser.GameObjects.TileSprite; layers: Phaser.GameObjects.TileSprite[]; idx: number; keys: Array<{ sky: string; layers: string[] } | undefined> };
+  private overworldBackdrop?: { sky: Phaser.GameObjects.TileSprite; layers: Phaser.GameObjects.TileSprite[]; idx: number; keysFor: (idx: number) => { sky: string; layers: string[] } | undefined };
 
   constructor() { super('GameScene'); }
 
@@ -487,7 +487,7 @@ export class GameScene extends Phaser.Scene {
   private drawAtmosphere(level: LevelDef): void {
     if (this.overworldSegments.length > 1) {
       this.parallax = []; this.overworldBackdrop = undefined;
-      const keys: Array<{ sky: string; layers: string[] } | undefined> = [];
+      const descs: Array<{ a: any; region: string; sig: string } | undefined> = [];
       for (const [segIndex, segment] of this.overworldSegments.entries()) {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
         const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
@@ -495,7 +495,7 @@ export class GameScene extends Phaser.Scene {
         // Textures only: the backdrop itself is three viewport-sized sprites (see below). The old per-segment
         // tile sprites were as large as a whole region, tiled the 720px art vertically and scrolled the
         // parallax in the wrong direction (far layers moved faster than the ground).
-        keys[segIndex] = { sky: ensure(`aoc-sky-${sig}`, () => paintSky(a, region)), layers: ([0, 1, 2] as const).map(d => ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d))) };
+        descs[segIndex] = { a, region, sig };
         // Small, biome-specific ambient motion makes each region feel alive without
         // introducing a full-screen particle emitter or a large mobile GPU workload.
         const weather = source.atmosphere.weather;
@@ -515,16 +515,30 @@ export class GameScene extends Phaser.Scene {
           this.tweens.add({ targets: mote, x: x + (weather === 'sandstorm' ? 34 : 12), y: y + style.rise, alpha: style.alpha * 0.28, duration: 2600 + i * 430, yoyo: true, repeat: -1, delay: i * 170, ease: 'Sine.InOut' });
         }
       }
-      const firstIdx = keys.findIndex(Boolean);
+      // Backdrop textures are painted lazily (each region's sky + 3 layers costs ~60ms on a desktop, several
+      // hundred on a phone): only the first region now, the rest on demand or when the browser is idle.
+      const built: Array<{ sky: string; layers: string[] } | undefined> = [];
+      const ensureTex = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) addPixelCanvas(this.textures, key, make()); return key; };
+      const keysFor = (idx: number) => {
+        if (built[idx]) return built[idx];
+        const d = descs[idx]; if (!d) return undefined;
+        return (built[idx] = { sky: ensureTex(`aoc-sky-${d.sig}`, () => paintSky(d.a, d.region)), layers: ([0, 1, 2] as const).map(l => ensureTex(`aoc-layer-${d.sig}-${l}`, () => paintLayer(d.a, d.region, l))) });
+      };
+      const firstIdx = descs.findIndex(Boolean);
       if (firstIdx >= 0) {
-        const first = keys[firstIdx]!;
+        const first = keysFor(firstIdx)!;
         const sky = this.add.tileSprite(0, 0, 1280, 720, first.sky).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
         const layers = ([[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]] as const).map(([d, factor, depth]) => {
           const ts = this.add.tileSprite(0, 0, 1280, 720, first.layers[d]).setOrigin(0, 0).setScrollFactor(0).setDepth(depth);
           this.parallax.push({ ts, f: factor });
           return ts;
         });
-        this.overworldBackdrop = { sky, layers, idx: firstIdx, keys };
+        this.overworldBackdrop = { sky, layers, idx: firstIdx, keysFor };
+        // Warm the remaining regions one per idle slot so crossing a border never hitches.
+        const queue = descs.map((_, i) => i).filter(i => i !== firstIdx && descs[i]);
+        const warm = () => { const i = queue.shift(); if (i === undefined || !this.scene.isActive()) return; keysFor(i); schedule(warm); };
+        const schedule = (fn: () => void) => { const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, o?: { timeout: number }) => void); if (ric) ric(fn, { timeout: 4000 }); else window.setTimeout(fn, 1500); };
+        window.setTimeout(() => schedule(warm), 4000);
       }
       return;
     }
@@ -548,7 +562,7 @@ export class GameScene extends Phaser.Scene {
       // Swap to the region the camera is currently inside (gaps between segments keep the last backdrop).
       const cx = cam.scrollX + cam.width / 2, cy = cam.scrollY + cam.height / 2;
       const idx = this.overworldSegments.findIndex(g => cx >= g.offsetX && cx < g.offsetX + g.width && cy >= g.offsetY && cy < g.offsetY + g.height);
-      const k = idx >= 0 ? bd.keys[idx] : undefined;
+      const k = idx >= 0 ? bd.keysFor(idx) : undefined;
       if (k && idx !== bd.idx) { bd.idx = idx; bd.sky.setTexture(k.sky); bd.layers.forEach((l, i) => l.setTexture(k.layers[i])); }
       // Horizontal parallax only: the art is not vertically tileable.
       for (const p of this.parallax) { p.ts.tilePositionX = Math.round(cam.scrollX * p.f); p.ts.tilePositionY = 0; }

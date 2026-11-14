@@ -1,13 +1,20 @@
-// Edge-clip audit: reports enemies whose opaque pixels touch the canvas border (they would be cut off in game).
+// Startup-cost benchmark for the pure-canvas art pipeline (runs in headless Chrome, so numbers are desktop-class;
+// phones are typically 4-8x slower).
 import { ENEMY_TYPES, ENEMY_COLORS, paintEnemy } from '../../src/art/enemies';
-const rows: string[] = [];
-ENEMY_TYPES.forEach((t, i) => {
-  const boss = i >= 18, wide = /wolf|stag|scorpion|serpent|rat_swarm/.test(t), w = boss ? 128 : wide ? 96 : 64, h = boss ? 128 : 78;
-  const px = paintEnemy(t, w, h, ENEMY_COLORS[i]);
-  let l = 0, r = 0, tp = 0;
-  for (let y = 0; y < h; y++) { if (px.alphaAt(0, y) > 40) l++; if (px.alphaAt(w - 1, y) > 40) r++; }
-  for (let x = 0; x < w; x++) if (px.alphaAt(x, 0) > 40) tp++;
-  if (l || r || tp) rows.push(`${t}: left=${l} right=${r} top=${tp}`);
-});
-console.log('CLIPPED:', rows.length ? '\n' + rows.join('\n') : 'none');
+import { paintSky, paintLayer, paintPlatform } from '../../src/art/world';
+import { makeCanvas } from '../../src/art/px';
+const t = (label: string, fn: () => void, n = 1) => { const s = performance.now(); for (let i = 0; i < n; i++) fn(); console.log(label.padEnd(34), ((performance.now() - s) / n).toFixed(1), 'ms'); };
+let tot = 0;
+const s0 = performance.now();
+t('24 enemy sprites', () => ENEMY_TYPES.forEach((k, i) => { const boss = i >= 18, wide = /wolf|stag|scorpion|serpent|rat_swarm/.test(k); paintEnemy(k, boss ? 128 : wide ? 96 : 64, boss ? 128 : 78, ENEMY_COLORS[i]).toCanvas(); }));
+t('24 enemy motion atlases (6x4 cells)', () => { ENEMY_TYPES.forEach((k, i) => { const c = makeCanvas(64 * 6, 78 * 4); const g = c.getContext('2d')!; for (let r = 0; r < 4; r++) for (let f = 0; f < 6; f++) g.drawImage(makeCanvas(64, 78), f * 64, r * 78); }); });
+const a = { sky: '#1c1722', mid: '#4a2f2f', fore: '#3a2a2b' };
+t('1 sky (1280x720)', () => paintSky(a, 'ashen_village'), 3);
+t('1 parallax layer (far)', () => paintLayer(a, 'ashen_village', 0), 3);
+t('1 parallax layer (mid)', () => paintLayer(a, 'whispering_forest', 1), 3);
+t('1 parallax layer (near)', () => paintLayer(a, 'ashen_village', 2), 3);
+t('platform 320x96', () => paintPlatform('stone', 320, 96), 20);
+t('platform 2400x120', () => paintPlatform('ground', 2400, 120), 5);
+t('platform 6000x400', () => paintPlatform('ground', 6000, 400), 2);
+console.log('TOTAL', (performance.now() - s0).toFixed(0), 'ms');
 (window as any).__ready = true;
