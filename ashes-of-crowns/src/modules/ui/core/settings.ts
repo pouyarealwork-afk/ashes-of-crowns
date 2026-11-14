@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS: UISettings = {
   leftHanded: false,
   hudScale: 'medium',
   textScale: 'medium',
-  reduceMotion: false,
+  reduceMotion: true,
   vibration: true,
   persianDigits: true,
 };
