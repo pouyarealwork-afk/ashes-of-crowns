@@ -10,9 +10,10 @@ export class DamageResolver {
       const result = this.rpg.calcDamage({ multiplier: input.multiplier ?? 1, school, targetDefense: input.target.defense, guaranteedCrit: input.guaranteedCrit, bonusCritChance: input.bonusCritChance });
       return { damage: this.resist(result.damage, input.target, input.school), critical: result.crit, lifestealHeal: result.lifestealHeal };
     }
-    const raw = input.baseDamage * (input.multiplier ?? 1) * (input.guaranteedCrit || this.rng() < (input.bonusCritChance ?? 0.05) ? 1.65 : 1);
+    const critical = !!input.guaranteedCrit || this.rng() < (input.bonusCritChance ?? 0.05);
+    const raw = input.baseDamage * (input.multiplier ?? 1) * (critical ? 1.65 : 1);
     const reduced = raw * (100 / (100 + Math.max(0, input.target.defense)));
-    return { damage: this.resist(Math.max(1, Math.round(reduced * (0.95 + this.rng() * 0.1))), input.target, input.school), critical: !!(input.guaranteedCrit || (this.rng() < (input.bonusCritChance ?? 0.05))), lifestealHeal: 0 };
+    return { damage: this.resist(Math.max(1, Math.round(reduced * (0.95 + this.rng() * 0.1))), input.target, input.school), critical, lifestealHeal: 0 };
   }
 
   ability(effect: any, target: EnemyState, options: { behind?: boolean; targetHpPct?: number } = {}): { damage: number; critical: boolean; lifestealHeal: number } {
