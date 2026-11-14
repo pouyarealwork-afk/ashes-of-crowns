@@ -38,8 +38,11 @@ async function main(): Promise<void> {
   input.action('attack', false);
   input.action('jump', true); input.action('jump', true);
   const jump = input.frame(); assert.equal(jump.jumpPressed, true); assert.equal(jump.jumpHeld, true);
-  input.action('jump', false); assert.equal(input.frame().jumpHeld, true, 'releasing one of two fingers must not cancel a held jump');
-  input.action('jump', false); assert.equal(input.frame().jumpHeld, false, 'touch jump hold ends after the final pointer releases');
+  input.action('jump', false); assert.equal(input.frame().jumpHeld, false, 'one final-release event from TouchControls must clear a multi-pointer jump hold');
+  input.action('jump', false); assert.equal(input.frame().jumpHeld, false, 'duplicate release events are harmless');
+  input.action('block', true); input.action('block', true);
+  assert.equal(input.frame().blockHeld, true, 'multi-pointer block remains held while the action is active');
+  input.action('block', false); assert.equal(input.frame().blockHeld, false, 'the single final-release event clears block');
   input.action('attack', true); input.action('attack', true);
   assert.equal(input.frame().attackPressed, true, 'simultaneous fingers trigger one attack edge');
   assert.equal(input.frame().attackPressed, false, 'a held multi-touch attack does not retrigger');

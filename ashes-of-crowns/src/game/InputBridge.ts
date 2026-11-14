@@ -6,8 +6,8 @@ type Action = 'attack' | 'jump' | 'dodge' | 'interact' | 'skill1' | 'skill2' | '
 export class InputBridge {
   axisX = 0;
   private pressed = new Set<Action>();
-  /** Number of active touch pointers holding each action (one finger may lift before another). */
-  private held = new Map<Action, number>();
+  /** Active touch actions. TouchControls emits one release after the final pointer lifts. */
+  private held = new Set<Action>();
   private previous = new Set<string>();
   private keys: Record<string, { isDown: boolean }> = {};
   onInteract: () => void = () => {};
@@ -15,14 +15,12 @@ export class InputBridge {
   attach(keys: Record<string, { isDown: boolean }>): void { this.keys = keys; }
   axis(x: number): void { this.axisX = Math.max(-1, Math.min(1, x)); }
   action(action: Action, down: boolean): void {
-    const count = this.held.get(action) ?? 0;
+    const wasHeld = this.held.has(action);
     if (down) {
-      this.held.set(action, count + 1);
-      if (count === 0) this.pressed.add(action);
-    } else if (count <= 1) {
-      this.held.delete(action);
+      this.held.add(action);
+      if (!wasHeld) this.pressed.add(action);
     } else {
-      this.held.set(action, count - 1);
+      this.held.delete(action);
     }
   }
   private edge(key: string): boolean {
@@ -59,11 +57,11 @@ export class InputBridge {
       moveX,
       run: !!this.keys.shift?.isDown || Math.abs(moveX) > 0.82,
       jumpPressed,
-      jumpHeld: !!this.keys.space?.isDown || (this.held.get('jump') ?? 0) > 0,
+      jumpHeld: !!this.keys.space?.isDown || this.held.has('jump'),
       attackPressed,
       heavyPressed,
       dodgePressed,
-      blockHeld: !!this.keys.v?.isDown || (this.held.get('block') ?? 0) > 0,
+      blockHeld: !!this.keys.v?.isDown || this.held.has('block'),
       skillPressed,
     });
   }
