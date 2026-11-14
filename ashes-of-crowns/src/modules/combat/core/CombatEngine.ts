@@ -218,7 +218,7 @@ export class CombatEngine {
       const hpPct = enemy.health / enemy.maxHealth;
       const raw = resources.baseAttack ?? 14;
       const behind = player.x < enemy.x ? enemy.facing === 1 : enemy.facing === -1;
-      const calc = this.damage.ability(effect, enemy, { targetHpPct: hpPct, behind });
+      const calc = this.damage.ability(effect, enemy, { targetHpPct: hpPct, behind, baseDamage: resources.baseAttack ?? 14 });
       totalLifesteal += calc.lifestealHeal;
       const applied = this.damageEnemy(enemy.id, { amount: calc.damage, school: 'true', sourceId: id, critical: calc.critical,
         status: effect.dotMultiplierPerSec ? { kind: effect.school === 'magic' ? 'burn' : 'bleed', durationMs: effect.durationMs ?? 3500, tickMs: 700, tickDamage: Math.max(1, Math.round(raw * effect.dotMultiplierPerSec)) } : effect.slowPct ? { kind: 'slow', durationMs: effect.durationMs ?? 2500, magnitude: effect.slowPct } : undefined });
