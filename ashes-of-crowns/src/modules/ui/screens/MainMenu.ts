@@ -6,7 +6,7 @@ import { latestSlot, regionName } from '../core/util';
 import { LANG_META } from '../i18n';
 import type { SaveSlotSummary } from '../contracts';
 
-export const UI_VERSION = '1.1.0';
+export const UI_VERSION = '1.2.0';
 
 export class MainMenuScreen extends Screen {
   readonly id = 'mainMenu' as const;
