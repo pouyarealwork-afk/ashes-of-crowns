@@ -63,7 +63,7 @@ export class CombatEngine {
       ai: archetype.ai, x: options.x, y: options.y, vx: 0, vy: 0, facing: -1,
       health: Math.round(archetype.health * hpScale), maxHealth: Math.round(archetype.health * hpScale),
       damage: Math.round(archetype.damage * levelScale * (elite ? 1.25 : 1)), defense: Math.round(archetype.defense * (elite ? 1.35 : 1)),
-      speed: archetype.speed * (elite ? 1.08 : 1), level, xp: Math.round(archetype.xp * levelScale * (elite ? 1.6 : 1)),
+      speed: archetype.speed * (elite ? 1.08 : 1), aggroRange: archetype.aggroRange, level, xp: Math.round(archetype.xp * levelScale * (elite ? 1.6 : 1)),
       gold: Math.round(archetype.gold * levelScale * (elite ? 1.7 : 1)), alive: true, aggro: false,
       attackCooldownMs: this.rng() * 350, attackWindupMs: archetype.attackWindupMs, attackRange: archetype.attackRange, windupRemainingMs: 0,
       stunRemainingMs: 0, slowMultiplier: 1, patrol: options.patrol, bossId, bossPhase: isBoss ? 1 : undefined,
