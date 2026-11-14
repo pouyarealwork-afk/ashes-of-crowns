@@ -553,6 +553,30 @@ export class GameScene extends Phaser.Scene {
           .setOrigin(0.5, 1).setScale(i % 2 ? 1.12 : 1.34).setDepth(2);
         if (i % 2 === 0) tree.setAlpha(0.92);
       });
+    } else if (level.id === 'blackwell_drainage') {
+      const floorY = floors[0]?.[1] ?? 760;
+      const wall = addTexture('aoc-drainage-wall', () => paintDungeonWall());
+      this.add.tileSprite(offsetX, offsetY, level.size.w, floorY + 20, wall).setOrigin(0, 0).setDepth(2).setTint(0x9ab7bd);
+      const torch = addTexture('aoc-drainage-torch', () => paintPrisonDetail('torch'));
+      for (const x of [180, 620, 1080, 1580]) {
+        const flame = this.add.image(offsetX + x, offsetY + floorY - 116, torch).setOrigin(0.5, 1).setScale(0.72).setDepth(3).setTint(0x8fc6d2);
+        const glow = this.add.circle(flame.x, flame.y - 34, 46, 0x68b8c8, 0.11).setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
+        this.tweens.add({ targets: [flame, glow], alpha: { from: 0.72, to: 0.42 }, scale: { from: 1, to: 1.07 }, duration: 720 + (x % 4) * 130, yoyo: true, repeat: -1 });
+      }
+      // Broken shelves, collapsed stonework and shallow reflective water make this room read as a distinct place.
+      for (const x of [520, 1190]) {
+        this.add.rectangle(offsetX + x, offsetY + floorY - 74, 78, 8, 0x4c4140).setDepth(3);
+        this.add.rectangle(offsetX + x - 32, offsetY + floorY - 42, 8, 64, 0x3b353b).setDepth(3);
+        this.add.rectangle(offsetX + x + 32, offsetY + floorY - 42, 8, 64, 0x3b353b).setDepth(3);
+        for (let k = 0; k < 3; k++) this.add.rectangle(offsetX + x - 22 + k * 22, offsetY + floorY - 87, 13, 10, [0x8b7660, 0x6b7c83, 0x927b65][k]).setDepth(4);
+      }
+      const water = this.add.graphics().setDepth(5);
+      water.fillStyle(0x4d9da8, 0.16);
+      water.fillRect(offsetX + 850, offsetY + floorY - 5, 180, 7);
+      water.fillRect(offsetX + 1360, offsetY + floorY - 5, 240, 7);
+      water.lineStyle(1, 0x9bdce1, 0.36);
+      water.lineBetween(offsetX + 850, offsetY + floorY - 3, offsetX + 1030, offsetY + floorY - 3);
+      water.lineBetween(offsetX + 1360, offsetY + floorY - 3, offsetX + 1600, offsetY + floorY - 3);
     } else if (level.id === 'ashen_prison') {
       const floorY = floors[0]?.[1] ?? 780;
       const wall = addTexture('aoc-prison-wall', () => paintDungeonWall());
