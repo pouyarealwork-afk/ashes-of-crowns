@@ -251,6 +251,7 @@ const NPC_LOOK: Record<string, { cloth: string; hair: string; hood?: boolean; to
   brom: { cloth: '#9a7544', hair: '#8a8a8a', tool: 'hammer' },
   hobb: { cloth: '#805447', hair: '#3a2a22', tool: 'hammer' },
   marta: { cloth: '#7d6250', hair: '#b0a8a0', tool: 'sack' },
+  mira: { cloth: '#536d62', hair: '#b77d55', hood: true, tool: 'none' },
 };
 
 /** Villager portrait sprite, 48×64 fat-pixel grid (feet at the bottom edge, facing the player). */
@@ -335,5 +336,96 @@ export function paintGlow(size = 48, color: RGB = [238, 184, 94]): HTMLCanvasEle
     const d = Math.hypot(x + 0.5 - c, y + 0.5 - c) / c;
     if (d < 1) { const a = Math.pow(1 - d, 2) * 0.55; if ((x + y) % 2 === 0 || a > 0.25) px.blend(x, y, color, a); }
   }
+  return upscale(px.toCanvas(), 2);
+}
+
+
+/** Grounded pixel-art buildings and trees used as world-space dressing (feet/base aligned to terrain). */
+export function paintHouse(variant: 'ruined' | 'cottage' | 'watch' = 'ruined'): HTMLCanvasElement {
+  const px = new Px(112, 112);
+  const stone = ramp(variant === 'cottage' ? '#88765e' : '#62585a');
+  const roof = ramp(variant === 'cottage' ? '#76513c' : '#3e343a');
+  const wood = ramp('#654638');
+  const glass = variant === 'cottage' ? [214, 178, 104] : [184, 104, 62];
+  // Broad foundation, wall mass and roof are all drawn to the same bottom baseline.
+  px.rect(12, 48, 88, 60, stone[2], 1);
+  px.rect(18, 54, 76, 48, stone[3], 2);
+  px.rect(18, 54, 76, 5, stone[4], 3);
+  px.poly([[5, 52], [53, 12], [107, 52], [99, 59], [53, 27], [13, 59]], roof[2], 4);
+  px.poly([[53, 12], [107, 52], [99, 59], [53, 27]], roof[1], 4);
+  px.line(7, 53, 52, 15, roof[4], 2, 5);
+  px.line(55, 15, 105, 53, roof[3], 2, 5);
+  // Timber framing and grounded doorway.
+  px.rect(23, 58, 5, 43, wood[2], 5);
+  px.rect(84, 58, 5, 43, wood[2], 5);
+  px.rect(47, 73, 19, 35, wood[1], 6);
+  px.rect(50, 76, 13, 32, [28, 20, 22], 7);
+  px.rect(59, 89, 2, 2, [220, 183, 112], 8);
+  px.rect(31, 65, 13, 15, [27, 29, 35], 6);
+  px.rect(33, 67, 9, 11, glass, 7);
+  px.vline(37, 66, 13, wood[2], 8); px.hline(32, 72, 11, wood[2], 8);
+  if (variant === 'ruined') {
+    px.poly([[12, 52], [25, 44], [30, 55], [20, 63]], stone[1], 9);
+    px.poly([[78, 50], [92, 45], [103, 57], [92, 61]], stone[1], 9);
+    px.line(16, 43, 31, 57, [37, 29, 31], 2, 10);
+    px.rect(72, 82, 12, 5, [39, 31, 30], 10);
+    px.line(76, 82, 82, 93, [39, 31, 30], 2, 10);
+  } else if (variant === 'watch') {
+    px.rect(44, 31, 17, 19, stone[1], 11);
+    px.rect(49, 35, 7, 15, [24, 22, 29], 12);
+    px.rect(39, 25, 27, 5, roof[2], 11);
+  } else {
+    px.rect(68, 65, 13, 15, [27, 29, 35], 6);
+    px.rect(70, 67, 9, 11, glass, 7);
+  }
+  px.rect(8, 102, 96, 7, [31, 25, 26], 13);
+  px.edgeLight(0.2, 0.22);
+  px.outline(0.72);
+  return upscale(px.toCanvas(), 2);
+}
+
+export function paintTree(variant: 'pine' | 'broadleaf' = 'pine'): HTMLCanvasElement {
+  const px = new Px(64, 112);
+  const bark = ramp('#49382d');
+  const leaf = ramp(variant === 'pine' ? '#355b42' : '#456d48');
+  px.rect(29, 61, 8, 49, bark[2], 1);
+  px.line(32, 67, 18, 91, bark[1], 4, 2);
+  px.line(34, 71, 48, 91, bark[3], 4, 2);
+  if (variant === 'pine') {
+    px.poly([[32, 2], [8, 48], [56, 48]], leaf[2], 3);
+    px.poly([[32, 20], [5, 72], [59, 72]], leaf[1], 4);
+    px.poly([[32, 40], [1, 93], [63, 93]], leaf[2], 5);
+    px.line(32, 4, 32, 93, leaf[4], 2, 6);
+  } else {
+    px.disc(32, 37, 24, leaf[2], 3);
+    px.disc(16, 48, 16, leaf[1], 4);
+    px.disc(47, 49, 17, leaf[3], 5);
+    px.disc(31, 22, 16, leaf[4], 6);
+    for (let i = 0; i < 18; i++) px.set(8 + (i * 17) % 48, 18 + (i * 23) % 55, i % 2 ? leaf[4] : leaf[1], 7);
+  }
+  px.rect(6, 106, 52, 5, [24, 28, 21], 8);
+  px.edgeLight(0.22, 0.2);
+  px.outline(0.7);
+  return upscale(px.toCanvas(), 2);
+}
+
+export function paintPrisonDetail(kind: 'bars' | 'torch' = 'bars'): HTMLCanvasElement {
+  const px = new Px(48, 80);
+  const iron = ramp('#667078');
+  if (kind === 'bars') {
+    px.rect(3, 3, 42, 4, iron[2], 1);
+    px.rect(3, 73, 42, 4, iron[1], 1);
+    for (let x = 7; x <= 41; x += 9) {
+      px.rect(x, 6, 3, 68, iron[2], 2);
+      px.line(x, 7, x, 71, iron[4], 1, 3);
+    }
+    px.hline(4, 39, 40, iron[1], 4);
+  } else {
+    px.rect(20, 23, 7, 44, [69, 48, 34], 2);
+    px.poly([[23, 2], [14, 20], [19, 30], [27, 27], [33, 18]], [230, 116, 55], 4);
+    px.poly([[23, 8], [19, 22], [25, 26], [29, 17]], [255, 205, 112], 5);
+    px.disc(23, 19, 18, [255, 151, 70], 0);
+  }
+  px.edgeLight(0.18, 0.18);
   return upscale(px.toCanvas(), 2);
 }
