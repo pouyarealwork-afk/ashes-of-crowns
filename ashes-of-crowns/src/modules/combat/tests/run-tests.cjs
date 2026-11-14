@@ -3,6 +3,7 @@ const { CombatEngine, enemyRect, intersects } = require('../../../../build/comba
 const { getBossDefinition, getEnemyArchetype, ENEMIES } = require('../../../../build/combat-core/data/enemies.js');
 const { StatusEffectSystem } = require('../../../../build/combat-core/systems/StatusEffects.js');
 const { EnemyAIController } = require('../../../../build/combat-core/systems/EnemyAI.js');
+const { DamageResolver, applyHitToEnemy } = require('../../../../build/combat-core/systems/DamageResolver.js');
 let passed = 0;
 function test(name, fn) { try { fn(); passed++; process.stdout.write(`✓ ${name}\n`); } catch (e) { process.stderr.write(`✗ ${name}\n${e.stack}\n`); process.exitCode = 1; } }
 const rng = () => 0.99;
