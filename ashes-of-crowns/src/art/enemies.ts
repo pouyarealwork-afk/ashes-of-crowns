@@ -221,6 +221,99 @@ function hushedGuard(px: Px, w: number, h: number, c: RGB): void {
   px.hline(cx - 10, g - 5, 20, R[3], T.light);
 }
 
+function crownGuard(px: Px, w: number, h: number, c: RGB, boss = false): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4, scale = boss ? 1.28 : 1;
+  // Crown patrol: squared silhouette, layered mantle and a bright house sigil.
+  px.poly([[cx - 14 * scale, 17], [cx + 14 * scale, 17], [cx + 19 * scale, g - 4], [cx + 8 * scale, g], [cx - 9 * scale, g], [cx - 19 * scale, g - 4]], R[1], T.cloth);
+  px.poly([[cx - 11 * scale, 17], [cx + 11 * scale, 17], [cx + 9 * scale, g - 8], [cx - 9 * scale, g - 8]], R[3], T.armor);
+  px.poly([[cx - 12 * scale, 15], [cx - 10 * scale, 5], [cx, 1], [cx + 10 * scale, 5], [cx + 12 * scale, 15]], R[2], T.dark);
+  px.poly([[cx - 8 * scale, 9], [cx, 4], [cx + 8 * scale, 9], [cx + 7 * scale, 17], [cx - 7 * scale, 17]], R[3], T.armor);
+  px.rect(cx - 8 * scale, 13, 16 * scale, 3, [16, 18, 24], T.dark);
+  glowEye(px, cx - 3, 14, [255, 205, 128]); glowEye(px, cx + 3, 14, [255, 205, 128]);
+  for (const side of [-1, 1]) {
+    px.ellipse(cx + side * 14 * scale, 23, 7 * scale, 6 * scale, R[2], T.armor);
+    px.line(cx + side * 14 * scale, 25, cx + side * 19 * scale, 38, R[3], 3, T.light);
+  }
+  px.disc(cx, 31, boss ? 5 : 3, [255, 195, 108], T.glow);
+  px.line(cx - 6, 31, cx + 6, 31, [255, 226, 166], 1, T.light);
+  px.hline(cx - 10, g - 4, 20, R[4], T.light);
+  if (boss) px.ellipse(cx, 5, 19, 4, [255, 195, 108], T.glow);
+}
+
+function scavenger(px: Px, w: number, h: number, c: RGB): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4;
+  // A quick, asymmetrical silhouette: hood, wrapped shoulders, patched cloak and a satchel.
+  px.poly([[cx - 9, 18], [cx + 8, 16], [cx + 15, g - 3], [cx + 4, g], [cx - 14, g - 2], [cx - 18, g - 9]], R[1], T.cloth);
+  px.poly([[cx - 8, 17], [cx - 5, 6], [cx + 2, 2], [cx + 10, 8], [cx + 8, 19], [cx + 1, 13], [cx - 4, 14]], R[2], T.dark);
+  px.poly([[cx - 5, 12], [cx + 2, 9], [cx + 7, 13], [cx + 5, 19], [cx - 3, 19]], R[3], T.armor);
+  glowEye(px, cx + 1, 15, [255, 196, 116]);
+  px.line(cx - 8, 21, cx - 17, 36, R[3], 3, T.light);
+  px.line(cx + 8, 21, cx + 16, 34, R[2], 3, T.light);
+  px.poly([[cx - 16, 28], [cx - 8, 25], [cx - 7, 37], [cx - 18, 39]], R[2], T.extra);
+  px.rect(cx + 5, 30, 9, 8, [68, 47, 35], T.dark);
+  px.line(cx - 10, 24, cx + 9, 29, R[4], 2, T.light);
+  px.line(cx - 14, g - 7, cx - 2, g - 5, R[3], 2, T.light);
+}
+
+function ironwatch(px: Px, w: number, h: number, c: RGB, boss = false): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4, s = boss ? 1.35 : 1;
+  // Broad, grounded stone-and-iron silhouette with a luminous core.
+  px.poly([[cx - 17 * s, 20], [cx + 17 * s, 20], [cx + 20 * s, g - 5], [cx + 9 * s, g], [cx - 9 * s, g], [cx - 20 * s, g - 5]], R[1], T.body);
+  px.rect(cx - 11 * s, 20, 22 * s, 26 * s, R[2], T.armor);
+  px.poly([[cx - 13 * s, 20], [cx - 10 * s, 8], [cx, 3], [cx + 10 * s, 8], [cx + 13 * s, 20]], R[3], T.armor);
+  px.rect(cx - 8 * s, 12, 16 * s, 5, [12, 16, 24], T.dark);
+  glowEye(px, cx - 4 * s, 14, [255, 178, 112]); glowEye(px, cx + 3 * s, 14, [255, 178, 112]);
+  for (const side of [-1, 1]) {
+    px.poly([[cx + side * 12 * s, 21], [cx + side * 23 * s, 19], [cx + side * 27 * s, 34], [cx + side * 14 * s, 39]], R[2], T.armor);
+    px.line(cx + side * 13 * s, 38, cx + side * 15 * s, g - 2, R[1], 7 * s, T.dark);
+  }
+  px.poly([[cx - 8 * s, 25], [cx, 20], [cx + 8 * s, 25], [cx + 5 * s, 38], [cx, 42], [cx - 5 * s, 38]], R[4], T.light);
+  px.disc(cx, 31, 4 * s, [255, 184, 104], T.glow);
+  px.hline(cx - 13 * s, g - 4, 26 * s, R[4], T.light);
+}
+
+function sandColossus(px: Px, w: number, h: number, c: RGB): void {
+  const R = ramp(c), cx = w >> 1, g = h - 3;
+  // Ancient dune idol: stacked sandstone plates, drifting grains and a glassy core.
+  px.poly([[cx - 24, 22], [cx - 17, 7], [cx, 0], [cx + 18, 8], [cx + 25, 24], [cx + 19, g - 8], [cx, g], [cx - 20, g - 8]], R[2], T.body);
+  px.poly([[cx - 16, 27], [cx, 18], [cx + 16, 27], [cx + 13, g - 12], [cx, g - 6], [cx - 13, g - 12]], R[3], T.armor);
+  px.poly([[cx - 13, 11], [cx, 4], [cx + 13, 11], [cx + 9, 23], [cx - 9, 23]], R[1], T.dark);
+  glowEye(px, cx - 5, 17, [255, 226, 150]); glowEye(px, cx + 4, 17, [255, 226, 150]);
+  px.ellipse(cx, 39, 9, 14, [112, 190, 190], T.glow);
+  px.ellipse(cx, 39, 4, 9, [222, 250, 230], T.light);
+  for (let i = 0; i < 6; i++) {
+    const side = i % 2 ? 1 : -1, y = 28 + i * 6;
+    px.line(cx + side * (20 + (i % 3) * 2), y, cx + side * (29 + (i % 3) * 3), y - 3, R[4], 2, T.light);
+  }
+  px.stipple(cx - 24, 22, 48, 46, R[4], 0.16, T.light);
+}
+
+function frostWarden(px: Px, w: number, h: number, c: RGB): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4;
+  px.poly([[cx - 14, 18], [cx + 14, 18], [cx + 18, g - 3], [cx + 5, g], [cx, g - 9], [cx - 7, g], [cx - 18, g - 3]], R[2], T.cloth);
+  px.poly([[cx - 11, 16], [cx - 8, 6], [cx, 1], [cx + 8, 6], [cx + 11, 16]], R[3], T.armor);
+  px.poly([[cx - 7, 12], [cx, 7], [cx + 7, 12], [cx + 5, 20], [cx - 5, 20]], [28, 46, 62], T.dark);
+  glowEye(px, cx - 3, 15, [180, 245, 255]); glowEye(px, cx + 3, 15, [180, 245, 255]);
+  px.ellipse(cx, 5, 23, 5, [153, 229, 250], T.glow);
+  for (const side of [-1, 1]) {
+    px.poly([[cx + side * 12, 20], [cx + side * 24, 8], [cx + side * 18, 30]], R[4], T.light);
+    px.line(cx + side * 9, 25, cx + side * 20, 40, R[3], 3, T.light);
+  }
+  px.disc(cx, 32, 4, [150, 235, 255], T.glow);
+}
+
+function chancellor(px: Px, w: number, h: number, c: RGB): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4;
+  px.poly([[cx - 16, 17], [cx + 16, 17], [cx + 22, g - 4], [cx + 8, g], [cx, g - 10], [cx - 8, g], [cx - 22, g - 4]], R[2], T.cloth);
+  px.poly([[cx - 10, 16], [cx - 8, 7], [cx, 1], [cx + 8, 7], [cx + 10, 16]], R[3], T.armor);
+  px.poly([[cx - 7, 11], [cx, 6], [cx + 7, 11], [cx + 5, 19], [cx - 5, 19]], [22, 17, 31], T.dark);
+  glowEye(px, cx - 3, 14, [220, 158, 255]); glowEye(px, cx + 3, 14, [220, 158, 255]);
+  px.ellipse(cx, 5, 25, 6, [186, 130, 230], T.glow);
+  px.disc(cx, 30, 7, [154, 100, 210], T.glow);
+  px.disc(cx, 30, 3, [245, 220, 255], T.light);
+  for (let k = -2; k <= 2; k++) px.line(cx + k * 6, 23, cx + k * 8, 42 + Math.abs(k) * 3, R[4], 2, T.light);
+}
+
 function plant(px: Px, w: number, h: number, c: RGB, boss: boolean): void {
   const R = ramp(c), cx = w >> 1, g = h - 4, s = boss ? 1.5 : 1;
   px.line(cx - 8 * s, g, cx - 4 * s, g - 30 * s, R[1], 7 * s, T.dark);
@@ -255,6 +348,12 @@ export function paintEnemy(type: string, w: number, h: number, color: number): P
   const art = new Px(w, h);
   if (type === 'prison_sentinel') prisonSentinel(art, w, h, c);
   else if (type === 'hushed_guard') hushedGuard(art, w, h, c);
+  else if (type === 'sandglass_colossus') sandColossus(art, w, h, c);
+  else if (type === 'captain_voss') frostWarden(art, w, h, c);
+  else if (type === 'chancellor_morrow') chancellor(art, w, h, c);
+  else if (['ironwatch_guard', 'royal_champion', 'sergeant_hobb'].includes(type)) ironwatch(art, w, h, c, boss);
+  else if (['crown_soldier', 'crossbow_sentry'].includes(type)) crownGuard(art, w, h, c, boss);
+  else if (['rook_bandit', 'dune_raider', 'crown_scout'].includes(type)) scavenger(art, w, h, c);
   else if (type.includes('serpent')) serpent(art, w, h, c);
   else if (type.includes('scorpion')) scorpion(art, w, h, c);
   else if (type.includes('wolf') || type.includes('stag')) beast(art, w, h, type, c, boss);
