@@ -177,4 +177,33 @@ test('RPG ability bridge validates resource/cooldown and executes targets', () =
   const result = c.useAbility('w_power_strike', { mana: 20, stamina: 20, baseAttack: 20 }, rpg, { x: 0, y: 0, health: 100, maxHealth: 100, facing: 1 });
   assert.equal(result.ok, true); assert.equal(result.targets, 1);
 });
+test('fallback damage reports the same critical roll used by its damage formula', () => {
+  const rolls = [0, 0.5];
+  const resolver = new DamageResolver(undefined, () => rolls.shift() ?? 0.5);
+  const target = { defense: 0, resistances: { physical: 0 } };
+  const result = resolver.outgoing({ baseDamage: 20, target, bonusCritChance: 1 });
+  assert.equal(result.critical, true);
+  assert.equal(result.damage, 33, 'critical multiplier should be reflected in the reported hit');
+});
+test('direct physical and magical hits respect enemy resistances', () => {
+  const resolver = new DamageResolver(undefined, () => 0.5);
+  const target = { alive: true, health: 100, maxHealth: 100, defense: 0, tier: 'normal', hitFlashMs: 0, stunRemainingMs: 0,
+    resistances: { physical: 0.5, magic: -0.25 } };
+  assert.equal(applyHitToEnemy(target, { amount: 20, school: 'physical' }, resolver).damage, 10);
+  assert.equal(applyHitToEnemy(target, { amount: 20, school: 'magic' }, resolver).damage, 25);
+});
+test('piercing bypasses armor but not elemental resistance; true damage bypasses both', () => {
+  const resolver = new DamageResolver(undefined, () => 0.5);
+  const target = { alive: true, health: 100, maxHealth: 100, defense: 100, tier: 'normal', hitFlashMs: 0, stunRemainingMs: 0,
+    resistances: { physical: 0.5 } };
+  assert.equal(applyHitToEnemy(target, { amount: 20, school: 'physical', piercing: true }, resolver).damage, 10);
+  assert.equal(applyHitToEnemy(target, { amount: 20, school: 'true' }, resolver).damage, 20);
+});
+test('non-finite and non-positive damage cannot chip enemy health', () => {
+  const resolver = new DamageResolver(undefined, () => 0.5);
+  const target = { alive: true, health: 100, maxHealth: 100, defense: 0, tier: 'normal', hitFlashMs: 0, stunRemainingMs: 0 };
+  assert.equal(applyHitToEnemy(target, { amount: -5 }, resolver).damage, 0);
+  assert.equal(applyHitToEnemy(target, { amount: Number.NaN }, resolver).damage, 0);
+  assert.equal(target.health, 100);
+});
 process.stdout.write(`\n${passed} combat tests passed.\n`);
