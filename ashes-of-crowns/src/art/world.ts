@@ -447,3 +447,26 @@ export function paintPrisonDetail(kind: 'bars' | 'torch' = 'bars'): HTMLCanvasEl
   px.edgeLight(0.18, 0.18);
   return upscale(px.toCanvas(), 2);
 }
+
+/** Repeating underground stonework for prison interiors. */
+export function paintDungeonWall(): HTMLCanvasElement {
+  const px = new Px(64, 64);
+  const base = ramp('#34323a');
+  const mortar = ramp('#19191f');
+  px.rect(0, 0, 64, 64, base[2], 1);
+  for (let row = 0; row < 4; row++) {
+    const y = row * 16;
+    const offset = row % 2 ? 15 : 0;
+    px.hline(0, y + 15, 64, mortar[2], 2);
+    for (let x = -offset; x < 64; x += 30) {
+      px.vline(x + 29, y, 16, mortar[2], 2);
+      px.hline(x + 2, y + 2, 24, base[3], 1);
+      px.line(x + 4, y + 5, x + 9, y + 7, base[1], 1, 3);
+    }
+  }
+  px.line(14, 18, 18, 26, [25, 22, 27], 1, 5);
+  px.line(18, 26, 15, 31, [25, 22, 27], 1, 5);
+  px.rect(44, 43, 5, 2, [20, 19, 25], 6);
+  px.edgeLight(0.12, 0.12);
+  return upscale(px.toCanvas(), 2);
+}
