@@ -22,7 +22,7 @@ export class SkillSystem {
   pointsSpent(tree: TreeId): number {
     return SKILL_TREES[tree].nodes.reduce((n, s) => n + this.getRank(s.id) * s.costPerRank, 0);
   }
-  totalPointsSpent(): number { return (['warrior', 'arcane', 'shadow'] as TreeId[]).reduce((n, t) => n + this.pointsSpent(t), 0); }
+  totalPointsSpent(): number { return (Object.keys(SKILL_TREES) as TreeId[]).reduce((n, t) => n + this.pointsSpent(t), 0); }
 
   /** Why a skill cannot be ranked up right now (null when it can). */
   blockedReason(skillId: string): string | null {
