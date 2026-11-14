@@ -346,7 +346,7 @@ export function paintHouse(variant: 'ruined' | 'cottage' | 'watch' = 'ruined'): 
   const stone = ramp(variant === 'cottage' ? '#88765e' : '#62585a');
   const roof = ramp(variant === 'cottage' ? '#76513c' : '#3e343a');
   const wood = ramp('#654638');
-  const glass = variant === 'cottage' ? [214, 178, 104] : [184, 104, 62];
+  const glass: RGB = variant === 'cottage' ? [214, 178, 104] : [184, 104, 62];
   // Broad foundation, wall mass and roof are all drawn to the same bottom baseline.
   px.rect(12, 48, 88, 60, stone[2], 1);
   px.rect(18, 54, 76, 48, stone[3], 2);
