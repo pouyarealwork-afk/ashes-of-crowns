@@ -156,23 +156,31 @@ export function paintSky(a: Atmosphere, region: string): HTMLCanvasElement {
   const bottom = mix(mid, accentFor(k), 0.3);
   px.ditherV(0, 0, W, H, top, bottom, 8);
   const r = rng(21);
-  for (let i = 0; i < 150; i++) {
-    const x = Math.floor(r() * W), y = Math.floor(r() * H * 0.62), big = r() < 0.1;
-    px.blend(x, y, [255, 244, 220], big ? 0.95 : 0.35 + r() * 0.3);
-    if (big) { px.blend(x - 1, y, [255, 230, 190], 0.4); px.blend(x + 1, y, [255, 230, 190], 0.4); px.blend(x, y - 1, [255, 230, 190], 0.4); px.blend(x, y + 1, [255, 230, 190], 0.4); }
+  const nightSky = a.light === 'night' || a.light === 'dusk';
+  if (nightSky) {
+    for (let i = 0; i < 92; i++) {
+      const x = Math.floor(r() * W), y = Math.floor(r() * H * 0.58), bright = r() < 0.08;
+      px.blend(x, y, [255, 244, 220], bright ? 0.82 : 0.28 + r() * 0.24);
+      if (bright) { px.blend(x - 1, y, [255, 230, 190], 0.28); px.blend(x + 1, y, [255, 230, 190], 0.28); }
+    }
+    const mx = Math.round(W * (k === 'desert' ? 0.78 : 0.72)), my = Math.round(H * 0.22), mr = k === 'frost' ? 17 : 13;
+    const acc = accentFor(k);
+    for (let rr = mr * 2.4; rr > mr; rr -= 2) for (let t = 0; t < 360; t += 3) {
+      const ang = (t * Math.PI) / 180;
+      for (let q = mr; q < rr; q += 1) px.blend(Math.round(mx + Math.cos(ang) * q), Math.round(my + Math.sin(ang) * q), acc, 0.01);
+    }
+    px.disc(mx, my, mr, [240, 230, 208]);
+    px.disc(mx + 4, my - 2, mr - 2, mix([240, 230, 208], top, 0.7));
+  } else if (a.light === 'dawn' || a.light === 'noon') {
+    const sx = Math.round(W * 0.76), sy = Math.round(H * 0.2);
+    for (let rr = 38; rr > 15; rr -= 3) px.disc(sx, sy, rr, [244, 211, 143], 0);
+    px.disc(sx, sy, 14, [255, 231, 174], 0);
   }
-  const mx = Math.round(W * (k === 'desert' ? 0.78 : 0.72)), my = Math.round(H * 0.22), mr = k === 'frost' ? 17 : 13;
-  const acc = accentFor(k);
-  for (let rr = mr * 3; rr > mr; rr -= 2) for (let t = 0; t < 360; t += 2) {
-    const ang = (t * Math.PI) / 180;
-    for (let q = mr; q < rr; q += 1) px.blend(Math.round(mx + Math.cos(ang) * q), Math.round(my + Math.sin(ang) * q), acc, 0.012);
-  }
-  px.disc(mx, my, mr, [240, 230, 208]);
-  px.disc(mx + 4, my - 2, mr - 2, mix([240, 230, 208], top, 0.7)); // crescent bite
-  px.disc(mx - 5, my + 4, 2, [214, 202, 182]); px.disc(mx - 2, my + 8, 1.4, [214, 202, 182]);
-  for (let c = 0; c < 4; c++) {
-    const cy = Math.round(H * (0.16 + c * 0.1)), cx = Math.floor(r() * W), len = 60 + Math.floor(r() * 90);
-    for (let x = 0; x < len; x++) for (let y = 0; y < 3; y++) if ((x + y * 2) % 3 === 0) px.blend((cx + x) % W, cy + y + Math.round(Math.sin(x * 0.08) * 2), shade(mid, 0.15), 0.22);
+  if (a.light !== 'gloom') {
+    for (let c = 0; c < 3; c++) {
+      const cy = Math.round(H * (0.18 + c * 0.13)), cx = Math.floor(r() * W), len = 48 + Math.floor(r() * 72);
+      for (let x = 0; x < len; x++) for (let y = 0; y < 2; y++) if ((x + y * 2) % 4 === 0) px.blend((cx + x) % W, cy + y + Math.round(Math.sin(x * 0.08) * 2), shade(mid, 0.15), 0.16);
+    }
   }
   return upscale(px.toCanvas(), WORLD_PIXEL);
 }
@@ -214,14 +222,24 @@ export function paintLayer(a: Atmosphere, region: string, depth: 0 | 1 | 2): HTM
           px.poly([[x - 40, by], [x, by - hgt], [x + 44, by]], colMid, 2); px.poly([[x - 10, by - hgt + 28], [x, by - hgt], [x + 10, by - hgt + 28], [x + 3, by - hgt + 22], [x - 3, by - hgt + 26]], [214, 232, 238], 3);
         });
         break;
-      default: // village / hollow / crown: broken keeps, arches and spires
+      case 'village':
+        // Keep the village horizon natural and low; real houses are drawn in world space on the ground.
+        for (let i = 0; i < 15; i++) wrapped(px, Math.floor((i + 0.25) * W / 15), (x) => {
+          const by = Math.round(ridge(x, horizon - 8, 54, 2.1)) + 8;
+          const th = 22 + Math.floor(r() * 22), tw = 5 + Math.floor(r() * 5);
+          px.rect(x - 2, by - th * 0.45, 4, th * 0.45, shade(colMid, -0.25), 2);
+          px.poly([[x - tw, by - th * 0.3], [x, by - th], [x + tw, by - th * 0.3]], colMid, 2);
+          px.poly([[x - tw + 3, by - th * 0.3], [x, by - th + 4], [x + tw - 3, by - th * 0.3]], shade(colMid, 0.08), 3);
+        });
+        break;
+      default: // hollow / crown: broken keeps, arches and spires
         for (let i = 0; i < 9; i++) wrapped(px, Math.floor((i + 0.3) * W / 9), (x) => {
           const by = horizon + 4, tw = 20 + Math.floor(r() * 14), th = 40 + Math.floor(r() * 60);
           px.rect(x - tw / 2, by - th, tw, th, colMid, 2);
           for (let c = 0; c < 3; c++) px.rect(x - tw / 2 + c * Math.floor(tw / 3), by - th - 5, Math.floor(tw / 4), 5, colMid, 2);
-          if (k !== 'village') px.poly([[x - tw / 2 - 2, by - th], [x, by - th - 30], [x + tw / 2 + 2, by - th]], colMid, 2);
-          px.rect(x - 2, by - th + 14, 4, 9, mix(accentFor(k), colMid, 0.2), 4); // lit window
-          if (r() < 0.5) px.poly([[x + tw / 2, by - 14], [x + tw / 2 + 24, by], [x + tw / 2, by]], colMid, 2); // fallen wall
+          px.poly([[x - tw / 2 - 2, by - th], [x, by - th - 30], [x + tw / 2 + 2, by - th]], colMid, 2);
+          px.rect(x - 2, by - th + 14, 4, 9, mix(accentFor(k), colMid, 0.2), 4);
+          if (r() < 0.5) px.poly([[x + tw / 2, by - 14], [x + tw / 2 + 24, by], [x + tw / 2, by]], colMid, 2);
         });
     }
     px.edgeLight(0.16, 0);
