@@ -89,6 +89,10 @@ export function paintAren(pose: Pose, dead: boolean): Px {
   body.poly([
     [shX - 4, shY + 4], [shX - 2 - sway * 3, shY + 14], [shX - 5 - sway * 7, shY + 18 - sway * 4], [shX - 8 - sway * 8, shY + 8],
   ], PAL.cloak[1], T.cloak);
+  // Teal stitched hem and small brass clasps give the new cloak a readable silhouette.
+  body.line(shX - 4, shY + 13, tipX + 1, tipY + 1, PAL.gold[1], 1, T.gold);
+  body.disc(shX - 3, shY + 5, 1.5, PAL.gold[3], T.gold);
+  body.disc(Math.round(tipX + 1), Math.round(tipY + 1), 1.2, PAL.gold[2], T.gold);
 
   // --- back arm and back leg (drawn behind the torso, a shade darker).
   limb(body, shX - 1, shY + 2, pose.armB, 7, 7, 3, 3, shade(PAL.cloth[1], -0.1), PAL.skin[1], T.cloth, T.skin);
