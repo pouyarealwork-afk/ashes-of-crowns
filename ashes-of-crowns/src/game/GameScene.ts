@@ -74,7 +74,6 @@ export class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   preload(): void {
-    this.load.image('aoc-vista-sodium', `${import.meta.env.BASE_URL}assets/vista/sodium.webp`);
   }
 
   init(data: SceneStartData): void {
@@ -650,7 +649,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawNpcs(npcs: any[], level: LevelDef): void {
-    const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250 };
+    const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250, mira: 0x536d62 };
     for (const spawn of npcs) {
       const def = this.services.world.content.npcs.get(spawn.npc);
       if (!def) continue;
