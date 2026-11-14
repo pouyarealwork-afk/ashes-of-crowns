@@ -17,47 +17,83 @@ export const ashenVillage: RegionContent = {
 
   levels: [
     {
-      id: 'ashen_prison', region: 'ashen_village', name: 'The Blackwell Prison', size: { w: 4200, h: 1000 },
+      id: 'ashen_prison', region: 'ashen_village', name: 'The Blackwell Prison', size: { w: 6600, h: 1000 },
       atmosphere: ATM({ palette: { sky: '#10131c', mid: '#252b36', fore: '#080a10', accent: '#b58b63' }, weather: 'none', light: 'gloom', music: 'cellars_hush', ambience: ['drip', 'low_hum'], particles: 'dust_motes', notes: 'A multi-wing underground prison: barred cells, collapsed archive, flooded lower hall, guard station and a sealed warden vault.' }),
-      spawns: { start: { x: 180, y: 820 } },
+      spawns: { start: { x: 180, y: 820 }, from_drainage: { x: 2360, y: 820 } },
       platforms: [
-        P(0, 860, 4200, 140, 'stone'),
+        P(0, 860, 6600, 140, 'stone'),
         P(110, 700, 430, 26, 'stone'), P(650, 640, 330, 26, 'stone'),
         P(1080, 740, 360, 26, 'stone'), P(1510, 650, 390, 26, 'stone'),
         P(1980, 720, 360, 26, 'stone'), P(2420, 640, 420, 26, 'stone'),
         P(2910, 730, 360, 26, 'stone'), P(3360, 650, 520, 26, 'stone'),
+        P(3970, 720, 340, 26, 'stone'), P(4380, 620, 380, 26, 'stone'),
+        P(4840, 710, 360, 26, 'stone'), P(5270, 620, 390, 26, 'stone'),
+        P(5740, 700, 620, 26, 'stone'),
         P(520, 520, 180, 22, 'metal'), P(1740, 500, 210, 22, 'metal'),
         P(2670, 480, 220, 22, 'metal'), P(3570, 500, 250, 22, 'metal'),
+        P(4490, 430, 220, 22, 'metal'), P(5480, 450, 250, 22, 'metal'),
       ],
       hazards: [
         { type: 'void', rect: rect(990, 840, 80, 20), damage: 8, note: 'collapsed drainage trench' },
         { type: 'thorns', rect: rect(2340, 840, 80, 20), damage: 7, note: 'broken ironwork' },
+        { type: 'void', rect: rect(3880, 840, 90, 20), damage: 9, note: 'collapsed lower gallery' },
+        { type: 'hush', rect: rect(5000, 820, 120, 40), damage: 6, note: 'unstable ward field' },
       ],
       enemies: [
         { type: 'cellar_rat_swarm', x: 820, y: 820, patrol: [690, 990] },
         { type: 'hushed_guard', x: 1510, y: 820, patrol: [1330, 1810] },
         { type: 'hollow_shade', x: 2240, y: 820, patrol: [2050, 2390] },
         { type: 'hushed_guard', x: 2930, y: 820, patrol: [2780, 3220] },
-        { type: 'prison_sentinel', x: 3720, y: 820, boss: 'prison_sentinel' },
+        { type: 'hollow_shade', x: 4200, y: 820, patrol: [3980, 4480] },
+        { type: 'hushed_guard', x: 5000, y: 820, patrol: [4800, 5350] },
+        { type: 'hollow_shade', x: 5580, y: 820, patrol: [5400, 5850] },
+        { type: 'prison_sentinel', x: 6020, y: 820, boss: 'prison_sentinel' },
       ],
       npcs: [], collectibles: [{ id: 'prison_mark', x: 480, y: 660 }],
       hiddenPaths: [], zones: [
         { id: 'prison_wake', rect: rect(60, 600, 420, 260) },
         { id: 'prison_archive', rect: rect(1020, 540, 470, 320) },
         { id: 'prison_guard_hall', rect: rect(1940, 560, 480, 300) },
-        { id: 'prison_boss_arena', rect: rect(3300, 520, 850, 340) },
+        { id: 'prison_lower_gallery', rect: rect(3900, 520, 1000, 340) },
+        { id: 'prison_boss_arena', rect: rect(5550, 500, 950, 360) },
+        { id: 'prison_outer_gate', rect: rect(6370, 600, 220, 260) },
       ],
       interactables: [
         { id: 'prison_cell_register', x: 570, y: 820, label: 'Cell register' },
         { id: 'prison_key', x: 1840, y: 820, label: 'Warden key' },
-        { id: 'prison_latch', x: 3250, y: 820, label: 'Vault mechanism' },
+        { id: 'prison_latch', x: 5350, y: 820, label: 'Vault mechanism' },
       ],
-      exits: [{ id: 'escape_to_woods', rect: rect(4070, 720, 110, 140), to: { level: 'ashen_escape_woods', spawn: 'start' }, requires: AND(KILL('prison_sentinel'), INT('prison_key')), lockedText: 'The outer gate remains sealed. The Warden still guards the prison.' }],
+      exits: [
+        { id: 'to_blackwell_drainage', rect: rect(2320, 700, 100, 160), to: { level: 'blackwell_drainage', spawn: 'start' }, requires: INT('prison_cell_register'), lockedText: 'The drainage hatch is sealed. Search the cell register for its release.' },
+        { id: 'escape_to_woods', rect: rect(6460, 700, 110, 160), to: { level: 'ashen_escape_woods', spawn: 'start' }, requires: AND(KILL('prison_sentinel'), INT('prison_key')), lockedText: 'The outer gate remains sealed. The Warden still guards the prison.' },
+      ],
       lore: [
         { id: 'l_prison_wall', kind: 'mural', x: 540, y: 820, text: 'A name scratched into the stone: VALCREST. Beneath it, someone has written: THE KING DID NOT DIE BY YOUR HAND.' },
         { id: 'l_prison_archive', kind: 'letter', x: 1260, y: 820, text: 'A torn register lists prisoners transferred below the old chapel. One name has been crossed out twice: AREN VALCREST.' },
         { id: 'l_prison_drain', kind: 'ruin', x: 2480, y: 820, text: 'Water runs beneath the iron grates. Someone has used the runoff tunnel recently.' },
+        { id: 'l_prison_gallery', kind: 'mural', x: 4680, y: 820, text: 'The old mural shows a crown with its centre stone scratched away. The prison was built over something older.' },
       ],
+    },
+    {
+      id: 'blackwell_drainage', region: 'ashen_village', name: 'The Drowned Archive', size: { w: 1900, h: 900 },
+      atmosphere: ATM({ palette: { sky: '#11151c', mid: '#263a42', fore: '#080d12', accent: '#6da7a5' }, weather: 'none', light: 'gloom', music: 'cellars_hush', ambience: ['drip', 'low_hum'], particles: 'dust_motes', notes: 'A hidden flooded archive beneath Blackwell: broken shelves, shallow water, fallen masonry and a sealed witness alcove.' }),
+      spawns: { start: { x: 120, y: 700 } },
+      platforms: [
+        P(0, 760, 1900, 140, 'stone'), P(180, 610, 250, 24, 'stone'),
+        P(560, 540, 270, 24, 'stone'), P(980, 620, 250, 24, 'stone'),
+        P(1390, 540, 330, 24, 'stone'), P(700, 430, 180, 22, 'metal'),
+      ],
+      hazards: [{ type: 'void', rect: rect(840, 740, 100, 20), damage: 6, note: 'broken archive floor' }],
+      enemies: [
+        { type: 'cellar_rat_swarm', x: 610, y: 720, patrol: [500, 860] },
+        { type: 'hollow_shade', x: 1250, y: 720, patrol: [1030, 1480] },
+      ],
+      npcs: [{ npc: 'sera', x: 1640, y: 760 }],
+      collectibles: [{ id: 'prison_note', x: 1470, y: 500 }],
+      hiddenPaths: [], zones: [{ id: 'drainage_entry', rect: rect(0, 560, 360, 200) }, { id: 'drainage_archive', rect: rect(900, 480, 800, 280) }],
+      interactables: [{ id: 'drainage_cache', x: 1780, y: 760, label: 'Witness cache' }],
+      exits: [{ id: 'return_to_blackwell', rect: rect(20, 620, 90, 140), to: { level: 'ashen_prison', spawn: 'from_drainage' } }],
+      lore: [{ id: 'l_drowned_archive', kind: 'letter', x: 1500, y: 760, text: 'A witness statement names the captain who altered the trial record. The signature is still legible.' }],
     },
     {
       id: 'ashen_escape_woods', region: 'ashen_village', name: 'The Green Verge', size: { w: 3800, h: 1000 },
@@ -149,6 +185,7 @@ export const ashenVillage: RegionContent = {
   ],
 
   npcs: [
+    { id: 'sera', name: 'Sera Venn', region: 'ashen_village', role: 'Former Court Archivist', description: 'A former court archivist hiding beneath Blackwell after refusing to alter the king\'s testimony.', portrait: 'portrait_sera', sprite: 'npc_sera', dialogue: [{ tree: 'd_sera_prison' }] },
     { id: 'mira', name: 'Mira Vale', region: 'ashen_village', role: 'Forest Herbalist', description: 'A young herbalist who tends the green verge and shelters travellers escaping the Crown roads.', portrait: 'portrait_mira', sprite: 'npc_mira', dialogue: [{ tree: 'd_mira_intro' }] },
     { id: 'tamsin', name: 'Tamsin Reed', region: 'ashen_village', role: 'Forgekeeper / Companion', description: 'Blacksmith\'s daughter who tends a forge with no iron left.', portrait: 'portrait_tamsin', sprite: 'npc_tamsin', companion: 'tamsin',
       dialogue: [{ when: Q('c_tamsin', 'active'), tree: 'd_tamsin_forge' }, { when: COMP('tamsin', 'recruited'), tree: 'd_tamsin_camp' }, { tree: 'd_tamsin_meet' }] },
@@ -164,6 +201,14 @@ export const ashenVillage: RegionContent = {
         C('«هنوز نمی‌دانم چه کسی به من خیانت کرد.»', 'c', { tags: ['honest'], effects: [vr('trust', -1), fl('prison_awake')] }),
       ] }),
       c: N('narrator', 'قفل در سلول شکسته است. هوای سردی از شکاف راهرو می‌وزد؛ راهی باریک به بیرون وجود دارد.', { effects: [fl('prison_escape_started')] }),
+    }),
+    T('d_sera_prison', 'sera', 'a', {
+      a: N('sera', 'اسم من سِراست. پیش از سقوط دربار، بایگانی دادگاه را نگه می‌داشتم. این زندان فقط برای زندانی‌کردن آدم‌ها ساخته نشده؛ بعضی اسناد را هم اینجا پنهان کرده‌اند.', { choices: [
+        C('«می‌توانی کمکم کنی از اینجا خارج شوم؟»', 'b', { tags: ['trust'], effects: [fl('sera_helped'), reward({ xp: 25, items: [{ id: 'health_potion_small', n: 1 }] })] }),
+        C('«چه چیزی دربارهٔ محاکمه می‌دانی؟»', 'c', { tags: ['curious'], effects: [fl('sera_testimony'), vr('trust', 1)] }),
+      ] }),
+      b: N('sera', 'از راهروی شرقی برو. نگهبان مقید کلید دروازه را نگه می‌دارد. این معجون را بردار؛ برای راهی که پیش رو داری به آن نیاز پیدا می‌کنی.'),
+      c: N('sera', 'صورت‌جلسه پیش از شروع محاکمه تغییر کرده بود. نسخهٔ اصلی در بایگانی غرق‌شده است؛ اگر پیدایش کنی، می‌توانی ثابت کنی شهادت‌ها دست‌کاری شده‌اند.'),
     }),
     T('d_mira_intro', 'mira', 'a', {
       a: N('mira', 'آروم‌تر. اینجا صدای قدم‌ها تا دوردست می‌ره. من میرا هستم؛ گیاه‌های این بیشه رو می‌شناسم. اگر از زندان اومدی، قبل از رسیدن به جاده کمی نفس بگیر.', { choices: [
@@ -241,7 +286,20 @@ export const ashenVillage: RegionContent = {
 
   quests: [
     {
-      id: 'm1_embers', title: 'Embers of Home', type: 'main', region: 'ashen_village', chapter: 1, autoStart: CH(1),
+      id: 'prison_break', title: 'The Blackwell Escape', type: 'main', region: 'ashen_village', chapter: 1, autoStart: CH(1),
+      summary: 'Explore Blackwell, recover the Warden key, uncover the hidden archive and reach the outer gate.',
+      objectives: [
+        OBJ('wake', 'Find a way out of the cell block', ZONE('prison_wake')),
+        OBJ('register', 'Search the cell register', INT('prison_cell_register'), { after: ['wake'] }),
+        OBJ('key', 'Recover the Warden key', INT('prison_key'), { after: ['register'] }),
+        OBJ('sentinel', 'Defeat the Bound Sentinel', KILL('prison_sentinel'), { after: ['key'] }),
+        OBJ('gate', 'Reach the outer gate', ZONE('prison_outer_gate'), { after: ['sentinel'] }),
+      ],
+      reward: { xp: 180, gold: 20, items: [{ id: 'health_potion_small', n: 2 }] },
+      onComplete: [fl('escaped_blackwell')],
+    },
+    {
+      id: 'm1_embers', title: 'Embers of Home', type: 'main', region: 'ashen_village', chapter: 1, autoStart: AND(CH(1), F('escaped_blackwell')),
       summary: 'Aren returns to the burned village. Recover your blade, break Hobb\'s patrol and find who signed the burn order.',
       objectives: [
         OBJ('forge', 'Reach the cold forge', ZONE('forge_yard')),
@@ -280,6 +338,7 @@ export const ashenVillage: RegionContent = {
   collectibles: [
     ...[1, 2, 3, 4, 5].map(i => COLL(`hearth_${i}`, 'ashen_village', 'token', `Hearth Token ${i}`, ['A carved bell.', 'A child\'s wooden horse.', 'A blackened wedding ring.', 'A strip of apron cloth.', 'A baker\'s mark.'][i - 1])),
     COLL('prison_mark', 'ashen_village', 'lore', 'Prison Wall Mark', 'A hidden message left by someone who knew the trial was false.'),
+    COLL('prison_note', 'ashen_village', 'testament', 'Witness Statement', 'A sworn statement proving the trial record was altered before the verdict.'),
     COLL('green_seed', 'ashen_village', 'resource', 'Green Verge Seed', 'A seed carried from the first living patch of forest after the prison.'),
     COLL('valcrest_blade', 'ashen_village', 'relic', 'Valcrest Blade', 'Your sword, scorched but sound. The pommel still bears the sun of your house.', [key('valcrest_blade')]),
     COLL('pantry_bread', 'ashen_village', 'key', 'Hidden Bread Sack', 'Twelve loaves, wrapped in cloth and honest hope.', [key('bread_sack')]),
@@ -289,6 +348,7 @@ export const ashenVillage: RegionContent = {
   ],
 
   pois: [
+    { id: 'blackwell_checkpoint', region: 'ashen_village', level: 'ashen_prison', name: 'Forgotten Guard Post', kind: 'camp', x: 3440, y: 840, fastTravel: false, description: 'A sealed watch post, safe for a brief rest before the lower galleries.' },
     { id: 'village_square', region: 'ashen_village', level: 'ashen_village_main', name: 'Hearthmere Square', kind: 'camp', x: 1250, y: 700, fastTravel: true, description: 'A cracked fountain; survivors gather here after dark.' },
     { id: 'forge_yard', region: 'ashen_village', level: 'ashen_village_main', name: 'The Cold Forge', kind: 'landmark', x: 2000, y: 700, description: 'The only chimney left standing.' },
     { id: 'manor_ruins', region: 'ashen_village', level: 'ashen_village_main', name: 'Valcrest Manor Ruins', kind: 'landmark', x: 2450, y: 700, description: 'The house that was Aren\'s, now rafters against the sky.' },
