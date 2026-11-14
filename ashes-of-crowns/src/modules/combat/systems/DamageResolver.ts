@@ -12,7 +12,7 @@ export class DamageResolver {
     }
     const raw = input.baseDamage * (input.multiplier ?? 1) * (input.guaranteedCrit || this.rng() < (input.bonusCritChance ?? 0.05) ? 1.65 : 1);
     const reduced = raw * (100 / (100 + Math.max(0, input.target.defense)));
-    return { damage: this.resist(Math.max(1, Math.round(reduced * (0.95 + this.rng() * 0.1))), input.target, input.school), critical: !!input.guaranteedCrit, lifestealHeal: 0 };
+    return { damage: this.resist(Math.max(1, Math.round(reduced * (0.95 + this.rng() * 0.1))), input.target, input.school), critical: !!(input.guaranteedCrit || (this.rng() < (input.bonusCritChance ?? 0.05))), lifestealHeal: 0 };
   }
 
   ability(effect: any, target: EnemyState, options: { behind?: boolean; targetHpPct?: number } = {}): { damage: number; critical: boolean; lifestealHeal: number } {
@@ -36,11 +36,19 @@ export class DamageResolver {
   }
 }
 
-export function applyHitToEnemy(target: EnemyState, hit: CombatHit, resolver: DamageResolver): { damage: number; killed: boolean; statusApplied?: CombatHit['status'] extends infer S ? any : never } {
+export function applyHitToEnemy(target: EnemyState, hit: CombatHit, _resolver: DamageResolver): { damage: number; killed: boolean; statusApplied?: CombatHit['status'] extends infer S ? any : never } {
   if (!target.alive) return { damage: 0, killed: false };
-  const raw = hit.amount;
-  const mitigated = hit.piercing || hit.school === 'true' ? raw : raw * (100 / (100 + Math.max(0, target.defense)));
-  const damage = Math.max(1, Math.round(mitigated));
+  const amount = Number.isFinite(hit.amount) ? Math.max(0, hit.amount) : 0;
+  if (amount === 0) return { damage: 0, killed: false };
+  const school = hit.school ?? 'physical';
+  const defenseMultiplier = hit.piercing || school === 'true'
+    ? 1
+    : 100 / (100 + Math.max(0, target.defense));
+  const resistance = school === 'physical' || school === 'magic'
+    ? (target.resistances?.[school] ?? 0)
+    : 0;
+  const resistanceMultiplier = 1 - Math.min(0.85, Math.max(-0.5, resistance));
+  const damage = Math.max(1, Math.round(amount * defenseMultiplier * resistanceMultiplier));
   target.health = Math.max(0, target.health - damage);
   target.hitFlashMs = 110;
   if (hit.stunMs) target.stunRemainingMs = Math.max(target.stunRemainingMs, hit.stunMs * (target.tier === 'boss' ? 0.2 : 1));
