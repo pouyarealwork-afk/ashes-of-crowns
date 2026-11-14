@@ -227,11 +227,35 @@ export class CombatWorld {
     const y = this.player.y - 42;
     const mage = id.startsWith('a_');
     const assassin = id.startsWith('s_');
-    const color = mage ? 0x75d8ff : assassin ? 0xb58aff : 0xffbd72;
+    const warden = id.startsWith('d_');
+    const oracle = id.startsWith('o_');
+    const bard = id.startsWith('b_');
+    const color = warden ? 0x83c77b : oracle ? 0x8f9cff : bard ? 0xf0bd72 : mage ? 0x75d8ff : assassin ? 0xb58aff : 0xffbd72;
     const radius = Math.max(34, Math.min(210, effect?.radius ?? 72));
     const ring = this.scene.add.circle(this.player.x, y, radius, color, effect?.kind === 'buff' ? 0.12 : 0.2)
       .setStrokeStyle(mage ? 3 : 4, color, 0.9).setDepth(18);
     this.scene.tweens.add({ targets: ring, scale: effect?.kind === 'buff' ? 1.12 : 1.55, alpha: 0, duration: effect?.kind === 'ultimate' ? 720 : 420, ease: 'Cubic.Out', onComplete: () => ring.destroy() });
+
+    // Each new support class has a distinct non-damaging visual signature.
+    if (effect?.kind === 'buff' || effect?.kind === 'ultimate') {
+      if (warden) {
+        for (let i = 0; i < 5; i++) {
+          const leaf = this.scene.add.ellipse(this.player.x + (i - 2) * 17, y + 8 + (i % 2) * 10, 7, 14, color, 0.82)
+            .setRotation((i - 2) * 0.28).setDepth(20);
+          this.scene.tweens.add({ targets: leaf, y: leaf.y - 42 - (i % 3) * 12, x: leaf.x + (i - 2) * 9, angle: leaf.angle + 110, alpha: 0, duration: 520 + i * 45, onComplete: () => leaf.destroy() });
+        }
+      } else if (oracle) {
+        for (let i = 0; i < 4; i++) {
+          const star = this.scene.add.star(this.player.x + Math.cos(i * Math.PI / 2) * 38, y + Math.sin(i * Math.PI / 2) * 24, 4, 3, 9, color, 0.85).setDepth(20);
+          this.scene.tweens.add({ targets: star, x: this.player.x + Math.cos(i * Math.PI / 2) * 76, y: y + Math.sin(i * Math.PI / 2) * 56, angle: 110, scale: 0.2, alpha: 0, duration: 520, onComplete: () => star.destroy() });
+        }
+      } else if (bard) {
+        for (let i = 0; i < 3; i++) {
+          const note = this.scene.add.text(this.player.x + (i - 1) * 20, y - 8, ['♪', '♫', '♬'][i], { fontFamily: 'serif', fontSize: '22px', color: '#f0bd72', stroke: '#30263b', strokeThickness: 2 }).setDepth(20);
+          this.scene.tweens.add({ targets: note, y: note.y - 42 - i * 8, x: note.x + (i - 1) * 12, alpha: 0, duration: 680 + i * 60, onComplete: () => note.destroy() });
+        }
+      }
+    }
 
     if (effect?.kind === 'projectile' || id === 'a_meteor') {
       const target = this.engine.getAlive()
