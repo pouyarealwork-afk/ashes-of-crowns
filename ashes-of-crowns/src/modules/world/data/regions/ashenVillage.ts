@@ -299,7 +299,7 @@ export const ashenVillage: RegionContent = {
       onComplete: [fl('escaped_blackwell')],
     },
     {
-      id: 'm1_embers', title: 'Embers of Home', type: 'main', region: 'ashen_village', chapter: 1, autoStart: AND(CH(1), F('escaped_blackwell')),
+      id: 'm1_embers', title: 'Embers of Home', type: 'main', region: 'ashen_village', chapter: 1, autoStart: CH(1),
       summary: 'Aren returns to the burned village. Recover your blade, break Hobb\'s patrol and find who signed the burn order.',
       objectives: [
         OBJ('forge', 'Reach the cold forge', ZONE('forge_yard')),
