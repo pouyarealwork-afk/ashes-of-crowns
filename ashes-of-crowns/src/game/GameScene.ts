@@ -1048,7 +1048,9 @@ export class GameScene extends Phaser.Scene {
     const p = this.aren.stats, rpg = this.services.rpg;
     const hotbar = rpg.skills.getHotbar();
     const questLog = this.services.world.getQuestLog();
-    const selectedQuest = questLog.find((q: any) => q.id === this.trackedQuest && q.status === 'active') ?? questLog.find((q: any) => q.type === 'main' && q.status === 'active');
+    const prisonQuest = (this.currentLevelId === 'ashen_prison' || this.currentLevelId === 'blackwell_drainage')
+      ? questLog.find((q: any) => q.id === 'prison_break' && q.status === 'active') : undefined;
+    const selectedQuest = prisonQuest ?? questLog.find((q: any) => q.id === this.trackedQuest && q.status === 'active') ?? questLog.find((q: any) => q.type === 'main' && q.status === 'active');
     const objective = selectedQuest?.objectives.find((o: any) => !o.done); 
     const abilities = rpg.skills.getUnlockedAbilities();
     this.ui.updateHud({
