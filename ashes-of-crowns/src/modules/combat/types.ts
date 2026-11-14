@@ -26,7 +26,7 @@ export interface StatusEffect { kind: StatusKind; remainingMs: number; tickMs?: 
 export interface EnemyState {
   id: string; archetypeId: string; name: string; tier: EnemyTier; ai: EnemyAI;
   x: number; y: number; vx: number; vy: number; facing: Facing;
-  health: number; maxHealth: number; damage: number; defense: number; speed: number;
+  health: number; maxHealth: number; damage: number; defense: number; speed: number; aggroRange: number;
   level: number; xp: number; gold: number; alive: boolean; aggro: boolean;
   attackCooldownMs: number; attackWindupMs: number; attackRange: number; windupRemainingMs: number;
   stunRemainingMs: number; slowMultiplier: number; patrol?: [number, number];
