@@ -150,6 +150,10 @@ export const ashenVillage: RegionContent = {
       b: N('mira', 'چون همه از جاده فرار می‌کنن و کسی باید حواسش به زخمی‌ها و گم‌شده‌ها باشه. جنگل هنوز برای همه درش رو نبسته.'),
       c: N('mira', 'از کنار جوی آب برو و از برج دیده‌بانی دوری کن. وقتی به خانه‌های سوخته رسیدی، دنبال دود کم‌رنگ آهنگری بگرد.'),
     }),
+    CUT('d_village_arrival', 'a', {
+      a: N('narrator', 'از بیشهٔ سبز که بیرون می‌آیی، بوی دود دوباره به مشامت می‌رسد. هِرث‌میر هنوز پابرجاست، اما خانه‌هایش سوخته و مردمش در پناه دیوارهای نیمه‌ویران زندگی می‌کنند.', { next: 'b' }),
+      b: N('aren', 'این‌بار از زندان فرار کرده‌ام؛ اما تا وقتی نامم را از دروغ پاک نکنم، راه خانه تمام نمی‌شود.', { effects: [fl('village_arrived')] }),
+    }),
     CUT('d_opening', 'a', {
       a: N('narrator', 'خاکستر بر زبانت نشسته و سنگ سرد اجاق زیر گونه‌ات است. روستایی که روزی برای بازسازی‌اش هزینه کردی، اکنون به ویرانه‌ای بدل شده است.', { next: 'b' }),
       b: N('aren', 'سه روز از محاکمه گذشته است. عمارت، نام و شمشیرت را گرفتند. دارکن آنجا ایستاد و کلمهٔ «مجرم» را چنان بر زبان آورد که انگار فهرست خرید می‌خواند.', { mood: 'grim', next: 'c' }),
@@ -270,6 +274,7 @@ export const ashenVillage: RegionContent = {
 
   storyEvents: [
     { id: 'ev_prison_wake', zone: 'prison_wake', dialogue: 'd_prison_wake' },
+    { id: 'ev_village_arrival', zone: 'start_wake', dialogue: 'd_village_arrival' },
     { id: 'ev_hobb', zone: 'hobb_arena', dialogue: 'd_hobb_pre', when: Q('m1_embers', 'active') },
     { id: 'ev_burn_order', auto: INT('burn_order'), dialogue: 'd_burn_order' },
     { id: 'ev_tamsin_join', auto: AND(INT('burn_order'), COMP('tamsin', 'unmet')), dialogue: 'd_tamsin_join' },
