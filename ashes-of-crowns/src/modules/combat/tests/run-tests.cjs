@@ -212,4 +212,17 @@ test('fallback abilities scale from the current player attack stat', () => {
   const result = resolver.ability({ multiplier: 2, school: 'physical' }, target, { baseDamage: 50 });
   assert.equal(result.damage, 100);
 });
+test('enemy AI respects each archetype aggro range', () => {
+  const ai = new EnemyAIController();
+  const makeEnemy = (aggroRange) => ({ ai:'melee', x:0, y:0, vx:0, vy:0, facing:1, alive:true, aggro:false,
+    attackCooldownMs:1000, hitFlashMs:0, stunRemainingMs:0, slowMultiplier:1, speed:80,
+    attackRange:40, attackWindupMs:360, windupRemainingMs:0, lastAttackAt:0, aggroRange });
+  const player = { x:250, y:0, health:100, maxHealth:100, facing:-1 };
+  const cautious = makeEnemy(120);
+  const alert = makeEnemy(300);
+  assert.equal(ai.update(cautious, player, 16).vx, 0);
+  assert.equal(cautious.aggro, false);
+  assert.ok(ai.update(alert, player, 16).vx > 0);
+  assert.equal(alert.aggro, true);
+});
 process.stdout.write(`\n${passed} combat tests passed.\n`);
