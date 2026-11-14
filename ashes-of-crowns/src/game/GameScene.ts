@@ -545,9 +545,9 @@ export class GameScene extends Phaser.Scene {
       this.parallax = [];
       for (const segment of this.overworldSegments) {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
-        const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
+        const a = source.atmosphere.palette, skyAtmosphere = { ...a, light: source.atmosphere.light }, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
         const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
-        this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
+        this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(skyAtmosphere, region))).setOrigin(0, 0).setDepth(-40);
         // Keep the six biome backdrops anchored to their world segments, but move each
         // texture at its own camera rate. This preserves region boundaries while adding
         // real parallax instead of leaving the entire overworld backdrop static.
@@ -579,11 +579,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const a = level.atmosphere.palette;
+    const skyAtmosphere = { ...a, light: level.atmosphere.light };
     const region = String(level.region);
     const sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
     const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
     this.parallax = [];
-    this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
+    this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(skyAtmosphere, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
     const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
     for (const [d, f, depth] of layers) {
       const ts = this.add.tileSprite(0, 0, 1280, 720, ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d))).setOrigin(0, 0).setScrollFactor(0).setDepth(depth);
