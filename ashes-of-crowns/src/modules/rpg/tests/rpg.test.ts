@@ -1,5 +1,5 @@
 /* Standalone test runner (no framework). Run: see README "Running the tests". */
-import { RpgModule, validateData, xpToNext, levelCap, ITEMS, SKILLS, mulberry32, INVENTORY_CAPACITY, SKIN_LIST, RECIPE_LIST, ITEM_LIST } from '../index';
+import { RpgModule, validateData, xpToNext, levelCap, ITEMS, SKILLS, SKILL_TREES, mulberry32, INVENTORY_CAPACITY, SKIN_LIST, RECIPE_LIST, ITEM_LIST } from '../index';
 import type { ExternalBus, EnemyKillInfo, RegionId, EquipSlot } from '../index';
 
 declare const process: { exit(code: number): never };
@@ -59,7 +59,7 @@ test('negative / zero xp ignored', () => { const m = fresh(); eq(m.progression.a
 
 console.log('Skills');
 test('each class can receive a free starting signature ability', () => {
-  const cases = ['w_power_strike', 's_backstab', 'a_arc_bolt'];
+  const cases = ['w_power_strike', 's_backstab', 'a_arc_bolt', 'd_bloom_guard', 'o_second_sight', 'b_steady_beat'];
   for (const id of cases) {
     const m = fresh();
     const result = m.skills.grantStartingAbility(id);
@@ -68,6 +68,25 @@ test('each class can receive a free starting signature ability', () => {
     eq(m.skills.getHotbar()[0], id);
     eq(m.ctx.state.skillPoints, 0);
     ok(m.skills.getUnlockedAbilities().some((a) => a.id === id), id + ' unlocked');
+  }
+});
+test('new support classes apply timed buffs and expire cleanly', () => {
+  const cases = [
+    { id: 'd_bloom_guard', stat: 'defense' as const, passive: 'healthRegen' as const, expected: 2 },
+    { id: 'o_second_sight', stat: 'speed' as const, passive: 'dodgeChance' as const, expected: 0.1 },
+    { id: 'b_steady_beat', stat: 'health' as const, passive: 'staminaRegen' as const, expected: 7 },
+  ];
+  for (const item of cases) {
+    const m = fresh();
+    ok(m.skills.grantStartingAbility(item.id).ok, item.id);
+    const beforeStat = m.getStats()[item.stat];
+    const beforePassive = m.getPassives()[item.passive];
+    ok(m.skills.tryUseAbility(item.id, { mana: 100, stamina: 100 }).ok, item.id);
+    if (item.stat === 'defense') ok(m.getStats().defense > beforeStat, 'Warden defense buff');
+    if (item.stat === 'speed') ok(m.getStats().speed > beforeStat, 'Oracle speed buff');
+    ok(m.getPassives()[item.passive] > beforePassive, item.id + ' passive');
+    m.update(13000);
+    eq(m.getPassives()[item.passive], beforePassive);
   }
 });
 test('prerequisites and level gating', () => {
@@ -94,8 +113,14 @@ test('capstone requires tree investment, level and cost 3', () => {
   for (const [id, n] of [['w_toughness', 5], ['w_power_strike', 1], ['w_iron_skin', 4], ['w_battle_cry', 1], ['w_second_wind', 1], ['w_whirlwind', 2], ['w_bloodthirst', 1]] as [string, number][]) for (let i = 0; i < n; i++) ok(m.skills.rankUp(id).ok, `${id} ${i}`);
   const before = m.ctx.state.skillPoints; ok(m.skills.rankUp('w_unbreakable').ok); eq(before - m.ctx.state.skillPoints, 3);
 });
-test('all three trees have meaningful size and every node has an effect', () => {
-  for (const t of ['warrior', 'arcane', 'shadow'] as const) { const n = Object.values(SKILLS).filter((s) => s.tree === t); ok(n.length >= 8, t); ok(n.filter((s) => s.ability).length >= 4, `${t} abilities`); }
+test('all six class trees have meaningful size and every node has an effect', () => {
+  for (const t of ['warrior', 'arcane', 'shadow', 'warden', 'oracle', 'bard'] as const) {
+    const n = Object.values(SKILLS).filter((s) => s.tree === t);
+    ok(n.length >= 8, t);
+    ok(n.filter((s) => s.ability).length >= 4, `${t} abilities`);
+    ok(n.every((s) => s.ability || s.statMods || s.passives), `${t} effect coverage`);
+  }
+  eq(Object.keys(SKILL_TREES).length, 6);
 });
 test('abilities: cost, cooldown, rank scaling, hotbar', () => {
   const m = fresh(); setLevel(m, 5, 10); m.skills.rankUp('w_power_strike');
