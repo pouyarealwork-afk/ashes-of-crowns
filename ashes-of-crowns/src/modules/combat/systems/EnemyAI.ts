@@ -13,8 +13,9 @@ export class EnemyAIController {
     const facing: 1 | -1 = dx >= 0 ? 1 : -1;
     enemy.facing = facing;
     if (!enemy.alive || player.isDead || enemy.stunRemainingMs > 0) return { vx: 0, vy: 0, attack: false, ranged: false, facing };
-    if (distance > 650 && !enemy.aggro) return this.patrol(enemy, facing);
-    if (distance <= 650) enemy.aggro = true;
+    const aggroRange = Math.max(80, enemy.aggroRange ?? 650);
+    if (distance > aggroRange && !enemy.aggro) return this.patrol(enemy, facing);
+    if (distance <= aggroRange) enemy.aggro = true;
     if (enemy.windupRemainingMs > 0) return { vx: 0, vy: 0, attack: false, ranged: false, facing, telegraph: true };
 
     const isRanged = enemy.ai === 'ranged' || enemy.ai === 'support';
