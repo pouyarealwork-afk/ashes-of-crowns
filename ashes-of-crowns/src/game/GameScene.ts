@@ -70,6 +70,8 @@ export class GameScene extends Phaser.Scene {
   private keyboard: Record<string, any> = {};
   private gameEventOffs: Array<() => void> = [];
   private parallax: Array<{ ts: Phaser.GameObjects.TileSprite; f: number }> = [];
+  /** Overworld backdrop: viewport-sized layers whose textures swap with the segment under the camera. */
+  private overworldBackdrop?: { sky: Phaser.GameObjects.TileSprite; layers: Phaser.GameObjects.TileSprite[]; idx: number; keys: Array<{ sky: string; layers: string[] } | undefined> };
 
   constructor() { super('GameScene'); }
 
@@ -474,7 +476,7 @@ export class GameScene extends Phaser.Scene {
     // with every quit-to-menu / restart. Kill only the tweens of objects being removed (not UI/timer tweens).
     for (const child of [...this.children.list]) this.tweens.killTweensOf(child);
     this.children.removeAll(true);
-    this.parallax = [];
+    this.parallax = []; this.overworldBackdrop = undefined;
     this.aren = undefined as any; this.combat = undefined as any;
     this.platforms = undefined as any; this.collectGroup = undefined as any; this.levelDef = undefined as any;
     this.createPixelTexture();
@@ -483,21 +485,16 @@ export class GameScene extends Phaser.Scene {
   /** Pixel-art backdrop: a dithered sky plus three seamless parallax layers per region (see src/art/world.ts). */
   private drawAtmosphere(level: LevelDef): void {
     if (this.overworldSegments.length > 1) {
-      this.parallax = [];
-      for (const segment of this.overworldSegments) {
+      this.parallax = []; this.overworldBackdrop = undefined;
+      const keys: Array<{ sky: string; layers: string[] } | undefined> = [];
+      for (const [segIndex, segment] of this.overworldSegments.entries()) {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
         const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
         const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
-        this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
-        // Keep the six biome backdrops anchored to their world segments, but move each
-        // texture at its own camera rate. This preserves region boundaries while adding
-        // real parallax instead of leaving the entire overworld backdrop static.
-        const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
-        for (const [d, factor, depth] of layers) {
-          const key = ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d));
-          const layer = this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, key).setOrigin(0, 0).setDepth(depth);
-          this.parallax.push({ ts: layer, f: factor });
-        }
+        // Textures only: the backdrop itself is three viewport-sized sprites (see below). The old per-segment
+        // tile sprites were as large as a whole region, tiled the 720px art vertically and scrolled the
+        // parallax in the wrong direction (far layers moved faster than the ground).
+        keys[segIndex] = { sky: ensure(`aoc-sky-${sig}`, () => paintSky(a, region)), layers: ([0, 1, 2] as const).map(d => ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d))) };
         // Small, biome-specific ambient motion makes each region feel alive without
         // introducing a full-screen particle emitter or a large mobile GPU workload.
         const weather = source.atmosphere.weather;
@@ -517,6 +514,17 @@ export class GameScene extends Phaser.Scene {
           this.tweens.add({ targets: mote, x: x + (weather === 'sandstorm' ? 34 : 12), y: y + style.rise, alpha: style.alpha * 0.28, duration: 2600 + i * 430, yoyo: true, repeat: -1, delay: i * 170, ease: 'Sine.InOut' });
         }
       }
+      const firstIdx = keys.findIndex(Boolean);
+      if (firstIdx >= 0) {
+        const first = keys[firstIdx]!;
+        const sky = this.add.tileSprite(0, 0, 1280, 720, first.sky).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
+        const layers = ([[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]] as const).map(([d, factor, depth]) => {
+          const ts = this.add.tileSprite(0, 0, 1280, 720, first.layers[d]).setOrigin(0, 0).setScrollFactor(0).setDepth(depth);
+          this.parallax.push({ ts, f: factor });
+          return ts;
+        });
+        this.overworldBackdrop = { sky, layers, idx: firstIdx, keys };
+      }
       return;
     }
     const a = level.atmosphere.palette;
@@ -534,6 +542,17 @@ export class GameScene extends Phaser.Scene {
 
   private updateParallax(): void {
     const cam = this.cameras.main;
+    const bd = this.overworldBackdrop;
+    if (bd) {
+      // Swap to the region the camera is currently inside (gaps between segments keep the last backdrop).
+      const cx = cam.scrollX + cam.width / 2, cy = cam.scrollY + cam.height / 2;
+      const idx = this.overworldSegments.findIndex(g => cx >= g.offsetX && cx < g.offsetX + g.width && cy >= g.offsetY && cy < g.offsetY + g.height);
+      const k = idx >= 0 ? bd.keys[idx] : undefined;
+      if (k && idx !== bd.idx) { bd.idx = idx; bd.sky.setTexture(k.sky); bd.layers.forEach((l, i) => l.setTexture(k.layers[i])); }
+      // Horizontal parallax only: the art is not vertically tileable.
+      for (const p of this.parallax) { p.ts.tilePositionX = Math.round(cam.scrollX * p.f); p.ts.tilePositionY = 0; }
+      return;
+    }
     for (const p of this.parallax) { p.ts.tilePositionX = Math.round(cam.scrollX * p.f); p.ts.tilePositionY = Math.round(cam.scrollY * p.f); }
   }
 
@@ -974,7 +993,7 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-shot.scene-ashes .aoc-art{animation:aoc-ashes-reveal 60s cubic-bezier(.2,.55,.25,1) both}
         @keyframes aoc-green-pan{0%{transform:scale(1.12) translate3d(3.5%,1.2%,0)}100%{transform:scale(1.03) translate3d(-2.5%,-.6%,0)}}
         @keyframes aoc-trial-dolly{0%{transform:scale(1.04) translate3d(-1.8%,.4%,0)}55%{transform:scale(1.12) translate3d(1.2%,-.5%,0)}100%{transform:scale(1.08) translate3d(0,-.2%,0)}}
-        @keyframes aoc-ashes-reveal{0%{transform:scale(1.18) translate3d(0,2.4%,0);filter:brightness(1.45)}12%{filter:brightness(.72)}42%{transform:scale(1.09) translate3d(-1.2%,-.3%,0);filter:brightness(.88)}100%{transform:scale(1.04) translate3d(1.4%,-.8%,0);filter:brightness(.78)}}
+        @keyframes aoc-ashes-reveal{0%{transform:scale(1.18) translate3d(0,2.4%,0)}42%{transform:scale(1.09) translate3d(-1.2%,-.3%,0)}100%{transform:scale(1.04) translate3d(1.4%,-.8%,0)}}
         .aoc-opening-cinematic .aoc-cine-figure{position:absolute;z-index:3;left:50%;bottom:12%;width:54px;height:150px;transform:translateX(-50%);transform-origin:50% 100%;filter:drop-shadow(0 12px 16px rgba(0,0,0,.55));transition:transform 1.2s ease,opacity 1s ease}
         .aoc-opening-cinematic .aoc-cine-figure .head{position:absolute;left:20px;top:2px;width:17px;height:22px;border-radius:48% 48% 42% 42%;background:linear-gradient(90deg,#171218,#393039 55%,#100e13)}
         .aoc-opening-cinematic .aoc-cine-figure .torso{position:absolute;left:12px;top:22px;width:34px;height:67px;background:linear-gradient(90deg,#100e13,#3a3030 48%,#151116);clip-path:polygon(22% 0,78% 0,100% 100%,0 100%);border-top:2px solid #94724e}
@@ -1090,7 +1109,7 @@ export class GameScene extends Phaser.Scene {
         .aoc-opening-cinematic .aoc-shot.scene-green .aoc-bird-flock{animation-duration:7s}
         @keyframes aoc-verdict-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-.5%)}40%{transform:translateX(.4%)}60%{transform:translateX(-.25%)}80%{transform:translateX(.15%)}}
         @keyframes aoc-verdict-glow{from{opacity:.15}to{opacity:.75}}
-        @keyframes aoc-ruin-light{from{filter:brightness(.76) saturate(.82)}to{filter:brightness(1.08) saturate(1.08)}}
+        @keyframes aoc-ruin-light{from{opacity:.82}to{opacity:1}}
         @media(prefers-reduced-motion:reduce){.aoc-opening-cinematic *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
       </style>
       <div class="aoc-shot">
