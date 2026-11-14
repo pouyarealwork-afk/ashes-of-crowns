@@ -20,7 +20,7 @@ Dependencies: none at runtime. Dev: `tsc` + Node for tests. Imports use extensio
 |---|---|
 | Stats | `getStats()`, `getPassives()`, `getRegenPerSecond()`, `stats.getBreakdown(stat)`, `getLevel()`, `getGold()`, `getShards()` |
 | XP/levels | `progression.addXp(n, source)`, `.level/.xp/.skillPoints/.cap`, `.xpForNextLevel()`, `.progress()` |
-| Skills | `skills.getTree(id)`, `.rankUp(id)`, `.respec()`, `.getHotbar()`, `.setHotbar(slot,id)`, `.tryUseAbility(id,{mana,stamina})`, `.getAbilityCost(id)`, `.buildEffect(id)`, `.cooldownRemaining(id)` |
+| Skills | `skills.getTree(id)`, `.rankUp(id)`, `.respec()`, `.getHotbar()`, `.setHotbar(slot,id)`, `.tryUseAbility(id,{mana,stamina})`, `.grantStartingSkill(id)`, `.grantStartingAbility(id)`, `.getAbilityCost(id)`, `.buildEffect(id)`, `.cooldownRemaining(id)` |
 | Combat math | `combat.calcDamage(input)`, `.calcAbilityDamage(effect,{behind,targetHpPct,targetDefense})`, `.calcDotPerSecond(effect)`, `.mitigateIncoming(raw)`, `.rollDodge()`, `.isInvulnerable()` |
 | Inventory | `inventory.add/remove/removeUid/count/has/canAdd/get/list(query)/describe(inst)/sell(uid,qty)/sellJunk()` |
 | Equipment | `equipment.equip(uid,slot?)`, `.unequip(slot)`, `.compare(uid)`, `.getEquipped()`, `.autoEquipBest()` |
@@ -58,7 +58,7 @@ Listened to on the external bus (after `connectBus`/`bus` option):
 **Persistence** — Store `rpg.serialize()` (plain JSON, versioned). Buffs/cooldowns/station are intentionally not saved. `load()` tolerates missing fields.
 
 ## 5. Data structures
-Types are exported from `index.ts` (`RpgState`, `ItemDef`, `ItemInstance`, `StatMod`, `AbilityEffect`, `RewardBundle`, `NgPlusScaling`, ...). Content tables: `data/items.ts` (70 items: 13 weapons, 9 armor, 7 helmets, 6 rings, 6 amulets, 12 consumables, 11 materials, 6 quest items), `data/skills.ts` (3 trees × 8–9 nodes), `data/recipes.ts` (31), `data/shops.ts` (7), `data/skins.ts` (default + 5), `data/achievements.ts` (14), `data/loot.ts`, `data/config.ts` (all balance constants).
+Types are exported from `index.ts` (`RpgState`, `ItemDef`, `ItemInstance`, `StatMod`, `AbilityEffect`, `RewardBundle`, `NgPlusScaling`, ...). Content tables: `data/items.ts` (70 items: 13 weapons, 9 armor, 7 helmets, 6 rings, 6 amulets, 12 consumables, 11 materials, 6 quest items), `data/skills.ts` (6 class trees × 8 nodes; Warden, Oracle and Bard add restorative, defensive and mobility-focused paths), `data/recipes.ts` (31), `data/shops.ts` (7), `data/skins.ts` (default + 5), `data/achievements.ts` (14), `data/loot.ts`, `data/config.ts` (all balance constants).
 
 ## 6. Rules summary
 Stats = (base + 12 HP/2 ATK/1.2 DEF/4 mana/3 stamina per level + flat bonuses) × (1 + % bonuses), clamped. Level cap 30 (+10 per NG+ cycle, max 3). 1 skill point per level, +1 on levels divisible by 5 (35 by level 30; maxing a tree costs 27/30/32 points (Warrior/Arcane/Shadow), so builds must specialise). Upgrades: +1…+3/5/7/9/10 by rarity, +10% to flat HP/ATK/DEF/mana/stamina per level, cost scales by tier and needs Ancient Shards from +7. Sell = 40% of value (+25%/upgrade level). NG+ keeps everything except quest items/story flags/50% gold; +3 skill points; enemies ×(1+0.6c) HP, ×(1+0.4c) damage; XP/gold/shards/rarity bonuses; shop prices +15%/cycle.
