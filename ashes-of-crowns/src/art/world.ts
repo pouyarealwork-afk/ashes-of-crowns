@@ -270,6 +270,7 @@ const NPC_LOOK: Record<string, { cloth: string; hair: string; hood?: boolean; to
   hobb: { cloth: '#805447', hair: '#3a2a22', tool: 'hammer' },
   marta: { cloth: '#7d6250', hair: '#b0a8a0', tool: 'sack' },
   mira: { cloth: '#536d62', hair: '#b77d55', hood: true, tool: 'none' },
+  sera: { cloth: '#526c83', hair: '#33251f', hood: true, tool: 'none' },
 };
 
 /** Villager portrait sprite, 48×64 fat-pixel grid (feet at the bottom edge, facing the player). */
