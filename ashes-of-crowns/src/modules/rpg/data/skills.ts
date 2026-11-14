@@ -93,10 +93,58 @@ const SHADOW: SkillNode[] = [
     ability: ab({ id: 's_umbral_execution', kind: 'execute', school: 'physical', baseMultiplier: 2.5, perRankMultiplier: 0, staminaCost: 40, cooldownMs: 30000, executeThreshold: 0.3, executeMultiplier: 3.5, guaranteedCrit: true }) }),
 ];
 
+const WARDEN: SkillNode[] = [
+  node({ id: 'd_living_bark', tree: 'warden', name: 'Living Bark', description: '+5% maximum health and +1 defense per rank.', tier: 1, col: 0, maxRank: 4, statMods: [{ stat: 'health', pct: 0.05 }, { stat: 'defense', flat: 1 }] }),
+  node({ id: 'd_bloom_guard', tree: 'warden', name: 'Bloom Guard', description: 'Raise a calm nature ward: +18% defense and +2 health regeneration for 8 seconds.', tier: 1, col: 1, maxRank: 3,
+    ability: ab({ id: 'd_bloom_guard', kind: 'buff', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 18, cooldownMs: 12000, durationMs: 8000, buff: { stats: [{ stat: 'defense', pct: 0.18 }], passives: { healthRegen: 2 } } }) }),
+  node({ id: 'd_soft_rain', tree: 'warden', name: 'Soft Rain', description: '+1.5 health regeneration per second per rank.', tier: 2, col: 0, maxRank: 3, levelReq: 3, requires: [{ skillId: 'd_living_bark', rank: 2 }], passives: { healthRegen: 1.5 } }),
+  node({ id: 'd_moss_stride', tree: 'warden', name: 'Moss Stride', description: 'A short nature-guided step that briefly protects you from interruption.', tier: 2, col: 1, maxRank: 3, levelReq: 5, requires: [{ skillId: 'd_bloom_guard', rank: 1 }],
+    ability: ab({ id: 'd_moss_stride', kind: 'dash', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 16, cooldownMs: 7000, dashDistance: 150, invulnMs: 220, rankScale: 0.18 }) }),
+  node({ id: 'd_deep_roots', tree: 'warden', name: 'Deep Roots', description: '+4% damage reduction per rank.', tier: 2, col: 2, maxRank: 4, levelReq: 4, requires: [{ skillId: 'd_living_bark', rank: 2 }], passives: { damageReduction: 0.04 } }),
+  node({ id: 'd_sanctuary', tree: 'warden', name: 'Sanctuary', description: 'Create a protective field: +25% defense and +15% damage reduction for 10 seconds.', tier: 3, col: 1, maxRank: 2, levelReq: 9, treePointsReq: 5, requires: [{ skillId: 'd_moss_stride', rank: 1 }, { skillId: 'd_soft_rain', rank: 1 }],
+    ability: ab({ id: 'd_sanctuary', kind: 'buff', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 32, cooldownMs: 22000, durationMs: 10000, buff: { stats: [{ stat: 'defense', pct: 0.25 }], passives: { damageReduction: 0.15 } } }) }),
+  node({ id: 'd_green_memory', tree: 'warden', name: 'Green Memory', description: '+8% maximum mana and +2 mana regeneration per rank.', tier: 4, col: 2, maxRank: 3, levelReq: 13, treePointsReq: 9, requires: [{ skillId: 'd_deep_roots', rank: 2 }], statMods: [{ stat: 'mana', pct: 0.08 }], passives: { manaRegen: 2 } }),
+  node({ id: 'd_evergreen_heart', tree: 'warden', name: 'Evergreen Heart', description: 'For 12 seconds gain +35% damage reduction and strong health regeneration.', tier: 5, col: 1, maxRank: 1, costPerRank: 3, levelReq: 20, treePointsReq: 15, requires: [{ skillId: 'd_sanctuary', rank: 1 }, { skillId: 'd_green_memory', rank: 1 }],
+    ability: ab({ id: 'd_evergreen_heart', kind: 'ultimate', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 55, cooldownMs: 65000, durationMs: 12000, buff: { passives: { damageReduction: 0.35, healthRegen: 5, manaRegen: 2 } } }) }),
+];
+
+const ORACLE: SkillNode[] = [
+  node({ id: 'o_clear_mind', tree: 'oracle', name: 'Clear Mind', description: '+12 maximum mana per rank.', tier: 1, col: 0, maxRank: 5, statMods: [{ stat: 'mana', flat: 12 }] }),
+  node({ id: 'o_second_sight', tree: 'oracle', name: 'Second Sight', description: 'Sharpen awareness: +12% movement speed and +10% dodge chance for 7 seconds.', tier: 1, col: 1, maxRank: 3,
+    ability: ab({ id: 'o_second_sight', kind: 'buff', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 18, cooldownMs: 14000, durationMs: 7000, buff: { stats: [{ stat: 'speed', pct: 0.12 }], passives: { dodgeChance: 0.1 } } }) }),
+  node({ id: 'o_lucid_focus', tree: 'oracle', name: 'Lucid Focus', description: '+1.5 mana regeneration per second per rank.', tier: 2, col: 0, maxRank: 3, levelReq: 3, requires: [{ skillId: 'o_clear_mind', rank: 2 }], passives: { manaRegen: 1.5 } }),
+  node({ id: 'o_phase_step', tree: 'oracle', name: 'Phase Step', description: 'Slip a short distance through a fold in space.', tier: 2, col: 1, maxRank: 3, levelReq: 5, requires: [{ skillId: 'o_second_sight', rank: 1 }],
+    ability: ab({ id: 'o_phase_step', kind: 'dash', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 22, cooldownMs: 8000, dashDistance: 190, invulnMs: 250, rankScale: 0.2 }) }),
+  node({ id: 'o_fate_thread', tree: 'oracle', name: 'Fate Thread', description: '+3% dodge chance and +2% critical chance per rank.', tier: 2, col: 2, maxRank: 4, levelReq: 4, requires: [{ skillId: 'o_clear_mind', rank: 2 }], passives: { dodgeChance: 0.03 }, statMods: [{ stat: 'critChance', flat: 0.02 }] }),
+  node({ id: 'o_fateweave', tree: 'oracle', name: 'Fateweave', description: 'For 9 seconds gain +20% movement speed and +20% mana cost reduction.', tier: 3, col: 1, maxRank: 2, levelReq: 9, treePointsReq: 5, requires: [{ skillId: 'o_phase_step', rank: 1 }, { skillId: 'o_lucid_focus', rank: 1 }],
+    ability: ab({ id: 'o_fateweave', kind: 'buff', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 30, cooldownMs: 24000, durationMs: 9000, buff: { stats: [{ stat: 'speed', pct: 0.2 }], passives: { manaCostReduction: 0.2 } } }) }),
+  node({ id: 'o_still_water', tree: 'oracle', name: 'Still Water', description: '+5% damage reduction per rank.', tier: 4, col: 2, maxRank: 3, levelReq: 13, treePointsReq: 9, requires: [{ skillId: 'o_fate_thread', rank: 2 }], passives: { damageReduction: 0.05 } }),
+  node({ id: 'o_timeless_veil', tree: 'oracle', name: 'Timeless Veil', description: 'For 10 seconds gain +30% dodge chance, +25% speed and +25% damage reduction.', tier: 5, col: 1, maxRank: 1, costPerRank: 3, levelReq: 20, treePointsReq: 15, requires: [{ skillId: 'o_fateweave', rank: 1 }, { skillId: 'o_still_water', rank: 1 }],
+    ability: ab({ id: 'o_timeless_veil', kind: 'ultimate', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 58, cooldownMs: 65000, durationMs: 10000, buff: { stats: [{ stat: 'speed', pct: 0.25 }], passives: { dodgeChance: 0.3, damageReduction: 0.25 } } }) }),
+];
+
+const BARD: SkillNode[] = [
+  node({ id: 'b_warm_resonance', tree: 'bard', name: 'Warm Resonance', description: '+5% maximum health and +5% maximum mana per rank.', tier: 1, col: 0, maxRank: 4, statMods: [{ stat: 'health', pct: 0.05 }, { stat: 'mana', pct: 0.05 }] }),
+  node({ id: 'b_steady_beat', tree: 'bard', name: 'Steady Beat', description: 'A measured rhythm restores stamina and health over 8 seconds.', tier: 1, col: 1, maxRank: 3,
+    ability: ab({ id: 'b_steady_beat', kind: 'buff', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 18, cooldownMs: 14000, durationMs: 8000, buff: { passives: { staminaRegen: 7, healthRegen: 1.5 } } }) }),
+  node({ id: 'b_travel_song', tree: 'bard', name: 'Travel Song', description: '+4% movement speed per rank.', tier: 2, col: 0, maxRank: 4, levelReq: 3, requires: [{ skillId: 'b_warm_resonance', rank: 2 }], statMods: [{ stat: 'speed', pct: 0.04 }] }),
+  node({ id: 'b_resonant_step', tree: 'bard', name: 'Resonant Step', description: 'A brief rhythm carries you forward and reduces interruption.', tier: 2, col: 1, maxRank: 3, levelReq: 5, requires: [{ skillId: 'b_steady_beat', rank: 1 }],
+    ability: ab({ id: 'b_resonant_step', kind: 'dash', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 16, cooldownMs: 7500, dashDistance: 155, invulnMs: 220, rankScale: 0.16 }) }),
+  node({ id: 'b_shared_breath', tree: 'bard', name: 'Shared Breath', description: '+2 mana regeneration per second per rank.', tier: 2, col: 2, maxRank: 3, levelReq: 4, requires: [{ skillId: 'b_warm_resonance', rank: 2 }], passives: { manaRegen: 2 } }),
+  node({ id: 'b_chorus', tree: 'bard', name: 'Chorus of Shelter', description: 'A steady chorus grants +20% defense and +12% damage reduction for 9 seconds.', tier: 3, col: 1, maxRank: 2, levelReq: 9, treePointsReq: 5, requires: [{ skillId: 'b_resonant_step', rank: 1 }, { skillId: 'b_shared_breath', rank: 1 }],
+    ability: ab({ id: 'b_chorus', kind: 'buff', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 28, cooldownMs: 22000, durationMs: 9000, buff: { stats: [{ stat: 'defense', pct: 0.2 }], passives: { damageReduction: 0.12 } } }) }),
+  node({ id: 'b_kindred_tune', tree: 'bard', name: 'Kindred Tune', description: '+2 health regeneration and +2 stamina regeneration per rank.', tier: 4, col: 2, maxRank: 3, levelReq: 13, treePointsReq: 9, requires: [{ skillId: 'b_travel_song', rank: 2 }], passives: { healthRegen: 2, staminaRegen: 2 } }),
+  node({ id: 'b_harmony', tree: 'bard', name: 'Grand Harmony', description: 'For 12 seconds gain strong health, mana and stamina regeneration with +20% damage reduction.', tier: 5, col: 1, maxRank: 1, costPerRank: 3, levelReq: 20, treePointsReq: 15, requires: [{ skillId: 'b_chorus', rank: 1 }, { skillId: 'b_kindred_tune', rank: 1 }],
+    ability: ab({ id: 'b_harmony', kind: 'ultimate', school: 'magic', baseMultiplier: 0, perRankMultiplier: 0, manaCost: 55, cooldownMs: 65000, durationMs: 12000, buff: { passives: { healthRegen: 4, manaRegen: 4, staminaRegen: 8, damageReduction: 0.2 } } }) }),
+];
+
 export const SKILL_TREES: Record<TreeId, { id: TreeId; name: string; description: string; nodes: SkillNode[] }> = {
   warrior: { id: 'warrior', name: 'Warrior', description: 'Endure, strike hard, and outlast every enemy.', nodes: WARRIOR },
   arcane: { id: 'arcane', name: 'Arcane', description: 'Command raw magic from afar.', nodes: ARCANE },
   shadow: { id: 'shadow', name: 'Shadow', description: 'Strike from darkness with speed and precision.', nodes: SHADOW },
+  warden: { id: 'warden', name: 'Warden', description: 'A guardian of living roots, protective fields and restorative nature magic.', nodes: WARDEN },
+  oracle: { id: 'oracle', name: 'Oracle', description: 'Read the flow of time, foresee danger and bend space to move safely.', nodes: ORACLE },
+  bard: { id: 'bard', name: 'Bard', description: 'Support allies and sustain yourself through restorative resonance.', nodes: BARD },
 };
 export const SKILLS: Record<string, SkillNode> = Object.fromEntries(Object.values(SKILL_TREES).flatMap((t) => t.nodes).map((n) => [n.id, n]));
 export function getSkill(id: string): SkillNode | undefined { return SKILLS[id]; }
