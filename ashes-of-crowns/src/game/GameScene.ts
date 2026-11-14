@@ -210,6 +210,28 @@ export class GameScene extends Phaser.Scene {
       utility.appendChild(b);
     };
     makeUtility(fa ? 'فروشگاه' : 'SHOP', 'shop'); makeUtility(fa ? 'ساخت' : 'CRAFT', 'craft');
+    const inventoryButton = document.createElement('button');
+    inventoryButton.type = 'button'; inventoryButton.className = 'aoc-extra-control aoc-extra-inventory';
+    inventoryButton.textContent = fa ? 'کیف' : 'BAG';
+    inventoryButton.addEventListener('click', () => { if (this.started) this.ui.openMenu('inventory'); });
+    utility.appendChild(inventoryButton);
+    const potionButton = document.createElement('button');
+    potionButton.type = 'button'; potionButton.className = 'aoc-extra-control aoc-extra-potion';
+    potionButton.textContent = fa ? 'معجون' : 'POTION';
+    potionButton.addEventListener('click', () => {
+      if (!this.started || !this.aren) return;
+      const candidates = ['health_potion_small', 'health_potion', 'health_potion_large', 'bandage'];
+      const chosen = candidates.find(id => this.services.rpg.inventory.count(id) > 0);
+      if (!chosen) { this.ui.toast({ text: fa ? 'معجون سلامتی نداری' : 'No healing item available', kind: 'warning', ms: 1400 }); return; }
+      const result = this.services.rpg.consumables.useByDefId(chosen);
+      if (result.ok && result.result) {
+        this.aren.stats.heal(result.result.heal ?? 0);
+        this.aren.stats.restoreMana(result.result.mana ?? 0);
+        this.aren.stats.stamina = Math.min(this.aren.stats.config.maxStamina, this.aren.stats.stamina + (result.result.stamina ?? 0));
+        this.ui.toast({ text: fa ? 'سلامتی بازیابی شد' : 'Health restored', kind: 'success', ms: 1100 });
+      }
+    });
+    utility.appendChild(potionButton);
     utility.style.display = 'none';
     this.ui.root.appendChild(utility); this.uiUtilityControls = utility;
   }
@@ -217,7 +239,7 @@ export class GameScene extends Phaser.Scene {
   private hideExtraControls(): void { if (this.uiUtilityControls) this.uiUtilityControls.style.display = 'none'; }
   private updateExtraControlLabels(lang: string): void {
     const fa = lang === 'fa';
-    const labels: Record<string, string> = { 'aoc-extra-shop': fa ? 'فروشگاه' : 'SHOP', 'aoc-extra-craft': fa ? 'ساخت' : 'CRAFT' };
+    const labels: Record<string, string> = { 'aoc-extra-shop': fa ? 'فروشگاه' : 'SHOP', 'aoc-extra-craft': fa ? 'ساخت' : 'CRAFT', 'aoc-extra-inventory': fa ? 'کیف' : 'BAG', 'aoc-extra-potion': fa ? 'معجون' : 'POTION' };
     for (const [cls, label] of Object.entries(labels)) { const el = this.ui?.root.querySelector(`.${cls}`); if (el) el.textContent = label; }
   }
 
@@ -857,8 +879,15 @@ export class GameScene extends Phaser.Scene {
         const result = source?.route
           ? (this.services.world.travel(source.from, source.to) ? { ok: true } : { ok: false, reason: exit.lockedText ?? 'The passage is sealed.' })
           : this.services.world.useExit(source && !source.route ? source.levelId : this.currentLevelId, source && !source.route ? source.exitId : exit.id);
-        if (!result.ok) { const now = this.time.now; if (now - (this.blockedExitAt.get(exit.id) ?? 0) > 2200) { this.blockedExitAt.set(exit.id, now); this.ui?.toast({ text: result.reason ?? 'The way is sealed.', kind: 'warning' }); } }
-        else return;
+        if (!result.ok) {
+          if (!this.blockedExitAt.has(exit.id)) {
+            this.blockedExitAt.set(exit.id, this.time.now);
+            this.ui?.toast({ text: result.reason ?? 'The way is sealed.', kind: 'warning', ms: 1700 });
+          }
+        } else return;
+      } else {
+        // Leaving the gate rearms its single warning for the next approach.
+        this.blockedExitAt.delete(exit.id);
       }
     }
   }
