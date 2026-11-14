@@ -52,7 +52,7 @@ export const ashenVillage: RegionContent = {
         { id: 'prison_key', x: 1840, y: 820, label: 'Warden key' },
         { id: 'prison_latch', x: 3250, y: 820, label: 'Vault mechanism' },
       ],
-      exits: [{ id: 'escape_to_woods', rect: rect(4070, 720, 110, 140), to: { level: 'ashen_escape_woods', spawn: 'start' }, requires: KILL('prison_sentinel'), lockedText: 'The outer gate remains sealed. The Warden still guards the prison.' }],
+      exits: [{ id: 'escape_to_woods', rect: rect(4070, 720, 110, 140), to: { level: 'ashen_escape_woods', spawn: 'start' }, requires: AND(KILL('prison_sentinel'), INT('prison_key')), lockedText: 'The outer gate remains sealed. The Warden still guards the prison.' }],
       lore: [
         { id: 'l_prison_wall', kind: 'mural', x: 540, y: 820, text: 'A name scratched into the stone: VALCREST. Beneath it, someone has written: THE KING DID NOT DIE BY YOUR HAND.' },
         { id: 'l_prison_archive', kind: 'letter', x: 1260, y: 820, text: 'A torn register lists prisoners transferred below the old chapel. One name has been crossed out twice: AREN VALCREST.' },
