@@ -16,12 +16,12 @@ export class DamageResolver {
     return { damage: this.resist(Math.max(1, Math.round(reduced * (0.95 + this.rng() * 0.1))), input.target, input.school), critical, lifestealHeal: 0 };
   }
 
-  ability(effect: any, target: EnemyState, options: { behind?: boolean; targetHpPct?: number } = {}): { damage: number; critical: boolean; lifestealHeal: number } {
+  ability(effect: any, target: EnemyState, options: { behind?: boolean; targetHpPct?: number; baseDamage?: number } = {}): { damage: number; critical: boolean; lifestealHeal: number } {
     if (this.rpg?.calcAbilityDamage) {
       const result = this.rpg.calcAbilityDamage(effect, { ...options, targetDefense: target.defense });
       return { damage: this.resist(result.damage, target, effect.school), critical: result.crit, lifestealHeal: result.lifestealHeal };
     }
-    return this.outgoing({ baseDamage: 14, multiplier: effect.multiplier ?? 1, school: effect.school, target, guaranteedCrit: effect.guaranteedCrit, behind: options.behind });
+    return this.outgoing({ baseDamage: options.baseDamage ?? 14, multiplier: effect.multiplier ?? 1, school: effect.school, target, guaranteedCrit: effect.guaranteedCrit, behind: options.behind });
   }
 
   incoming(raw: number, school: DamageSchool = 'physical', defense = 0): number {
