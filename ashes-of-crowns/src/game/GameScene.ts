@@ -9,7 +9,7 @@ import { createUI, type GameUI } from '../modules/ui';
 import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
-import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, type PropKind } from '../art/world';
+import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, paintHouse, paintTree, paintPrisonDetail, type PropKind } from '../art/world';
 import { buildOverworld, type OverworldExitSource, type OverworldSegment } from './Overworld';
 import { createUIBackend } from './backend';
 import { paintAren } from '../art/aren';
@@ -288,20 +288,18 @@ export class GameScene extends Phaser.Scene {
     const signatureAbility = classId === 'warrior' ? 'w_power_strike' : classId === 'assassin' ? 's_backstab' : 'a_arc_bolt';
     this.services.rpg.skills.grantStartingAbility(signatureAbility);
     this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
-    this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
-    // Paint the first cinematic frame before building the level behind it.
-    // Level construction is synchronous and used to stall the very first intro frame on phones.
+    this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_prison'; this.trackedQuest = null;
+    // Begin in the playable prison level; skip the detached opening movie entirely.
     this.started = false;
-    this.openingFinished = false;
+    this.openingFinished = true;
     this.ui.enterGame();
-    this.playOpeningCinematic();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       if (!this.scene.isActive()) return;
       this.startLevel(this.currentLevelId, 'start');
-      this.cameras.main.fadeIn(1250, 7, 5, 7);
-      this.aren.lockInput(!this.openingFinished);
-      this.started = this.openingFinished;
-      this.ui.toast({ text: this.ui.language === 'fa' ? 'راه از میان خاکسترهای خانه آغاز می‌شود.' : 'The road begins in the ashes of home.', kind: 'info' });
+      this.cameras.main.fadeIn(650, 7, 5, 7);
+      this.aren.lockInput(false);
+      this.started = true;
+      this.ui.toast({ text: this.ui.language === 'fa' ? 'در سلول نمور زندان به هوش می‌آیی؛ راه خروج را پیدا کن.' : 'You wake in a damp prison cell. Find a way out.', kind: 'info' });
       void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
     }));
   }
@@ -313,7 +311,7 @@ export class GameScene extends Phaser.Scene {
     this.services.world.newGame();
     this.services.persistence.checkpoints.restore(undefined);
     this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = [];
-    this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_village_main'; this.trackedQuest = null;
+    this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_prison'; this.trackedQuest = null;
     this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.started = true;
     this.startLevel(this.currentLevelId, 'start');
@@ -402,6 +400,13 @@ export class GameScene extends Phaser.Scene {
       // Surface details are baked into the shared material texture to keep the object count low.
 
     }
+    // World dressing is positioned against authored ground surfaces, never screen-space.
+    if (this.overworldSegments.length) {
+      for (const segment of this.overworldSegments) {
+        const source = this.services.world.getLevel(segment.levelId);
+        if (source) this.drawLevelDressing(source, segment.offsetX, segment.offsetY);
+      }
+    } else this.drawLevelDressing(level);
     // The atlas is connected by authored region routes, not chapter-order walls.
     this.drawHazards(level);
     this.drawLore(level);
@@ -481,6 +486,58 @@ export class GameScene extends Phaser.Scene {
     this.createPixelTexture();
   }
 
+  /** Adds grounded scenery behind collision surfaces; every prop shares the level's terrain baseline. */
+  private drawLevelDressing(level: LevelDef, offsetX = 0, offsetY = 0): void {
+    const addTexture = (key: string, make: () => HTMLCanvasElement): string => {
+      if (!this.textures.exists(key)) this.textures.addCanvas(key, make());
+      return key;
+    };
+    const floors = level.platforms
+      .filter(([x, y, w, h, kind]) => w >= 650 && h >= 80 && (kind === 'ground' || kind === 'stone'))
+      .sort((a, b) => a[0] - b[0]);
+    if (level.id === 'ashen_village_main') {
+      const houseKey = addTexture('aoc-house-ruined', () => paintHouse('ruined'));
+      const cottageKey = addTexture('aoc-house-cottage', () => paintHouse('cottage'));
+      const placements = [
+        { x: 650, kind: houseKey, scale: 1.32 },
+        { x: 2360, kind: cottageKey, scale: 1.2 },
+        { x: 3740, kind: houseKey, scale: 1.42 },
+        { x: 5420, kind: cottageKey, scale: 1.26 },
+      ];
+      for (const item of placements) {
+        const floor = floors.find(([x, y, w]) => item.x >= x && item.x <= x + w);
+        if (!floor) continue;
+        this.add.image(offsetX + item.x, offsetY + floor[1], item.kind)
+          .setOrigin(0.5, 1).setScale(item.scale).setDepth(2);
+      }
+    } else if (level.id === 'ashen_escape_woods' || level.id === 'whispering_forest_main') {
+      const pine = addTexture('aoc-tree-pine', () => paintTree('pine'));
+      const broad = addTexture('aoc-tree-broadleaf', () => paintTree('broadleaf'));
+      const groundY = floors[0]?.[1] ?? 820;
+      const positions = level.id === 'ashen_escape_woods'
+        ? [260, 760, 1420, 2140, 2860, 3480]
+        : [360, 1180, 2080, 3180, 4260, 5480, 6600];
+      positions.forEach((x, i) => {
+        const key = i % 3 === 1 ? broad : pine;
+        const tree = this.add.image(offsetX + x, offsetY + groundY, key)
+          .setOrigin(0.5, 1).setScale(i % 2 ? 1.12 : 1.34).setDepth(2);
+        if (i % 2 === 0) tree.setAlpha(0.92);
+      });
+    } else if (level.id === 'ashen_prison') {
+      const bars = addTexture('aoc-prison-bars', () => paintPrisonDetail('bars'));
+      const torch = addTexture('aoc-prison-torch', () => paintPrisonDetail('torch'));
+      const floorY = floors[0]?.[1] ?? 760;
+      for (const x of [360, 900, 1540, 2100]) {
+        this.add.image(offsetX + x, offsetY + floorY - 18, bars).setOrigin(0.5, 1).setScale(1.7).setDepth(2).setAlpha(0.82);
+      }
+      for (const x of [160, 760, 1360, 1960, 2360]) {
+        const flame = this.add.image(offsetX + x, offsetY + floorY - 120, torch).setOrigin(0.5, 1).setScale(0.8).setDepth(3);
+        const glow = this.add.circle(flame.x, flame.y - 38, 52, 0xffa35d, 0.1).setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
+        this.tweens.add({ targets: [flame, glow], alpha: { from: 0.78, to: 0.48 }, scale: { from: 1, to: 1.08 }, duration: 520 + (x % 3) * 170, yoyo: true, repeat: -1 });
+      }
+    }
+  }
+
   /** Pixel-art backdrop: a dithered sky plus three seamless parallax layers per region (see src/art/world.ts). */
   private drawAtmosphere(level: LevelDef): void {
     if (this.overworldSegments.length > 1) {
@@ -489,11 +546,7 @@ export class GameScene extends Phaser.Scene {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
         const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
         const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
-        if (region === 'ashen_village' && this.textures.exists('aoc-vista-sodium')) {
-          this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, 'aoc-vista-sodium').setOrigin(0, 0).setTileScale(1280 / 384, 720 / 216).setDepth(-40);
-        } else {
-          this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
-        }
+        this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
         // Keep the six biome backdrops anchored to their world segments, but move each
         // texture at its own camera rate. This preserves region boundaries while adding
         // real parallax instead of leaving the entire overworld backdrop static.
@@ -529,11 +582,7 @@ export class GameScene extends Phaser.Scene {
     const sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
     const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
     this.parallax = [];
-    if (region === 'ashen_village' && this.textures.exists('aoc-vista-sodium')) {
-      this.add.image(0, 0, 'aoc-vista-sodium').setOrigin(0, 0).setDisplaySize(1280, 720).setScrollFactor(0).setDepth(-40);
-    } else {
-      this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
-    }
+    this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
     const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
     for (const [d, f, depth] of layers) {
       const ts = this.add.tileSprite(0, 0, 1280, 720, ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d))).setOrigin(0, 0).setScrollFactor(0).setDepth(depth);
