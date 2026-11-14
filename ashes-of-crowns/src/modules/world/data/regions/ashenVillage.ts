@@ -286,7 +286,7 @@ export const ashenVillage: RegionContent = {
 
   quests: [
     {
-      id: 'prison_break', title: 'The Blackwell Escape', type: 'main', region: 'ashen_village', chapter: 1, autoStart: CH(1),
+      id: 'prison_break', title: 'The Blackwell Escape', type: 'side', region: 'ashen_village', chapter: 1, autoStart: CH(1),
       summary: 'Explore Blackwell, recover the Warden key, uncover the hidden archive and reach the outer gate.',
       objectives: [
         OBJ('wake', 'Find a way out of the cell block', ZONE('prison_wake')),
