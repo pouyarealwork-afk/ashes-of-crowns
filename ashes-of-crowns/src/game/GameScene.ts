@@ -316,6 +316,7 @@ export class GameScene extends Phaser.Scene {
     } as const)[classId];
     this.services.rpg.skills.grantStartingAbility(classKit.active);
     this.services.rpg.skills.grantStartingSkill(classKit.passive);
+    this.services.rpg.inventory.add('health_potion_small', 2);
     this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_prison'; this.trackedQuest = null;
     // Begin in the playable prison level; skip the detached opening movie entirely.
