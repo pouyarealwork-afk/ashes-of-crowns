@@ -25,7 +25,7 @@ export const REGION_IDS: readonly RegionId[] = ['ashen_village', 'whispering_for
 export type StationId = 'blacksmith' | 'alchemist';
 export type Currency = 'gold' | 'shards';
 export type EnemyTier = 'minion' | 'elite' | 'miniboss' | 'boss';
-export type TreeId = 'warrior' | 'arcane' | 'shadow';
+export type TreeId = 'warrior' | 'arcane' | 'shadow' | 'warden' | 'oracle' | 'bard';
 export type EndingId = 'true_king' | 'tyrant' | 'wanderer' | 'hidden_truth' | 'fallen_hero';
 
 export interface ConsumableEffect {
