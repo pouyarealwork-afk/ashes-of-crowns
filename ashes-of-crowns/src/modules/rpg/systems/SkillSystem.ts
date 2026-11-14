@@ -38,18 +38,25 @@ export class SkillSystem {
     return null;
   }
 
-  /** Grants one class-signature ability without spending a level-up point. Used only when creating a new character. */
+  /** Grants a class-signature node without spending a level-up point. Used only when creating a new character. */
+  grantStartingSkill(skillId: string): Result<{ rank: number }> {
+    const n = SKILLS[skillId];
+    if (!n) return fail('unknown_skill');
+    const current = this.getRank(skillId);
+    if (current > 0) return { ok: true, rank: current };
+    this.ctx.state.skills[skillId] = 1;
+    if (n.ability) this.autoAssignHotbar(n.ability.id);
+    this.ctx.statsChanged();
+    this.ctx.events.emit('rpg:skill-ranked', { skillId, rank: 1, tree: n.tree, skillPoints: this.ctx.state.skillPoints });
+    return { ok: true, rank: 1 };
+  }
+
+  /** Grants one active signature ability without spending a level-up point. */
   grantStartingAbility(skillId: string): Result<{ rank: number }> {
     const n = SKILLS[skillId];
     if (!n) return fail('unknown_skill');
     if (!n.ability) return fail('not_usable');
-    const current = this.getRank(skillId);
-    if (current > 0) return { ok: true, rank: current };
-    this.ctx.state.skills[skillId] = 1;
-    this.autoAssignHotbar(n.ability.id);
-    this.ctx.statsChanged();
-    this.ctx.events.emit('rpg:skill-ranked', { skillId, rank: 1, tree: n.tree, skillPoints: this.ctx.state.skillPoints });
-    return { ok: true, rank: 1 };
+    return this.grantStartingSkill(skillId);
   }
 
   rankUp(skillId: string): Result<{ rank: number }> {
