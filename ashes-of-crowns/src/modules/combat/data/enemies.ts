@@ -37,6 +37,7 @@ const boss = (id: string, enemyType: string, name: string, title: string, intro:
 });
 
 export const BOSSES: Record<string, BossDefinition> = {
+  prison_sentinel: boss('prison_sentinel', 'prison_sentinel', 'The Bound Sentinel', 'Keeper of Blackwell', 'The gate opens only when the debt is paid.', 'The prison has lost its keeper.', 700, 1),
   sergeant_hobb: boss('sergeant_hobb', 'sergeant_hobb', 'Sergeant Hobb', 'The Ashen Hound', 'You should have stayed buried, exile.', 'The watch has fallen.', 520, 1),
   thornwarden: boss('thornwarden', 'thornwarden', 'The Thornwarden', 'Keeper of the Whispering Wood', 'The forest remembers every trespass.', 'The roots fall silent.', 600, 1),
   sandglass_colossus: boss('sandglass_colossus', 'sandglass_colossus', 'Sandglass Colossus', 'The Dune Titan', 'Time will grind you to dust.', 'The sands reclaim their giant.', 680, 1),
