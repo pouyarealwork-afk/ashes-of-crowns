@@ -73,6 +73,10 @@ export class GameScene extends Phaser.Scene {
 
   constructor() { super('GameScene'); }
 
+  preload(): void {
+    this.load.image('aoc-vista-sodium', `${import.meta.env.BASE_URL}assets/vista/sodium.webp`);
+  }
+
   init(data: SceneStartData): void {
     if (data.levelId) { this.currentLevelId = data.levelId; this.pendingLevel = { levelId: data.levelId, spawn: data.spawn ?? 'start' }; }
     this.registry.set('nextSpawn', data.spawn ?? 'start');
@@ -521,7 +525,11 @@ export class GameScene extends Phaser.Scene {
     const sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
     const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
     this.parallax = [];
-    this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
+    if (region === 'ashen_village' && this.textures.exists('aoc-vista-sodium')) {
+      this.add.image(0, 0, 'aoc-vista-sodium').setOrigin(0, 0).setDisplaySize(1280, 720).setScrollFactor(0).setDepth(-40);
+    } else {
+      this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
+    }
     const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
     for (const [d, f, depth] of layers) {
       const ts = this.add.tileSprite(0, 0, 1280, 720, ensure(`aoc-layer-${sig}-${d}`, () => paintLayer(a, region, d))).setOrigin(0, 0).setScrollFactor(0).setDepth(depth);

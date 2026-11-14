@@ -1,0 +1,6 @@
+VISTA asset subset: sodium.png
+Source: VISTA - ten layered pixel-art backgrounds, version 1.0.0
+Author/license as provided in the uploaded pack.
+License: CC0 1.0 (public domain). Free for commercial and non-commercial use, modification and redistribution; attribution not required. Do not resell as an asset pack.
+https://creativecommons.org/publicdomain/zero/1.0/
+Original dimensions: 384x216. Display with nearest-neighbour filtering to preserve pixel art.
