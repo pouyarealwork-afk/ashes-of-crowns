@@ -50,7 +50,7 @@ export class SettingsScreen extends Screen {
           sectionTitle(ctx.t('set.display'), 'eye'),
           settingRow(ctx.t('set.hudScale'), segmented(ctx.t('set.hudScale'), scales(), s.hudScale, (v) => ctx.updateSettings({ hudScale: v }))),
           settingRow(ctx.t('set.textScale'), segmented(ctx.t('set.textScale'), scales(), s.textScale, (v) => ctx.updateSettings({ textScale: v }))),
-          h('p', { class: 'muted small' }, ctx.t('set.reduceMotion'), ' · ', ctx.t('common.on')),
+          h('p', { class: 'muted small' }, ctx.t('set.reduceMotion'), ' · ', ctx.i18n.lang === 'fa' ? 'همیشه روشن' : 'ALWAYS ON'),
           fsOk
             ? settingRow(ctx.t('set.fullscreen'), btn({ icon: 'fullscreen', label: ctx.t('set.fullscreen'), onClick: () => void toggleFullscreen() }))
             : h('p', { class: 'muted small' }, icon('lock'), ' ', ctx.t('set.fullscreenUnsupported'))),
