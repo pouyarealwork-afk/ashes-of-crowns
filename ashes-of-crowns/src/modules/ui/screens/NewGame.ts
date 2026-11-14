@@ -10,7 +10,7 @@ export class NewGameScreen extends Screen {
   override readonly pausesGame = false;
   private slots: SaveSlotSummary[] = [];
   private selected = 1;
-  private selectedClass: 'warrior' | 'assassin' | 'mage' = 'warrior';
+  private selectedClass: 'warrior' | 'assassin' | 'mage' | 'warden' | 'oracle' | 'bard' = 'warrior';
 
   protected override onOpen(): void { this.selected = 0; }
 
@@ -42,7 +42,10 @@ export class NewGameScreen extends Screen {
             ...([
               { id: 'warrior' as const, fa: 'جنگجو', en: 'Warrior', descFa: 'سلامت و دفاع بیشتر؛ ضربهٔ قدرتی و فریاد نبرد', descEn: 'More health and defense; built for direct combat', icon: 'shield' },
               { id: 'assassin' as const, fa: 'قاتل', en: 'Assassin', descFa: 'سرعت و ضربهٔ بحرانی بیشتر؛ خنجر از پشت و گام سایه', descEn: 'Faster movement and stronger strikes', icon: 'swords' },
-              { id: 'mage' as const, fa: 'جادوگر', en: 'Mage', descFa: 'مانای بیشتر؛ پرتاب صاعقه، یخ و جادوی آتشین', descEn: 'More mana and regeneration; skill-focused', icon: 'sparkles' },
+              { id: 'mage' as const, fa: 'جادوگر', en: 'Mage', descFa: 'مانای بیشتر و جادوی اسرارآمیز', descEn: 'More mana and arcane magic', icon: 'sparkles' },
+              { id: 'warden' as const, fa: 'طبیعت‌بان', en: 'Warden', descFa: 'جادوی طبیعت، محافظت و بازیابی تدریجی', descEn: 'Nature magic, protection and restoration', icon: 'leaf' },
+              { id: 'oracle' as const, fa: 'پیشگو', en: 'Oracle', descFa: 'پیش‌بینی خطر، چابکی و جابه‌جایی لحظه‌ای', descEn: 'Foresight, agility and short spatial shifts', icon: 'eye' },
+              { id: 'bard' as const, fa: 'نغمه‌پرداز', en: 'Bard', descFa: 'آهنگ‌های پشتیبان برای بازیابی و تقویت توانایی‌ها', descEn: 'Supportive melodies for recovery and resilience', icon: 'music' },
             ]).map(c => btn({
               label: ctx.settings.lang === 'fa' ? c.fa : c.en,
               icon: c.icon,
@@ -50,7 +53,14 @@ export class NewGameScreen extends Screen {
               onClick: () => { this.selectedClass = c.id; this.rerender(); },
             }))),
           h('p', { class: 'muted small' }, (() => {
-            const c = { warrior: ['سلامت و دفاع بیشتر؛ ضربهٔ قدرتی و فریاد نبرد', 'More health and defense; built for direct combat'], assassin: ['سرعت و ضربهٔ بحرانی بیشتر؛ خنجر از پشت و گام سایه', 'Faster movement and stronger strikes'], mage: ['مانای بیشتر؛ پرتاب صاعقه، یخ و جادوی آتشین', 'More mana and regeneration; skill-focused'] }[this.selectedClass];
+            const c = {
+              warrior: ['سلامت و دفاع بیشتر؛ مهارت‌های جنگی', 'More health and defense; frontline resilience'],
+              assassin: ['چابکی و گریز؛ مهارت‌های سایه', 'Agility, evasion and shadow arts'],
+              mage: ['مانای بیشتر و جادوی اسرارآمیز', 'More mana and arcane magic'],
+              warden: ['جادوی طبیعت، محافظت و بازیابی تدریجی', 'Nature magic, protection and restoration'],
+              oracle: ['پیش‌بینی خطر، چابکی و جابه‌جایی لحظه‌ای', 'Foresight, agility and short spatial shifts'],
+              bard: ['آهنگ‌های پشتیبان برای بازیابی و تقویت توانایی‌ها', 'Supportive melodies for recovery and resilience'],
+            }[this.selectedClass];
             return c[ctx.settings.lang === 'fa' ? 0 : 1];
           })())),
         h('div', { class: 'newgame__slots' },
