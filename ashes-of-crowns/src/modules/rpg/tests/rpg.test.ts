@@ -70,6 +70,19 @@ test('each class can receive a free starting signature ability', () => {
     ok(m.skills.getUnlockedAbilities().some((a) => a.id === id), id + ' unlocked');
   }
 });
+test('each class starts with its own passive identity', () => {
+  const cases = [
+    ['w_toughness', 'warrior'], ['s_fleet_foot', 'shadow'], ['a_mana_well', 'arcane'],
+    ['d_living_bark', 'warden'], ['o_clear_mind', 'oracle'], ['b_warm_resonance', 'bard'],
+  ] as const;
+  for (const [id, tree] of cases) {
+    const m = fresh();
+    ok(m.skills.grantStartingSkill(id).ok, id);
+    eq(m.skills.getRank(id), 1);
+    eq(SKILLS[id].tree, tree);
+    eq(m.ctx.state.skillPoints, 0);
+  }
+});
 test('new support classes apply timed buffs and expire cleanly', () => {
   const cases = [
     { id: 'd_bloom_guard', stat: 'defense' as const, passive: 'healthRegen' as const, expected: 2 },
