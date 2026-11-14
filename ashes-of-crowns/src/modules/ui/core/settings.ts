@@ -41,7 +41,7 @@ export function sanitizeSettings(raw: unknown, fallback: UISettings = DEFAULT_SE
     leftHanded: bool(r.leftHanded, f.leftHanded),
     hudScale: pick(r.hudScale, SCALES, f.hudScale),
     textScale: pick(r.textScale, SCALES, f.textScale),
-    reduceMotion: bool(r.reduceMotion, f.reduceMotion),
+    reduceMotion: true,
     vibration: bool(r.vibration, f.vibration),
     persianDigits: bool(r.persianDigits, f.persianDigits),
   };
