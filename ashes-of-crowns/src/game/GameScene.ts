@@ -9,7 +9,7 @@ import { createUI, type GameUI } from '../modules/ui';
 import type { InputFrame } from '../modules/player/core/types';
 import type { LevelDef, RegionId } from '../modules/world/types';
 import { InputBridge } from './InputBridge';
-import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, paintHouse, paintTree, paintPrisonDetail, type PropKind } from '../art/world';
+import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, paintGlow, paintHouse, paintTree, paintPrisonDetail, paintDungeonWall, type PropKind } from '../art/world';
 import { buildOverworld, type OverworldExitSource, type OverworldSegment } from './Overworld';
 import { createUIBackend } from './backend';
 import { paintAren } from '../art/aren';
@@ -523,9 +523,11 @@ export class GameScene extends Phaser.Scene {
         if (i % 2 === 0) tree.setAlpha(0.92);
       });
     } else if (level.id === 'ashen_prison') {
+      const floorY = floors[0]?.[1] ?? 780;
+      const wall = addTexture('aoc-prison-wall', () => paintDungeonWall());
+      this.add.tileSprite(offsetX, offsetY, level.size.w, floorY + 20, wall).setOrigin(0, 0).setDepth(2);
       const bars = addTexture('aoc-prison-bars', () => paintPrisonDetail('bars'));
       const torch = addTexture('aoc-prison-torch', () => paintPrisonDetail('torch'));
-      const floorY = floors[0]?.[1] ?? 760;
       for (const x of [360, 900, 1540, 2100]) {
         this.add.image(offsetX + x, offsetY + floorY - 18, bars).setOrigin(0.5, 1).setScale(1.7).setDepth(2).setAlpha(0.82);
       }
