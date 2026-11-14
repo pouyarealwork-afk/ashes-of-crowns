@@ -17,7 +17,7 @@ const PAL = {
   cloth: ramp('#4d3d35'),
   metal: ramp('#a9b4be'),
   leather: ramp('#5c4331'),
-  cloak: ramp('#8c2f34'),
+  cloak: ramp('#245c58'),
   pants: ramp('#383843'),
   boots: ramp('#2d231d'),
   blade: ramp('#d9e1e8'),
