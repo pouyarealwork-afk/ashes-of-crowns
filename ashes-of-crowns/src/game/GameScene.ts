@@ -98,7 +98,7 @@ export class GameScene extends Phaser.Scene {
         rpg: new RpgModule({ bus }),
         world: createWorldModule({ emitter: bus }),
         persistence: new PersistenceModule({
-          gameVersion: '1.0.0', bus,
+          gameVersion: '1.2.0', bus,
           autosave: { intervalMs: 90000, minGapMs: 12000 },
           audio: { manifest: {}, regionMusic: {}, combatMusicId: undefined },
         }),
@@ -371,7 +371,7 @@ export class GameScene extends Phaser.Scene {
     this.trackedQuest = typeof flags.__trackedQuest === 'string' && flags.__trackedQuest ? flags.__trackedQuest : null;
     this.currentRegion = (state.currentRegion || 'ashen_village') as RegionId;
     const savedClass = flags.__class;
-    this.currentClass = savedClass === 'assassin' || savedClass === 'mage' ? savedClass : 'warrior';
+    this.currentClass = savedClass === 'assassin' || savedClass === 'mage' || savedClass === 'warden' || savedClass === 'oracle' || savedClass === 'bard' ? savedClass : 'warrior';
     const fallbackLevel = this.services.world.content.regions.get(this.currentRegion)?.entryLevel || 'ashen_village_main';
     const requestedLevel = String(flags.__level || fallbackLevel);
     this.currentLevelId = requestedLevel === 'aoc_overworld' ? 'aoc_overworld' : this.services.world.getLevel(requestedLevel) ? requestedLevel : fallbackLevel;
@@ -559,10 +559,10 @@ export class GameScene extends Phaser.Scene {
       this.add.tileSprite(offsetX, offsetY, level.size.w, floorY + 20, wall).setOrigin(0, 0).setDepth(2);
       const bars = addTexture('aoc-prison-bars', () => paintPrisonDetail('bars'));
       const torch = addTexture('aoc-prison-torch', () => paintPrisonDetail('torch'));
-      for (const x of [360, 900, 1540, 2100]) {
+      for (const x of [360, 900, 1540, 2100, 2820, 3560, 4320, 5080, 5840]) {
         this.add.image(offsetX + x, offsetY + floorY - 18, bars).setOrigin(0.5, 1).setScale(1.7).setDepth(2).setAlpha(0.82);
       }
-      for (const x of [160, 760, 1360, 1960, 2360]) {
+      for (const x of [160, 760, 1360, 1960, 2760, 3560, 4360, 5160, 5960]) {
         const flame = this.add.image(offsetX + x, offsetY + floorY - 120, torch).setOrigin(0.5, 1).setScale(0.8).setDepth(3);
         const glow = this.add.circle(flame.x, flame.y - 38, 52, 0xffa35d, 0.1).setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
         this.tweens.add({ targets: [flame, glow], alpha: { from: 0.78, to: 0.48 }, scale: { from: 1, to: 1.08 }, duration: 520 + (x % 3) * 170, yoyo: true, repeat: -1 });
@@ -683,7 +683,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawNpcs(npcs: any[], level: LevelDef): void {
-    const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250, mira: 0x536d62 };
+    const palette: Record<string, number> = { tamsin: 0x875447, kael: 0x526a7a, lyra: 0x667b55, brom: 0x9a7544, hobb: 0x805447, marta: 0x7d6250, mira: 0x536d62, sera: 0x526c83 };
     for (const spawn of npcs) {
       const def = this.services.world.content.npcs.get(spawn.npc);
       if (!def) continue;
