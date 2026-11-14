@@ -284,11 +284,16 @@ export class GameScene extends Phaser.Scene {
     this.currentClass = classId;
     this.activeSaveSlot = `slot${slot}`;
     this.services.rpg.newGame();
-    const signatureAbility = ({
-      warrior: 'w_power_strike', assassin: 's_backstab', mage: 'a_arc_bolt',
-      warden: 'd_bloom_guard', oracle: 'o_second_sight', bard: 'b_steady_beat',
+    const classKit = ({
+      warrior: { active: 'w_power_strike', passive: 'w_toughness' },
+      assassin: { active: 's_backstab', passive: 's_fleet_foot' },
+      mage: { active: 'a_arc_bolt', passive: 'a_mana_well' },
+      warden: { active: 'd_bloom_guard', passive: 'd_living_bark' },
+      oracle: { active: 'o_second_sight', passive: 'o_clear_mind' },
+      bard: { active: 'b_steady_beat', passive: 'b_warm_resonance' },
     } as const)[classId];
-    this.services.rpg.skills.grantStartingAbility(signatureAbility);
+    this.services.rpg.skills.grantStartingAbility(classKit.active);
+    this.services.rpg.skills.grantStartingSkill(classKit.passive);
     this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_prison'; this.trackedQuest = null;
     // Begin in the playable prison level; skip the detached opening movie entirely.
