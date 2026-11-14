@@ -6,7 +6,7 @@ import { Px, ramp, shade, hex, rng, type RGB } from './px';
  * bestiary reads as one family. Creatures face right (+x).
  */
 
-export const ENEMY_TYPES = ['ash_wolf','crown_soldier','thornling','rook_bandit','sand_scorpion','dune_raider','glass_serpent','sand_wraith','frost_wolf','ice_wraith','crown_scout','ironwatch_guard','crossbow_sentry','hushed_guard','hollow_shade','royal_champion','cellar_rat_swarm','sickened_stag','sergeant_hobb','thornwarden','sandglass_colossus','captain_voss','hush_mother_vesk','chancellor_morrow'] as const;
+export const ENEMY_TYPES = ['ash_wolf','crown_soldier','thornling','rook_bandit','sand_scorpion','dune_raider','glass_serpent','sand_wraith','frost_wolf','ice_wraith','crown_scout','ironwatch_guard','crossbow_sentry','hushed_guard','hollow_shade','royal_champion','cellar_rat_swarm','sickened_stag','sergeant_hobb','thornwarden','sandglass_colossus','captain_voss','hush_mother_vesk','chancellor_morrow','prison_sentinel'] as const;
 export const ENEMY_COLORS = [0x9b7561,0x9dabb8,0x65945d,0x8e7657,0xb78b49,0xa97943,0x6eabb0,0xc6b98e,0x8ab5c8,0x9bd8e5,0x8e9c9e,0x737b83,0x9c8a73,0x777b91,0x77718f,0xb99b65,0x82766b,0x786e60,0x965d4d,0x6c8b4d,0xb39b62,0x7898b4,0x8070a8,0x9b6574];
 
 const toRgb = (n: number): RGB => [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -208,7 +208,7 @@ export function paintEnemy(type: string, w: number, h: number, color: number): P
   if (type.includes('serpent')) serpent(art, w, h, c);
   else if (type.includes('scorpion')) scorpion(art, w, h, c);
   else if (type.includes('wolf') || type.includes('stag')) beast(art, w, h, type, c, boss);
-  else if (type.includes('wraith') || type.includes('shade') || type.includes('hush_mother')) wraith(art, w, h, type, c, boss);
+  else if (type.includes('wraith') || type.includes('shade') || type.includes('hush_mother') || type.includes('sentinel')) wraith(art, w, h, type, c, boss);
   else if (type.includes('rat_swarm')) ratSwarm(art, w, h, c);
   else if (type.includes('thorn')) plant(art, w, h, c, boss);
   else humanoid(art, w, h, type, c, boss);
