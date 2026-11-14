@@ -53,7 +53,15 @@ export function createUIBackend(scene: GameScene): UIBackend {
     skills: {
       getSkillTrees: () => (['warrior', 'arcane', 'shadow', 'warden', 'oracle', 'bard'] as const).map(id => {
         const tree = rpg.skills.getTree(id);
-        return { id, name: tree.name, icon: id, nodes: tree.nodes.map((v: any) => ({
+        const className = ({
+          warrior: { fa: 'جنگجو', en: 'Warrior' },
+          arcane: { fa: 'جادوگر', en: 'Mage' },
+          shadow: { fa: 'سایه‌رو', en: 'Shadow' },
+          warden: { fa: 'طبیعت‌بان', en: 'Warden' },
+          oracle: { fa: 'پیشگو', en: 'Oracle' },
+          bard: { fa: 'نغمه‌پرداز', en: 'Bard' },
+        } as const)[id];
+        return { id, name: className, icon: id, nodes: tree.nodes.map((v: any) => ({
           id: v.node.id, name: v.node.name, description: v.node.description, icon: v.node.icon,
           tier: v.node.tier, row: v.node.col, requires: v.node.requires?.map((r: any) => r.skillId),
           cost: v.node.costPerRank, maxRank: v.node.maxRank, rank: v.rank, available: v.canRank,
