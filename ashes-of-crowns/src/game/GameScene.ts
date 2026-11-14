@@ -489,7 +489,11 @@ export class GameScene extends Phaser.Scene {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
         const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
         const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
-        this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
+        if (region === 'ashen_village' && this.textures.exists('aoc-vista-sodium')) {
+          this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, 'aoc-vista-sodium').setOrigin(0, 0).setTileScale(1280 / 384, 720 / 216).setDepth(-40);
+        } else {
+          this.add.tileSprite(segment.offsetX, segment.offsetY, segment.width, segment.height, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setDepth(-40);
+        }
         // Keep the six biome backdrops anchored to their world segments, but move each
         // texture at its own camera rate. This preserves region boundaries while adding
         // real parallax instead of leaving the entire overworld backdrop static.
