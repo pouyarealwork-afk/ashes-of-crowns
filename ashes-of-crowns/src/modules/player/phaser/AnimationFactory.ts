@@ -16,6 +16,7 @@ export function ensureAnimations(scene: Phaser.Scene, textureKey = DEFAULT_TEXTU
     // pass erased fine armor, cloth and face details before the texture was enlarged.
     const tex = scene.textures.createCanvas(textureKey, width, height);
     if (!tex) throw new Error('[player] could not create canvas texture');
+    tex.setFilter(1); // NEAREST: keep Aren's pixels crisp
     const context = tex.getContext();
     context.imageSmoothingEnabled = false;
     context.clearRect(0, 0, width, height);

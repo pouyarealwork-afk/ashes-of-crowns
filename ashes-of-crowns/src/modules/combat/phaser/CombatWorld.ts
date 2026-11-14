@@ -1,5 +1,6 @@
 import { paintEnemy, paintProjectile } from '../../../art/enemies';
 import Phaser from 'phaser';
+import { addPixelCanvas, NEAREST } from '../../../art/pixelTexture';
 import { CombatEngine } from '../core/CombatEngine';
 import { getEnemyArchetype } from '../data/enemies';
 import type { PlayerAttackEvent } from '../types';
@@ -629,29 +630,34 @@ export class CombatWorld {
       const key = this.textureKey(type);
       if (this.scene.textures.exists(key)) return;
       const boss = i >= 18;
-      const w = boss ? 112 : 64, h = boss ? 128 : 78, cx = w / 2;
+      // Long bodies (quadrupeds, scorpion, serpent, rats) and bosses need wider canvases or their heads/tails/weapons are cut off.
+      const wide = /wolf|stag|scorpion|serpent|rat_swarm/.test(type);
+      const w = boss ? 128 : wide ? 96 : 64, h = boss ? 128 : 78, cx = w / 2;
       const color = colors[i];
       // Pixel-art archetype from the shared art pipeline (src/art/enemies.ts).
-      this.scene.textures.addCanvas(key, paintEnemy(type, w, h, color).toCanvas());
+      addPixelCanvas(this.scene.textures, key, paintEnemy(type, w, h, color).toCanvas());
 
       // Bake compact motion atlases from each hand-drawn archetype.
       const motionKey = this.motionTextureKey(type);
       if (!this.scene.textures.exists(motionKey)) {
         const source = this.scene.textures.get(key).getSourceImage() as CanvasImageSource;
-        const rows = [
-          { name: 'idle', poses: [[1,1,0,0],[1.012,.988,-1.2,0],[1,1,0,0],[.988,1.012,1.2,0]] },
-          { name: 'walk', poses: [[.96,1.045,-4,-1],[1.035,.965,-1,0],[1.045,.955,3,1],[.96,1.045,4,0],[1.035,.965,1,-1],[1.045,.955,-3,0]] },
-          { name: 'attack', poses: [[.91,1.08,-7,-2],[1.08,.94,-12,2],[1.12,.9,8,3],[1,1,2,0]] },
-          { name: 'stagger', poses: [[1.08,.94,9,2],[.94,1.06,-5,-1]] },
+        // Pixel-art animation = whole-pixel offsets only. The old atlas rotated and fractionally scaled each
+        // frame, which re-sampled the art and shredded outlines/clusters. Each cell is clipped so lunges
+        // never bleed into the neighbouring frame.
+        const rows: Array<{ name: string; poses: Array<[number, number]> }> = [
+          { name: 'idle', poses: [[0, 0], [0, -1], [0, -1], [0, 0]] },
+          { name: 'walk', poses: [[0, 0], [1, -1], [1, -2], [0, 0], [-1, -1], [-1, -2]] },
+          { name: 'attack', poses: [[-4, 0], [-8, 1], [10, 0], [2, 0]] },
+          { name: 'stagger', poses: [[6, 1], [-3, 0]] },
         ];
         const motion = this.scene.textures.createCanvas(motionKey, w * 6, h * rows.length);
         if (!motion) throw new Error(`Unable to create enemy motion atlas: ${type}`);
+        motion.setFilter(NEAREST);
         const ctx = motion.getContext(); ctx.imageSmoothingEnabled = false;
         rows.forEach((row, rowIndex) => row.poses.forEach((pose, frameIndex) => {
-          const [sx, sy, angle, shiftX] = pose;
-          ctx.save(); ctx.translate(frameIndex * w + w / 2 + shiftX, (rowIndex + 1) * h);
-          ctx.rotate(angle * Math.PI / 180); ctx.scale(sx, sy);
-          ctx.drawImage(source, -w / 2, -h, w, h); ctx.restore();
+          const [dx, dy] = pose;
+          ctx.save(); ctx.beginPath(); ctx.rect(frameIndex * w, rowIndex * h, w, h); ctx.clip();
+          ctx.drawImage(source, frameIndex * w + dx, rowIndex * h + dy, w, h); ctx.restore();
           motion.add(`${row.name}_${frameIndex}`, 0, frameIndex * w, rowIndex * h, w, h);
         }));
         motion.refresh();
@@ -668,7 +674,7 @@ export class CombatWorld {
 
     const projectileKey = `${this.texturePrefix}-projectile`;
     if (!this.scene.textures.exists(projectileKey)) {
-      this.scene.textures.addCanvas(projectileKey, paintProjectile().toCanvas());
+      addPixelCanvas(this.scene.textures, projectileKey, paintProjectile().toCanvas());
     }
   }
 }

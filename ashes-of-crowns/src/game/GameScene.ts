@@ -13,6 +13,7 @@ import { paintLayer, paintSky, paintPlatform, paintNpc, paintProp, paintShard, p
 import { buildOverworld, type OverworldExitSource, type OverworldSegment } from './Overworld';
 import { createUIBackend } from './backend';
 import { paintAren } from '../art/aren';
+import { addPixelCanvas } from '../art/pixelTexture';
 import { paintCourtActor } from '../art/cinematic';
 import { poseFor } from '../modules/player/phaser/ArenSprite';
 import { ANIM_DEFS, type AnimName } from '../modules/player/phaser/animations';
@@ -146,8 +147,8 @@ export class GameScene extends Phaser.Scene {
 
   /** Small shared textures (collectible shard, soft glow) created on first use. */
   private ensureSharedArt(): void {
-    if (!this.textures.exists('aoc-shard')) this.textures.addCanvas('aoc-shard', paintShard());
-    if (!this.textures.exists('aoc-glow')) this.textures.addCanvas('aoc-glow', paintGlow());
+    if (!this.textures.exists('aoc-shard')) addPixelCanvas(this.textures, 'aoc-shard', paintShard());
+    if (!this.textures.exists('aoc-glow')) addPixelCanvas(this.textures, 'aoc-glow', paintGlow());
   }
 
   private createPixelTexture(): void {
@@ -490,7 +491,7 @@ export class GameScene extends Phaser.Scene {
       for (const [segIndex, segment] of this.overworldSegments.entries()) {
         const source = this.services.world.getLevel(segment.levelId); if (!source) continue;
         const a = source.atmosphere.palette, region = String(segment.region), sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
-        const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
+        const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) addPixelCanvas(this.textures, key, make()); return key; };
         // Textures only: the backdrop itself is three viewport-sized sprites (see below). The old per-segment
         // tile sprites were as large as a whole region, tiled the 720px art vertically and scrolled the
         // parallax in the wrong direction (far layers moved faster than the ground).
@@ -530,7 +531,7 @@ export class GameScene extends Phaser.Scene {
     const a = level.atmosphere.palette;
     const region = String(level.region);
     const sig = `${region}-${a.sky}-${a.mid}-${a.fore}`;
-    const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) this.textures.addCanvas(key, make()); return key; };
+    const ensure = (key: string, make: () => HTMLCanvasElement): string => { if (!this.textures.exists(key)) addPixelCanvas(this.textures, key, make()); return key; };
     this.parallax = [];
     this.add.image(0, 0, ensure(`aoc-sky-${sig}`, () => paintSky(a, region))).setOrigin(0, 0).setScrollFactor(0).setDepth(-40);
     const layers: Array<[0 | 1 | 2, number, number]> = [[0, 0.1, -31], [1, 0.28, -24], [2, 0.6, 1]];
@@ -559,7 +560,7 @@ export class GameScene extends Phaser.Scene {
   /** One pixel-art texture per (material, size): painted to the exact collider size so pixels never stretch. */
   private platformTexture(kind: string, w: number, h: number): string {
     const key = `aoc-plat-${kind}-${w}x${h}`;
-    if (!this.textures.exists(key)) this.textures.addCanvas(key, paintPlatform(kind, w, h));
+    if (!this.textures.exists(key)) addPixelCanvas(this.textures, key, paintPlatform(kind, w, h));
     return key;
   }
 
@@ -599,7 +600,7 @@ export class GameScene extends Phaser.Scene {
   /** Pixel-art villager portrait, painted once per NPC id (src/art/world.ts). */
   private npcTexture(id: string, cloth: number): string {
     const key = `aoc-npc-${id}`;
-    if (!this.textures.exists(key)) this.textures.addCanvas(key, paintNpc(id, cloth));
+    if (!this.textures.exists(key)) addPixelCanvas(this.textures, key, paintNpc(id, cloth));
     return key;
   }
 
@@ -620,11 +621,11 @@ export class GameScene extends Phaser.Scene {
       const shadow = this.add.ellipse(x, y - 2, 31, 8, 0x000000, 0.46).setDepth(7);
       // NPCs were rendered at over twice Aren's visual height and looked detached
       // from the playable world. Keep their feet anchored and bring them to a shared scale.
-      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8).setScale(0.75);
+      const actor = this.add.image(x, y, this.npcTexture(spawn.npc, cloth)).setOrigin(0.5, 0.94).setDepth(8);
       // Keep NPC feet on the same plane as Aren; the subtle cloth sway does not lift them.
-      this.tweens.add({ targets: actor, scaleY: 0.755, angle: 0.28, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: actor, y: y - 1, duration: 1100 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Stepped', easeParams: [2] });
       this.tweens.add({ targets: shadow, scaleX: 1.035, alpha: 0.39, duration: 2850 + (x % 5) * 110, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-      const plaque = this.add.container(x, y - 52, [
+      const plaque = this.add.container(x, y - 72, [
         this.add.rectangle(0, 0, Math.min(190, Math.max(92, def.name.length * 9 + 34)), 23, 0x100d0b, 0.82).setStrokeStyle(1, 0x9a774b, 0.82),
         this.add.text(0, 0, def.name, { fontFamily: 'Georgia', fontSize: '12px', color: '#f0dfc3', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5),
         this.add.circle(-42, 0, 2, 0xe5bd79, 0.9),
@@ -640,12 +641,12 @@ export class GameScene extends Phaser.Scene {
       const id = String(item.id).toLowerCase();
       const propKind: PropKind = id.includes('well') ? 'well' : (id.includes('forge') || id.includes('anvil')) ? 'forge' : (id.includes('chest') || id.includes('cache') || id.includes('crate')) ? 'chest' : (id.includes('shrine') || id.includes('memory') || id.includes('altar')) ? 'shrine' : 'generic';
       const propKey = `aoc-prop-${propKind}`;
-      if (!this.textures.exists(propKey)) this.textures.addCanvas(propKey, paintProp(propKind));
+      if (!this.textures.exists(propKey)) addPixelCanvas(this.textures, propKey, paintProp(propKind));
       this.ensureSharedArt();
       g.add(this.add.ellipse(0, -2, 44, 9, 0x000000, 0.4));
-      g.add(this.add.image(0, 0, propKey).setOrigin(0.5, 0.95).setScale(0.75));
-      const labelBg = this.add.rectangle(item.label.length * 3.3, -75, Math.min(210, item.label.length * 7.5 + 24), 22, 0x100d0b, 0.76).setStrokeStyle(1, 0x806343, 0.8);
-      const label = this.add.text(item.label.length * 3.3, -75, item.label, { fontFamily: 'Georgia', fontSize: '11px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
+      g.add(this.add.image(0, 0, propKey).setOrigin(0.5, 0.95));
+      const labelBg = this.add.rectangle(item.label.length * 3.3, -98, Math.min(210, item.label.length * 7.5 + 24), 22, 0x100d0b, 0.76).setStrokeStyle(1, 0x806343, 0.8);
+      const label = this.add.text(item.label.length * 3.3, -98, item.label, { fontFamily: 'Georgia', fontSize: '11px', color: '#e8d7ba', stroke: '#171315', strokeThickness: 3 }).setOrigin(0.5).setDepth(8);
       g.add([labelBg, label]);
       // Light-emitting props pulse: forge embers, shrine halo, chest glint.
       if (propKind === 'forge') {

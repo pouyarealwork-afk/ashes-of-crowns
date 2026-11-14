@@ -143,13 +143,13 @@ function scorpion(px: Px, w: number, h: number, c: RGB): void {
 }
 
 function serpent(px: Px, w: number, h: number, c: RGB): void {
-  const R = ramp(c), g = h - 5;
+  const R = ramp(c), g = h - 5, ox = (w - 64) >> 1;
   for (let s = 0; s < 8; s++) {
-    const x = 8 + s * 6, y = g - 12 - Math.sin(s * 0.9) * 9 - s * 1.5, r = 6.5 - s * 0.35;
+    const x = ox + 8 + s * 6, y = g - 12 - Math.sin(s * 0.9) * 9 - s * 1.5, r = 6.5 - s * 0.35;
     px.disc(x, y, r, s % 2 ? R[2] : R[3], T.body);
     px.disc(x - 1, y - 2, r * 0.45, R[4], T.light);
   }
-  const hx = 8 + 8 * 6, hy = g - 36;
+  const hx = ox + 8 + 8 * 6, hy = g - 36;
   px.poly([[hx - 5, hy + 5], [hx + 4, hy - 8], [hx + 14, hy + 1], [hx + 10, hy + 7]], R[3], T.light);
   px.line(hx + 10, hy + 4, hx + 18, hy + 7, [230, 80, 80], 1, T.glow); // tongue
   px.line(hx + 7, hy + 4, hx + 8, hy + 10, BONE[3], 1, T.light);
@@ -189,9 +189,9 @@ function plant(px: Px, w: number, h: number, c: RGB, boss: boolean): void {
 }
 
 function ratSwarm(px: Px, w: number, h: number, c: RGB): void {
-  const R = ramp(c), g = h - 5;
+  const R = ramp(c), g = h - 5, ox = (w - 64) >> 1;
   for (let k = 0; k < 6; k++) {
-    const x = 12 + (k % 3) * 19, y = g - 6 - Math.floor(k / 3) * 14;
+    const x = ox + 12 + (k % 3) * 19, y = g - 6 - Math.floor(k / 3) * 14;
     px.ellipse(x, y, 9, 5, R[2], T.body);
     px.ellipse(x + 7, y - 2, 4, 3, R[3], T.light);
     px.line(x - 8, y + 1, x - 17, y + 6, [168, 130, 120], 1, T.extra);
