@@ -114,7 +114,7 @@ export function paintPlatform(kind: string, w: number, h: number): HTMLCanvasEle
 
 // ------------------------------------------------------------------ backdrops
 
-export interface Atmosphere { sky: string; mid: string; fore: string }
+export interface Atmosphere { sky: string; mid: string; fore: string; light?: 'dawn' | 'noon' | 'dusk' | 'night' | 'gloom' }
 export type RegionKind = 'village' | 'forest' | 'desert' | 'frost' | 'hollow' | 'crown';
 
 export function regionKind(region: string): RegionKind {
