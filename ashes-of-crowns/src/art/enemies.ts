@@ -173,6 +173,54 @@ function wraith(px: Px, w: number, h: number, type: string, c: RGB, boss: boolea
   for (let i = 0; i < 10; i++) px.blend(Math.round(cx + (r() - 0.5) * 40 * s), Math.round(bot - r() * 30), eye, 0.35);
 }
 
+function prisonSentinel(px: Px, w: number, h: number, c: RGB): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4;
+  const coreY = Math.round(h * 0.42);
+  const glow: RGB = [134, 220, 238];
+  // A floating, faceless prison idol: no carried gear, only stone plates and a bound spirit.
+  px.ellipse(cx, g - 28, 28, 13, [8, 15, 24], T.dark);
+  px.poly([[cx - 22, coreY], [cx - 16, coreY - 22], [cx, coreY - 30], [cx + 16, coreY - 22], [cx + 22, coreY], [cx + 15, g - 8], [cx + 4, g - 2], [cx - 8, g - 7], [cx - 18, g - 18]], R[2], T.body);
+  px.poly([[cx - 13, coreY + 4], [cx, coreY - 10], [cx + 13, coreY + 4], [cx + 9, g - 16], [cx, g - 8], [cx - 9, g - 16]], R[1], T.cloth);
+  // Broken halo and orbiting stone seals establish a unique silhouette at a distance.
+  px.ellipse(cx, coreY - 27, 27, 7, R[3], T.light);
+  px.ellipse(cx, coreY - 27, 19, 3, [11, 19, 29], T.dark);
+  for (const side of [-1, 1]) {
+    const sx = cx + side * 25;
+    px.poly([[sx - 8, coreY - 13], [sx + 1, coreY - 21], [sx + 10, coreY - 9], [sx + 7, coreY + 8], [sx - 6, coreY + 5]], R[2], T.armor);
+    px.ellipse(sx, coreY + 2, 8, 12, R[1], T.dark);
+    px.disc(sx, coreY + 2, 2.2, glow, T.glow);
+    px.line(sx, coreY + 16, sx + side * 7, coreY + 29, R[3], 2, T.light);
+  }
+  // Sealed mask and central heart.
+  px.poly([[cx - 12, coreY - 7], [cx, coreY - 16], [cx + 12, coreY - 7], [cx + 9, coreY + 12], [cx, coreY + 18], [cx - 9, coreY + 12]], R[3], T.armor);
+  glowEye(px, cx - 5, coreY - 1, glow); glowEye(px, cx + 4, coreY - 1, glow);
+  px.disc(cx, coreY + 12, 5, [78, 164, 182], T.glow);
+  px.disc(cx, coreY + 12, 2, [220, 250, 255], T.glow);
+  // Lower mantle dissolves into separated spectral ribbons.
+  px.poly([[cx - 15, coreY + 17], [cx + 15, coreY + 17], [cx + 20, g - 14], [cx + 8, g - 4], [cx, g - 17], [cx - 9, g - 3], [cx - 20, g - 14]], R[1], T.cloth);
+  for (let k = -2; k <= 2; k++) {
+    const x = cx + k * 7;
+    px.line(x, g - 15, x + k * 2, g - 2 - Math.abs(k) * 3, k % 2 ? R[2] : glow, 2, T.light);
+  }
+  px.line(cx - 18, coreY + 23, cx + 18, coreY + 23, glow, 1, T.glow);
+}
+
+function hushedGuard(px: Px, w: number, h: number, c: RGB): void {
+  const R = ramp(c), cx = w >> 1, g = h - 4, top = 8;
+  // A hooded, hollow jailer with a sealed mask and floating cuffs.
+  px.poly([[cx - 11, top + 17], [cx + 11, top + 17], [cx + 17, g - 5], [cx + 6, g - 1], [cx, g - 9], [cx - 7, g - 1], [cx - 17, g - 5]], R[2], T.cloth);
+  px.poly([[cx - 9, top + 12], [cx - 6, top + 1], [cx, top - 4], [cx + 8, top + 2], [cx + 11, top + 13], [cx + 5, top + 9], [cx - 4, top + 9]], R[1], T.dark);
+  px.poly([[cx - 7, top + 12], [cx, top + 7], [cx + 7, top + 12], [cx + 5, top + 20], [cx - 5, top + 20]], R[3], T.armor);
+  glowEye(px, cx - 3, top + 14, [178, 164, 255]); glowEye(px, cx + 3, top + 14, [178, 164, 255]);
+  px.line(cx - 8, top + 22, cx - 18, top + 34, R[3], 3, T.light);
+  px.line(cx + 8, top + 22, cx + 18, top + 34, R[3], 3, T.light);
+  for (const side of [-1, 1]) {
+    px.ellipse(cx + side * 19, top + 35, 5, 7, R[2], T.armor);
+    px.ellipse(cx + side * 19, top + 35, 2, 4, [151, 135, 214], T.glow);
+  }
+  px.hline(cx - 10, g - 5, 20, R[3], T.light);
+}
+
 function plant(px: Px, w: number, h: number, c: RGB, boss: boolean): void {
   const R = ramp(c), cx = w >> 1, g = h - 4, s = boss ? 1.5 : 1;
   px.line(cx - 8 * s, g, cx - 4 * s, g - 30 * s, R[1], 7 * s, T.dark);
@@ -205,7 +253,9 @@ export function paintEnemy(type: string, w: number, h: number, color: number): P
   const c = toRgb(color);
   const boss = ENEMY_TYPES.indexOf(type as any) >= 18;
   const art = new Px(w, h);
-  if (type.includes('serpent')) serpent(art, w, h, c);
+  if (type === 'prison_sentinel') prisonSentinel(art, w, h, c);
+  else if (type === 'hushed_guard') hushedGuard(art, w, h, c);
+  else if (type.includes('serpent')) serpent(art, w, h, c);
   else if (type.includes('scorpion')) scorpion(art, w, h, c);
   else if (type.includes('wolf') || type.includes('stag')) beast(art, w, h, type, c, boss);
   else if (type.includes('wraith') || type.includes('shade') || type.includes('hush_mother') || type.includes('sentinel')) wraith(art, w, h, type, c, boss);
