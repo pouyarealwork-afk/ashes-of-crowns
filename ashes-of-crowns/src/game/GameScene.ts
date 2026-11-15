@@ -319,18 +319,32 @@ export class GameScene extends Phaser.Scene {
     this.services.rpg.inventory.add('health_potion_small', 2);
     this.services.world.newGame(); this.services.persistence.checkpoints.restore(undefined); this.lastSaveState = null; this.playtimeMs = 0; this.pendingEndingId = null; this.pendingEndingSlides = []; this.syncedStoryFlags.clear(); this.syncStoryFlags();
     this.currentRegion = 'ashen_village'; this.currentLevelId = 'ashen_prison'; this.trackedQuest = null;
-    // Begin in the playable prison level; skip the detached opening movie entirely.
+    // Build the playable prison level, then keep gameplay locked behind the skippable opening.
     this.started = false;
-    this.openingFinished = true;
+    this.openingFinished = false;
     this.ui.enterGame();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       if (!this.scene.isActive()) return;
       this.startLevel(this.currentLevelId, 'start');
+      this.aren.lockInput(true);
+      this.started = false;
       this.cameras.main.fadeIn(650, 7, 5, 7);
-      this.aren.lockInput(false);
-      this.started = true;
-      this.ui.toast({ text: this.ui.language === 'fa' ? 'در سلول نمور زندان به هوش می‌آیی؛ راه خروج را پیدا کن.' : 'You wake in a damp prison cell. Find a way out.', kind: 'info' });
-      void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
+      const finishNewGame = () => {
+        if (!this.scene.isActive()) return;
+        this.ui.toast({ text: this.ui.language === 'fa' ? 'در سلول نمور زندان به هوش می‌آیی؛ راه خروج را پیدا کن.' : 'You wake in a damp prison cell. Find a way out.', kind: 'info' });
+        void this.services.persistence.saveToSlot(this.activeSaveSlot, 'New Game').catch(err => this.ui?.toast({ text: `Initial save failed: ${(err as Error).message}`, kind: 'warning' }));
+      };
+      try {
+        this.playOpeningCinematic(finishNewGame);
+      } catch (err) {
+        // If a browser cannot render the cinematic, never strand the player at the title screen.
+        document.querySelector('.aoc-opening-cinematic')?.remove();
+        this.openingFinished = true;
+        this.aren?.lockInput(false);
+        this.started = true;
+        this.ui.toast({ text: `Opening cinematic skipped: ${(err as Error).message}`, kind: 'warning' });
+        finishNewGame();
+      }
     }));
   }
 
@@ -1064,7 +1078,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** A skippable, multi-shot opening sequence shown only when starting a new game. */
-  private playOpeningCinematic(): void {
+  private playOpeningCinematic(onComplete?: () => void): void {
     const fa = this.ui?.language === 'fa';
     const overlay = document.createElement('section');
     overlay.className = 'aoc-opening-cinematic';
@@ -1424,6 +1438,7 @@ export class GameScene extends Phaser.Scene {
         this.openingFinished = true;
         if (this.aren) this.aren.lockInput(false);
         this.started = true;
+        onComplete?.();
       }, 950);
     };
     const onKeyDown = (event: KeyboardEvent) => {

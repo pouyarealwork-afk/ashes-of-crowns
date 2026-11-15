@@ -90,6 +90,21 @@ function suite(): void {
   ok(!m0.useExit('ashen_village_main', 'to_forest').ok, 'forest exit locked at start');
   ok(m0.getLevelRuntime('ashen_village_main')!.npcs.some(n => n.npc === 'tamsin'), 'tamsin placed in village before recruitment');
 
+  console.log('== Dialogue start guard: queued story events are not overwritten');
+  const dialogueGuard = new WorldModule();
+  const dialogueIds = [...dialogueGuard.content.dialogues.keys()];
+  const firstDialogueId = dialogueIds.find(id => id !== 'd_prison_wake')!;
+  const secondDialogueId = dialogueIds.find(id => id !== firstDialogueId && id !== 'd_prison_wake')!;
+  let dialogueEnds = 0;
+  dialogueGuard.on('world:dialogue-ended', () => { dialogueEnds++; });
+  const firstDialogue = dialogueGuard.startDialogue(firstDialogueId);
+  dialogueGuard.reportZone('prison_wake');
+  const attemptedReplacement = dialogueGuard.startDialogue(secondDialogueId);
+  ok(firstDialogue !== null && attemptedReplacement?.treeId === firstDialogue?.treeId, 'new dialogue requests leave the active conversation intact');
+  ok(dialogueEnds === 0 && dialogueGuard.isInDialogue(), 'an attempted replacement does not emit a premature dialogue-ended event');
+  dialogueGuard.endDialogue();
+  ok(dialogueEnds === 1 && dialogueGuard.getDialogue()?.treeId === 'd_prison_wake', 'queued prison-wake story dialogue starts after the active conversation ends');
+
   console.log('== Dialogue: conditional entry, effects, reactions');
   const m1 = new WorldModule();
   m1.talkTo('marta'); ok(!!m1.getDialogue(), 'marta starts dialogue');

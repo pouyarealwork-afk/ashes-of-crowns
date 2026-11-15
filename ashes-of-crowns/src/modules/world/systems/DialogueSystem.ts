@@ -20,9 +20,11 @@ export class DialogueSystem {
   }
 
   start(treeId: string): DialogueView | null {
+    // A second trigger must not finish the active conversation: finish() also flushes
+    // queued story events, so replacing here could silently overwrite a queued cutscene.
+    if (this.tree) return this.lastView ?? null;
     const tree = this.rt.content.dialogues.get(treeId);
     if (!tree) return null;
-    if (this.tree) this.finish();
     this.tree = tree; this.reactions = [];
     let node = tree.start;
     for (const e of tree.entries ?? []) if (this.rt.check(e.when)) { node = e.node; break; }
