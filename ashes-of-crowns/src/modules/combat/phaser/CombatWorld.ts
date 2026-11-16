@@ -86,7 +86,7 @@ export class CombatWorld {
   private colliders: Phaser.Physics.Arcade.Collider[] = [];
   private comboLabel?: Phaser.GameObjects.Text;
   private comboHideTween?: Phaser.Tweens.Tween;
-  private telegraphViews = new Set<Phaser.GameObjects.GameObject>();
+  private telegraphViews = new Map<string, Phaser.GameObjects.Container>();
   private enemyComboLabels = new Map<string, Phaser.GameObjects.Text>();
 
   constructor(options: CombatWorldOptions) {
@@ -291,7 +291,10 @@ export class CombatWorld {
     for (const sprite of this.sprites.values()) sprite.destroy();
     this.sprites.clear(); this.projectiles.destroy(true);
     this.comboHideTween?.stop(); this.comboLabel?.destroy();
-    for (const view of this.telegraphViews) view.destroy();
+    for (const view of this.telegraphViews.values()) {
+      this.scene.tweens.killTweensOf(view);
+      view.destroy();
+    }
     this.telegraphViews.clear();
     this.hazardEnteredAt.clear(); this.hazardCooldowns.clear();
     for (const label of this.enemyComboLabels.values()) label.destroy();
@@ -315,6 +318,7 @@ export class CombatWorld {
     on('combat:enemy-combo-reset', (payload: { enemyId: string }) => this.clearEnemyComboLabel(payload.enemyId));
     on('combat:enemy-combo', (payload: { enemyId: string; count: number; multiplier: number }) => this.showEnemyCombo(payload));
     on('combat:telegraph', (payload: { enemyId: string; attack: string; durationMs: number }) => this.showEnemyTelegraph(payload));
+    on('combat:telegraph-cancelled', (payload: { enemyId: string }) => this.clearEnemyTelegraph(payload.enemyId));
     on('world:companion-assist-actions', (actions: any[]) => {
       const view = { x: this.player.x, y: this.player.y, health: this.player.stats.health, maxHealth: this.player.stats.config.maxHealth, facing: this.player.facing };
       for (const action of actions ?? []) this.engine.receiveAssist(action, view);
@@ -386,6 +390,7 @@ export class CombatWorld {
     const enemy = this.engine.getEnemy(payload.enemyId);
     const sprite = this.sprites.get(payload.enemyId);
     if (!enemy || !sprite?.active) return;
+    this.clearEnemyTelegraph(payload.enemyId);
     const boss = enemy.tier === 'boss';
     const width = boss ? 190 : enemy.ai === 'ranged' ? 100 : 72;
     const marker = this.scene.add.container(sprite.x, sprite.y - 12).setDepth(30);
@@ -406,10 +411,25 @@ export class CombatWorld {
       color: boss ? '#ff9a9f' : '#ffd08b', stroke: '#180d0d', strokeThickness: 4,
     }).setOrigin(0.5);
     marker.add([art, label]);
-    this.telegraphViews.add(marker);
+    this.telegraphViews.set(payload.enemyId, marker);
     this.scene.tweens.add({
       targets: marker, alpha: 0, scaleX: 1.08, duration: Math.max(260, payload.durationMs),
-      ease: 'Quad.In', onComplete: () => { this.telegraphViews.delete(marker); marker.destroy(); },
+      ease: 'Quad.In', onComplete: () => {
+        if (this.telegraphViews.get(payload.enemyId) === marker) this.telegraphViews.delete(payload.enemyId);
+        marker.destroy();
+      },
+    });
+  }
+
+  private clearEnemyTelegraph(enemyId: string): void {
+    const marker = this.telegraphViews.get(enemyId);
+    if (!marker) return;
+    this.telegraphViews.delete(enemyId);
+    this.scene.tweens.killTweensOf(marker);
+    if (!marker.active) return;
+    this.scene.tweens.add({
+      targets: marker, alpha: 0, scaleX: 0.88, scaleY: 0.88, duration: 90,
+      ease: 'Quad.In', onComplete: () => marker.destroy(),
     });
   }
 

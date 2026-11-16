@@ -136,7 +136,9 @@ test('rectangle collision helper uses strict overlap', () => {
   assert.equal(enemyRect({ x: 20, y: 30, tier: 'boss' }).width, 88);
 });
 test('stun cancels an enemy wind-up before the strike resolves', () => {
-  const c = new CombatEngine({ rng });
+  const events = [];
+  const bus = { on(){}, off(){}, emit:(name, payload)=>events.push([name, payload]) };
+  const c = new CombatEngine({ emitter: bus, rng });
   const e = c.spawn('ash_wolf', { x: 30, y: 0 });
   e.attackCooldownMs = 0;
   const player = { x: 0, y: 0, health: 100, maxHealth: 100, facing: 1 };
@@ -144,10 +146,35 @@ test('stun cancels an enemy wind-up before the strike resolves', () => {
   c.update(16, player, () => { strikes++; });
   assert.ok(e.windupRemainingMs > 0, 'enemy should telegraph before the hit');
   c.damageEnemy(e.id, { amount: 1, stunMs: 900 });
-  c.update(16, player, () => { strikes++; });
-  assert.equal(e.windupRemainingMs, 0);
+  assert.equal(e.windupRemainingMs, 0, 'a stun cancels the wind-up immediately');
   assert.equal(e.telegraphActive, false);
+  assert.equal(events.filter(([name, payload]) => name === 'combat:telegraph-cancelled' && payload.reason === 'stunned').length, 1);
+  c.update(16, player, () => { strikes++; });
   assert.equal(strikes, 0, 'stunned enemy must not finish its attack');
+});
+test('player melee hits interrupt enemy combos and cancel the active telegraph', () => {
+  const events = [];
+  const bus = { on(){}, off(){}, emit:(name, payload)=>events.push([name, payload]) };
+  const c = new CombatEngine({ emitter: bus, rng });
+  const enemy = c.spawn('ash_wolf', { x: 30, y: 0 });
+  enemy.attackCooldownMs = 0;
+  const player = { x: 0, y: 0, health: 100, maxHealth: 100, facing: 1 };
+  const strikes = [];
+  for (let i = 0; i < 40 && strikes.length < 1; i++) c.update(50, player, (_attacker, damage) => strikes.push(damage));
+  assert.equal(strikes.length, 1, 'enemy should complete its opening strike');
+  enemy.attackCooldownMs = 0;
+  c.update(16, player, () => {});
+  assert.ok(enemy.windupRemainingMs > 0, 'enemy should begin a second telegraphed attack');
+  const attack = { kind:'normal', comboIndex:0, facing:1, damage:10, hitbox:{offsetX:0,offsetY:0,width:100,height:100}, activeFrom:0, activeFor:0.1 };
+  c.resolvePlayerAttack(attack, {x:0,y:-50,width:100,height:100}, player, 'interrupt-enemy-chain');
+  assert.equal(enemy.windupRemainingMs, 0, 'player hit should cancel the wind-up immediately');
+  assert.equal(enemy.telegraphActive, false);
+  assert.equal(events.filter(([name]) => name === 'combat:enemy-combo-reset').length, 1, 'player melee hit should reset the enemy chain');
+  assert.equal(events.filter(([name, payload]) => name === 'combat:telegraph-cancelled' && payload.reason === 'stunned').length, 1);
+  for (let i = 0; i < 40 && strikes.length < 2; i++) c.update(50, player, (_attacker, damage) => strikes.push(damage));
+  assert.equal(strikes.length, 2, 'enemy should recover and attack again');
+  const chainEvents = events.filter(([name]) => name === 'combat:enemy-combo').map(([, payload]) => payload.count);
+  assert.deepEqual(chainEvents.slice(0, 2), [1, 1], 'the next enemy strike should restart at chain one');
 });
 test('flying enemy pursues the player on both axes', () => {
   const ai = new EnemyAIController();

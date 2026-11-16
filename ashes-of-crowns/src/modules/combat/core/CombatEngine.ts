@@ -108,10 +108,7 @@ export class CombatEngine {
       if (tick.damage > 0) this.damageEnemy(enemy.id, { amount: tick.damage, school: 'true', sourceId: 'status' });
       if (!enemy.alive) continue;
       const action = this.ai.update(enemy, player, dt);
-      if (enemy.stunRemainingMs > 0 && enemy.windupRemainingMs > 0) {
-        enemy.windupRemainingMs = 0;
-        enemy.telegraphActive = false;
-      }
+      if (enemy.stunRemainingMs > 0 && enemy.windupRemainingMs > 0) this.interruptEnemyAction(enemy, 'stunned');
       enemy.vx = action.vx;
       enemy.vy = action.vy;
       if (action.telegraph && !enemy.telegraphActive) {
@@ -164,6 +161,8 @@ export class CombatEngine {
       const multiplier = (attack.kind === 'heavy' ? 1.7 : attack.kind === 'skill' ? 2 : 1) * comboMultiplier;
       const result = this.damage.outgoing({ baseDamage: attack.damage || 10, multiplier, target: enemy, school: 'physical', behind, bonusCritChance: attack.kind === 'heavy' ? 0.08 : 0 });
       const applied = applyHitToEnemy(enemy, { amount: result.damage, school: 'true', sourceId: 'aren', knockback: attack.kind === 'heavy' ? 220 : 110, stunMs: attack.kind === 'heavy' ? 260 : 90 }, this.damage);
+      if (applied.killed) this.interruptEnemyAction(enemy, 'defeated');
+      else if (applied.damage > 0 && enemy.stunRemainingMs > 0) this.interruptEnemyAction(enemy, 'stunned');
       const payload: CombatDamageResult = { damage: applied.damage, critical: result.critical, killed: applied.killed, targetId: enemy.id, remainingHealth: enemy.health, lifestealHeal: result.lifestealHeal };
       results.push(payload); this.emit('combat:enemy-hit', { ...payload, critical: result.critical });
       if (result.lifestealHeal > 0) this.emit('combat:lifesteal', { amount: result.lifestealHeal, sourceId: 'aren' });
@@ -176,9 +175,8 @@ export class CombatEngine {
   damageEnemy(enemyId: string, hit: CombatHit): CombatDamageResult | null {
     const enemy = this.enemies.get(enemyId); if (!enemy?.alive) return null;
     const applied = applyHitToEnemy(enemy, hit, this.damage);
-    if (hit.stunMs && hit.stunMs > 0 && this.enemyCombos.delete(enemy.id)) {
-      this.emit('combat:enemy-combo-reset', { enemyId: enemy.id });
-    }
+    if (applied.killed) this.interruptEnemyAction(enemy, 'defeated');
+    else if (applied.damage > 0 && enemy.stunRemainingMs > 0) this.interruptEnemyAction(enemy, 'stunned');
     const result: CombatDamageResult = { damage: applied.damage, critical: !!hit.critical, killed: applied.killed, targetId: enemy.id, remainingHealth: enemy.health, statusApplied: applied.statusApplied };
     if (hit.status) this.statuses.apply(enemy, { kind: hit.status.kind, remainingMs: hit.status.durationMs, tickMs: hit.status.tickMs, tickDamage: hit.status.tickDamage, magnitude: hit.status.magnitude, source: hit.sourceId });
     this.emit('combat:enemy-hit', result);
@@ -246,7 +244,16 @@ export class CombatEngine {
     return { count, multiplier };
   }
 
+  private interruptEnemyAction(enemy: EnemyState, reason: 'stunned' | 'defeated'): void {
+    if (this.enemyCombos.delete(enemy.id)) this.emit('combat:enemy-combo-reset', { enemyId: enemy.id });
+    if (enemy.windupRemainingMs <= 0 && !enemy.telegraphActive) return;
+    enemy.windupRemainingMs = 0;
+    enemy.telegraphActive = false;
+    this.emit('combat:telegraph-cancelled', { enemyId: enemy.id, reason });
+  }
+
   private onEnemyDefeated(enemy: EnemyState): void {
+    this.interruptEnemyAction(enemy, 'defeated');
     this.defeated++;
     const bossId = enemy.bossId;
     // WorldModule listens to combat:enemy-defeated for ordinary enemies and

@@ -71,6 +71,7 @@ export interface CombatEventMap {
   'combat:ability-used': { abilityId: string; kind: string; targets: number };
   'combat:encounter-cleared': { region: string; enemiesDefeated: number; elapsedMs: number };
   'combat:telegraph': { enemyId: string; attack: string; durationMs: number };
+  'combat:telegraph-cancelled': { enemyId: string; reason: 'stunned' | 'defeated' };
   'combat:boss-intro': { bossId: string; name: string; title: string; intro: string };
   'combat:hazard-hit': { hazardType: string; damage: number; blocked: boolean; dodged: boolean };
   'combat:boss-pattern': { bossId: string; phase: BossPhase; pattern: string };
